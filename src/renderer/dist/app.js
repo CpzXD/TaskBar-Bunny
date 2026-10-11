@@ -964,16 +964,23 @@
           if (this.currentState !== "eat" && this.currentState !== "dangling" && this.currentState !== "falling") {
             const nearestFood = this.bunny.findNearestFood();
             if (nearestFood) {
-              const dist = Math.hypot(this.bunny.x - nearestFood.x, this.bunny.y - nearestFood.y);
-              if (dist > 14) {
-                this.bunny.targetX = nearestFood.x;
-                this.bunny.targetY = nearestFood.y;
-                this.bunny.direction = nearestFood.x > this.bunny.x ? 1 : -1;
+              const approachDirection = nearestFood.x > this.bunny.x ? 1 : -1;
+              const walkTargetX = nearestFood.x - approachDirection * 10;
+              const walkTargetY = this.bunny.groundY;
+              const distX = Math.abs(this.bunny.x - walkTargetX);
+              const distY = Math.abs(this.bunny.y - walkTargetY);
+              if (distX > 3 || distY > 3) {
+                this.bunny.targetX = walkTargetX;
+                this.bunny.targetY = walkTargetY;
+                this.bunny.direction = approachDirection;
                 if (this.currentState !== "walk") {
                   this.setState("walk", 8e3);
                 }
                 return;
               } else {
+                this.bunny.x = walkTargetX;
+                this.bunny.y = walkTargetY;
+                this.bunny.direction = approachDirection;
                 this.bunny.currentEatingFood = nearestFood;
                 this.setState("eat", 3200);
                 return;
@@ -1005,9 +1012,7 @@
             const minX = margin;
             const maxX = Math.max(minX + 100, this.bunny.screenWidth - margin);
             this.bunny.targetX = minX + Math.random() * (maxX - minX);
-            const roamingH = this.bunny.getRoamingHeight ? this.bunny.getRoamingHeight() : 220;
-            const minY = Math.max(40, this.bunny.groundY - roamingH);
-            this.bunny.targetY = minY + Math.random() * (this.bunny.groundY - minY);
+            this.bunny.targetY = this.bunny.groundY;
             this.bunny.direction = this.bunny.targetX > this.bunny.x ? 1 : -1;
             this.setState("walk");
           } else if (roll < 0.65) {
@@ -1592,25 +1597,21 @@
         }
         updateWalk(deltaTime) {
           const distX = this.targetX - this.x;
-          const distY = this.targetY - this.y;
-          const dist = Math.hypot(distX, distY);
-          if (dist < 4) {
+          if (Math.abs(distX) < 3) {
             this.x = this.targetX;
-            this.y = this.targetY;
+            this.y = this.groundY;
             this.stateMachine.setState("idle");
             return;
           }
           const isHungry = this.needs.isHungry();
           const speed = (isHungry ? 22 : 45) * (deltaTime / 1e3);
-          if (Math.abs(distX) > 2) {
+          if (Math.abs(distX) > 1) {
             this.direction = distX > 0 ? 1 : -1;
           }
-          this.x += distX / dist * Math.min(dist, speed);
-          this.y += distY / dist * Math.min(dist, speed);
+          this.x += (distX > 0 ? 1 : -1) * Math.min(Math.abs(distX), speed);
+          this.y = this.groundY;
           const halfW = this.width / 2;
           this.x = Math.max(halfW, Math.min(this.screenWidth - halfW, this.x));
-          const minY = Math.max(40, this.groundY - this.getRoamingHeight());
-          this.y = Math.max(minY, Math.min(this.groundY, this.y));
         }
         startHop() {
           this.vy = -3.8;
@@ -1740,7 +1741,6 @@
           this.startHop();
           this.stateMachine.setState("hop");
         }
-        // --- Particles ---
         addParticle(x, y, vx, vy, type) {
           this.particles.push({
             x,
@@ -1796,7 +1796,6 @@
             ctx.restore();
           }
         }
-        // --- Hit Testing ---
         isPointInside(px, py) {
           const halfW = this.width * 0.5 / 2;
           const left = this.x - halfW;
@@ -1805,7 +1804,6 @@
           const bottom = this.y;
           return px >= left && px <= right && py >= top && py <= bottom;
         }
-        // --- Rendering ---
         draw(ctx) {
           ctx.save();
           ctx.imageSmoothingEnabled = false;
@@ -2588,8 +2586,8 @@
           const food = this.findFoodAt(px, py);
           if (food) {
             if (this.app.bunny) {
-              this.app.bunny.targetX = food.x;
-              this.app.bunny.targetY = food.y;
+              this.app.bunny.targetX = food.x - (food.x > this.app.bunny.x ? 1 : -1) * 10;
+              this.app.bunny.targetY = this.app.bunny.groundY;
               this.app.bunny.direction = food.x > this.app.bunny.x ? 1 : -1;
               this.app.bunny.stateMachine.setState("walk", 6e3);
               soundEngine2.playHop();
@@ -2785,7 +2783,6 @@
       this.hud = new HUD(this);
       this.input = new InputManager(this);
       this.applyLayout();
-      console.log("[Renderer] App initialized successfully. Canvas:", this.canvas.width, "x", this.canvas.height);
       if (offlineSummary) {
         this.handleOfflineSummary(offlineSummary);
       }
@@ -3038,7 +3035,15 @@
           this.ctx.stroke();
           this.ctx.restore();
         }
-        ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+        if (this.bunny && this.bunny.stateMachine.currentState === "eat" && this.bunny.currentEatingFood === food) {
+          const progress = this.bunny.stateMachine.stateTimer / Math.max(1, this.bunny.stateMachine.stateDuration);
+          const nibbleSize = Math.max(8, 18 * (1 - progress * 0.5));
+          const holdX = this.bunny.x + this.bunny.direction * 10;
+          const holdY = this.bunny.y - 12;
+          ItemSprites.drawFood(this.ctx, food.id, holdX, holdY, nibbleSize);
+        } else {
+          ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+        }
       }
     }
     syncState(updatedState) {

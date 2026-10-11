@@ -1,6 +1,3 @@
-// src/main/storage.js
-// Safe JSON persistence in user app data and offline progress calculation
-
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
@@ -47,23 +44,19 @@ class StorageManager {
       return;
     }
 
-    // 1. Hunger decay
-    // Base normal speed: drain ~30 hunger points per hour.
     const speedFactor = HUNGER_SPEED_FACTORS[this.state.settings.hungerSpeed] || 1.0;
     const drainPerHour = 30 * speedFactor;
     const theoreticalDrain = (elapsedMinutes / 60) * drainPerHour;
-    // Cap offline hunger drain to 75 points so bunny doesn't drop below 5 (never dies/unfair)
+    // Keep at least 5 hunger points so returning players aren't punished
     const cappedDrain = Math.min(75, Math.floor(theoreticalDrain));
     const previousHunger = this.state.bunny.hunger;
     this.state.bunny.hunger = Math.max(5, this.state.bunny.hunger - cappedDrain);
     const actualDrain = previousHunger - this.state.bunny.hunger;
 
-    // Happiness also drops slightly if hunger went down, but capped
     if (this.state.bunny.hunger < 25) {
       this.state.bunny.happiness = Math.max(20, this.state.bunny.happiness - 15);
     }
 
-    // 2. Garden offline progress
     let carrotsGrown = 0;
     if (this.state.garden && Array.isArray(this.state.garden.plots)) {
       for (const plot of this.state.garden.plots) {
@@ -77,7 +70,6 @@ class StorageManager {
       }
     }
 
-    // 3. Daily login streak check
     const todayDate = new Date().toISOString().slice(0, 10);
     let streakBonus = 0;
     if (this.state.meta.lastLoginDate !== todayDate) {
@@ -88,7 +80,6 @@ class StorageManager {
         this.state.meta.loginStreak = 1;
       }
       this.state.meta.lastLoginDate = todayDate;
-      // Streak reward: 3 carrots + (streak * 10) coins
       streakBonus = this.state.meta.loginStreak * 10;
       this.state.inventory.coins += streakBonus;
       this.state.inventory.foods.carrot = (this.state.inventory.foods.carrot || 0) + 3;

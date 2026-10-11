@@ -1,6 +1,3 @@
-// src/main/trayManager.js
-// System tray icon and context menu management
-
 const { Tray, Menu, nativeImage, app } = require('electron');
 const path = require('path');
 const windowManager = require('./windowManager');

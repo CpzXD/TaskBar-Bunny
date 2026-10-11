@@ -1,6 +1,3 @@
-// src/renderer/sprites/accessories.js
-// Procedural layered accessory rendering anchored to bunny head and body coordinates
-
 class AccessoryRenderer {
   /**
    * Draws equipped accessories over the bunny canvas.

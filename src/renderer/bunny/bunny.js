@@ -1,6 +1,3 @@
-// src/renderer/bunny/bunny.js
-// Bunny physics, movement, interaction handling, and layered rendering
-
 const { BunnySpriteGenerator } = require('../sprites/bunnySprites');
 const { AccessoryRenderer } = require('../sprites/accessories');
 const { ItemSprites } = require('../sprites/itemSprites');
@@ -110,41 +107,30 @@ class Bunny {
 
   update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
     this.worldFoods = worldFoods;
-
-    // 1. Update Needs
     this.needs.update(onLevelUp, onPassiveCarrot);
-
-    // 2. Update State Machine
     this.stateMachine.update(deltaTime);
-
-    // 3. Update Particles
     this.updateParticles(deltaTime);
   }
 
   updateWalk(deltaTime) {
     const distX = this.targetX - this.x;
-    const distY = this.targetY - this.y;
-    const dist = Math.hypot(distX, distY);
-    if (dist < 4) {
+    if (Math.abs(distX) < 3) {
       this.x = this.targetX;
-      this.y = this.targetY;
+      this.y = this.groundY;
       this.stateMachine.setState('idle');
       return;
     }
 
     const isHungry = this.needs.isHungry();
     const speed = (isHungry ? 22 : 45) * (deltaTime / 1000);
-    if (Math.abs(distX) > 2) {
+    if (Math.abs(distX) > 1) {
       this.direction = distX > 0 ? 1 : -1;
     }
-    this.x += (distX / dist) * Math.min(dist, speed);
-    this.y += (distY / dist) * Math.min(dist, speed);
+    this.x += (distX > 0 ? 1 : -1) * Math.min(Math.abs(distX), speed);
+    this.y = this.groundY;
 
-    // Clamp within screen boundaries and roaming area
     const halfW = this.width / 2;
     this.x = Math.max(halfW, Math.min(this.screenWidth - halfW, this.x));
-    const minY = Math.max(40, this.groundY - this.getRoamingHeight());
-    this.y = Math.max(minY, Math.min(this.groundY, this.y));
   }
 
   startHop() {
@@ -257,7 +243,6 @@ class Bunny {
     if (!this.isDragging) return;
     this.x = mouseX + this.dragOffsetX;
     this.y = mouseY + this.dragOffsetY;
-    // Keep within window (now full workArea height!)
     const halfW = this.width / 2;
     this.x = Math.max(halfW, Math.min(this.screenWidth - halfW, this.x));
     this.y = Math.min(this.taskbarFloorY, Math.max(35, this.y));
@@ -269,7 +254,6 @@ class Bunny {
     this.vy = 0;
 
     if (this.floorMode === 'free') {
-      // If dropped near the taskbar (within 60px), snap back to taskbar
       if (this.y >= this.taskbarFloorY - 60) {
         this.groundY = this.taskbarFloorY;
         this.customGroundY = null;
@@ -303,8 +287,6 @@ class Bunny {
     this.stateMachine.setState('hop');
   }
 
-  // --- Particles ---
-
   addParticle(x, y, vx, vy, type) {
     this.particles.push({
       x,
@@ -325,7 +307,7 @@ class Bunny {
       p.x += p.vx * (deltaTime / 16.6);
       p.y += p.vy * (deltaTime / 16.6);
       if (p.type === 'crumb') {
-        p.vy += 0.08; // crumb gravity
+        p.vy += 0.08;
       }
       p.alpha = Math.max(0, 1 - (p.life / p.maxLife));
       if (p.life >= p.maxLife) {
@@ -364,10 +346,7 @@ class Bunny {
     }
   }
 
-  // --- Hit Testing ---
-
   isPointInside(px, py) {
-    // Tight hitbox tailored to actual visible body silhouette (~40px wide at scale 2.5)
     const halfW = (this.width * 0.50) / 2;
     const left = this.x - halfW;
     const right = this.x + halfW;
@@ -376,13 +355,10 @@ class Bunny {
     return px >= left && px <= right && py >= top && py <= bottom;
   }
 
-  // --- Rendering ---
-
   draw(ctx) {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    // 1. Render Base Bunny Frame onto 32x32 offscreen buffer
     const stateName = (this.needs.isHungry() && this.stateMachine.currentState === 'idle')
       ? 'sad'
       : this.stateMachine.currentState;
@@ -394,7 +370,6 @@ class Bunny {
       appearance: this.appearance
     });
 
-    // 2. Render Layered Accessories on the 32x32 buffer
     const frameCtx = frameCanvas.getContext('2d');
     frameCtx.imageSmoothingEnabled = false;
     AccessoryRenderer.renderAccessories(
@@ -405,12 +380,10 @@ class Bunny {
       this.stateMachine.frameIndex
     );
 
-    // 3. Draw Scaled Bunny onto Main Canvas
     const drawX = Math.floor(this.x - this.width / 2);
     const drawY = Math.floor(this.y - this.height);
     ctx.drawImage(frameCanvas, drawX, drawY, this.width, this.height);
 
-    // 4. Sleep zZz or Thought Bubble
     if (this.stateMachine.currentState === 'sleep') {
       if (this.stateMachine.frameIndex % 3 === 0) {
         ItemSprites.drawThoughtBubble(ctx, this.x, drawY - 4, 'sleep');
@@ -419,9 +392,7 @@ class Bunny {
       ItemSprites.drawThoughtBubble(ctx, this.x, drawY - 4, 'carrot');
     }
 
-    // 5. Particles
     this.drawParticles(ctx);
-
     ctx.restore();
   }
 }

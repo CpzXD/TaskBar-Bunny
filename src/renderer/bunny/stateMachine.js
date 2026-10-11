@@ -1,6 +1,3 @@
-// src/renderer/bunny/stateMachine.js
-// Finite State Machine controlling autonomous bunny behaviors and transitions
-
 class BunnyStateMachine {
   constructor(bunny) {
     this.bunny = bunny;
@@ -98,21 +95,28 @@ class BunnyStateMachine {
       return;
     }
 
-    // Check food targeting: if food dropped and not currently eating or dangling
     if (this.currentState !== 'eat' && this.currentState !== 'dangling' && this.currentState !== 'falling') {
       const nearestFood = this.bunny.findNearestFood();
       if (nearestFood) {
-        const dist = Math.hypot(this.bunny.x - nearestFood.x, this.bunny.y - nearestFood.y);
-        if (dist > 14) {
-          this.bunny.targetX = nearestFood.x;
-          this.bunny.targetY = nearestFood.y;
-          this.bunny.direction = (nearestFood.x > this.bunny.x) ? 1 : -1;
+        const approachDirection = (nearestFood.x > this.bunny.x) ? 1 : -1;
+        const walkTargetX = nearestFood.x - (approachDirection * 10);
+        const walkTargetY = this.bunny.groundY;
+
+        const distX = Math.abs(this.bunny.x - walkTargetX);
+        const distY = Math.abs(this.bunny.y - walkTargetY);
+
+        if (distX > 3 || distY > 3) {
+          this.bunny.targetX = walkTargetX;
+          this.bunny.targetY = walkTargetY;
+          this.bunny.direction = approachDirection;
           if (this.currentState !== 'walk') {
             this.setState('walk', 8000);
           }
           return;
         } else {
-          // Reached food!
+          this.bunny.x = walkTargetX;
+          this.bunny.y = walkTargetY;
+          this.bunny.direction = approachDirection;
           this.bunny.currentEatingFood = nearestFood;
           this.setState('eat', 3200);
           return;
@@ -120,14 +124,12 @@ class BunnyStateMachine {
       }
     }
 
-    // Timer-based transitions
     if (this.stateTimer >= this.stateDuration) {
       this.chooseNextState();
     }
   }
 
   chooseNextState() {
-    // Check night time (11pm - 7am)
     const hour = new Date().getHours();
     const isNight = hour >= 23 || hour < 7;
     const isSulky = this.bunny.needs.isSulky();
@@ -145,18 +147,13 @@ class BunnyStateMachine {
       return;
     }
 
-    // Random roll for day time cozy activity
     const roll = Math.random();
     if (roll < 0.45) {
-      // Pick random destination across the roaming area
       const margin = 80;
       const minX = margin;
       const maxX = Math.max(minX + 100, this.bunny.screenWidth - margin);
       this.bunny.targetX = minX + Math.random() * (maxX - minX);
-
-      const roamingH = this.bunny.getRoamingHeight ? this.bunny.getRoamingHeight() : 220;
-      const minY = Math.max(40, this.bunny.groundY - roamingH);
-      this.bunny.targetY = minY + Math.random() * (this.bunny.groundY - minY);
+      this.bunny.targetY = this.bunny.groundY;
 
       this.bunny.direction = (this.bunny.targetX > this.bunny.x) ? 1 : -1;
       this.setState('walk');

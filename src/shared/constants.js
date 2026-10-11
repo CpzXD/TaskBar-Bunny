@@ -1,6 +1,3 @@
-// src/shared/constants.js
-// Game balance constants, cosmetic catalogs, achievements, and default data
-
 const HUNGER_SPEED_FACTORS = {
   relaxed: 0.5,  // ~60 min per carrot
   normal: 1.0,   // ~30 min per carrot

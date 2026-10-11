@@ -1,6 +1,3 @@
-// src/renderer/ui/settings.js
-// Settings controller for monitor selection, size, hunger speed, audio, and autostart
-
 class SettingsController {
   constructor() {
     this.closeBtn = document.getElementById('closeBtn');
@@ -28,12 +25,10 @@ class SettingsController {
       window.api.closeWindow('settings');
     });
 
-    // 1. Load state
     const { state } = await window.api.loadState();
     this.state = state;
     const s = this.state.settings || {};
 
-    // 2. Load displays
     const displays = await window.api.getDisplays();
     this.monitorSelect.innerHTML = '';
     displays.forEach((d) => {
@@ -51,7 +46,6 @@ class SettingsController {
       this.saveState();
     });
 
-    // 3. Bunny Scale
     this.scaleSelect.value = (s.bunnyScale || 2.5).toString();
     this.scaleSelect.addEventListener('change', (e) => {
       this.state.settings.bunnyScale = parseFloat(e.target.value);
@@ -92,14 +86,12 @@ class SettingsController {
       });
     }
 
-    // 4. Hunger Speed
     this.hungerSpeedSelect.value = s.hungerSpeed || 'normal';
     this.hungerSpeedSelect.addEventListener('change', (e) => {
       this.state.settings.hungerSpeed = e.target.value;
       this.saveState();
     });
 
-    // 5. Volume Slider
     const vol = s.volume !== undefined ? s.volume : 0.6;
     this.volumeSlider.value = vol;
     this.volumeVal.textContent = `${Math.round(vol * 100)}%`;
@@ -110,14 +102,12 @@ class SettingsController {
       this.saveState();
     });
 
-    // 6. Mute Checkbox
     this.muteCheck.checked = Boolean(s.isMuted);
     this.muteCheck.addEventListener('change', (e) => {
       this.state.settings.isMuted = e.target.checked;
       this.saveState();
     });
 
-    // 7. Start with Windows
     this.startWindowsCheck.checked = Boolean(s.startWithWindows);
     this.startWindowsCheck.addEventListener('change', (e) => {
       this.state.settings.startWithWindows = e.target.checked;
@@ -125,14 +115,12 @@ class SettingsController {
       this.saveState();
     });
 
-    // 8. Do Not Disturb
     this.dndCheck.checked = Boolean(s.doNotDisturb);
     this.dndCheck.addEventListener('change', (e) => {
       this.state.settings.doNotDisturb = e.target.checked;
       this.saveState();
     });
 
-    // 9. Quit Game
     if (this.quitAppBtn) {
       this.quitAppBtn.addEventListener('click', () => {
         this.saveState();
@@ -142,7 +130,6 @@ class SettingsController {
       });
     }
 
-    // 10. Reset Save Data
     this.resetBtn.addEventListener('click', async () => {
       if (confirm('Are you sure you want to reset all progress, coins, and customizations? This cannot be undone.')) {
         await window.api.resetState();

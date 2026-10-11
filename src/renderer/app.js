@@ -1,6 +1,3 @@
-// src/renderer/app.js
-// Main renderer application coordinator: connects Bunny, HUD, Garden, Loop, and IPC
-
 const { Bunny } = require('./bunny/bunny');
 const { CarrotGarden } = require('./garden/garden');
 const { HUD } = require('./ui/hud');
@@ -58,17 +55,14 @@ class TaskbarBunnyApp {
       this.applyLayout();
     });
 
-    // 1. Load initial game state via IPC
     const { state, offlineSummary } = await window.api.loadState();
     this.state = state;
 
-    // 2. Sound setup
     if (this.state.settings) {
       soundEngine.setVolume(this.state.settings.volume ?? 0.6);
       soundEngine.setMuted(Boolean(this.state.settings.isMuted));
     }
 
-    // 3. Create entities
     this.bunny = new Bunny(
       this.state.bunny,
       this.state.settings,
@@ -95,20 +89,15 @@ class TaskbarBunnyApp {
     this.input = new InputManager(this);
     this.applyLayout();
 
-    console.log('[Renderer] App initialized successfully. Canvas:', this.canvas.width, 'x', this.canvas.height);
-
-    // 4. Listen for offline summary
     if (offlineSummary) {
       this.handleOfflineSummary(offlineSummary);
     }
     window.api.onOfflineSummary((summary) => this.handleOfflineSummary(summary));
 
-    // 5. Listen for state updates from companion windows
     window.api.onStateUpdate((updatedState) => {
       this.syncState(updatedState);
     });
 
-    // 6. Listen for tray actions
     window.api.onTrayAction((action) => {
       if (action === 'feed-carrot') {
         const dropX = Math.max(95, this.bunny ? this.bunny.x + (this.bunny.direction * 35) : 120);
@@ -116,7 +105,6 @@ class TaskbarBunnyApp {
       }
     });
 
-    // 7. Start Game Loop
     this.loop = new GameLoop(
       (dt) => this.update(dt),
       () => this.render()
@@ -257,9 +245,7 @@ class TaskbarBunnyApp {
   }
 
   update(deltaTime) {
-    // 1. Update World dropped foods
     for (const food of this.worldFoods) {
-      // Un-trap any legacy food from behind the counter badge or drawer
       const db = this.hud ? this.hud.getDrawerBounds() : null;
       const minX = (this.hud && this.hud.isDrawerOpen && db) ? (db.x + db.width + 25) : 95;
       if (food.x < minX) {
@@ -272,7 +258,7 @@ class TaskbarBunnyApp {
         if (food.y >= food.groundY) {
           food.y = food.groundY;
           if (food.vy > 1.2) {
-            food.vy = -food.vy * 0.3; // bounce
+            food.vy = -food.vy * 0.3;
           } else {
             food.vy = 0;
             food.isGrounded = true;
@@ -281,12 +267,10 @@ class TaskbarBunnyApp {
       }
     }
 
-    // 2. Update Garden
     if (this.garden) {
       this.garden.update(deltaTime);
     }
 
-    // 3. Update Bunny
     if (this.bunny) {
       this.bunny.update(
         deltaTime,
@@ -296,12 +280,10 @@ class TaskbarBunnyApp {
       );
     }
 
-    // 4. Update HUD
     if (this.hud) {
       this.hud.update(deltaTime);
     }
 
-    // 5. Random cute events (butterfly, sneeze, coin find)
     this.updateRandomEvents(deltaTime);
 
     // 6. Intelligent Idle optimization
@@ -367,15 +349,12 @@ class TaskbarBunnyApp {
   }
 
   render() {
-    // Clear screen transparently
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // 1. Draw Garden Plot
     if (this.garden) {
       this.garden.draw(this.ctx);
     }
 
-    // 2. Draw Butterfly
     if (this.butterfly) {
       this.ctx.save();
       this.ctx.fillStyle = this.butterfly.color;
@@ -389,12 +368,10 @@ class TaskbarBunnyApp {
       this.ctx.restore();
     }
 
-    // 3. Draw Bunny
     if (this.bunny) {
       this.bunny.draw(this.ctx);
     }
 
-    // 4. Draw HUD (Drawer and Basket)
     if (this.hud && this.bunny) {
       this.hud.draw(
         this.ctx,
@@ -406,7 +383,6 @@ class TaskbarBunnyApp {
       );
     }
 
-    // 5. Draw Dropped & Draggable Foods (Rendered ON TOP so they are always visible & movable)
     for (const food of this.worldFoods) {
       const isHovered = this.input && this.input.findFoodAt(this.input.lastMouseX, this.input.lastMouseY) === food;
       const isDragged = this.input && this.input.draggedFood === food;
@@ -421,7 +397,15 @@ class TaskbarBunnyApp {
         this.ctx.restore();
       }
 
-      ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+      if (this.bunny && this.bunny.stateMachine.currentState === 'eat' && this.bunny.currentEatingFood === food) {
+        const progress = this.bunny.stateMachine.stateTimer / Math.max(1, this.bunny.stateMachine.stateDuration);
+        const nibbleSize = Math.max(8, 18 * (1 - progress * 0.5));
+        const holdX = this.bunny.x + (this.bunny.direction * 10);
+        const holdY = this.bunny.y - 12;
+        ItemSprites.drawFood(this.ctx, food.id, holdX, holdY, nibbleSize);
+      } else {
+        ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+      }
     }
   }
 

@@ -1,6 +1,3 @@
-// src/renderer/sprites/palette.js
-// Color palette constants and dynamic fur tint generators
-
 const PALETTES = {
   fur: {
     white: {

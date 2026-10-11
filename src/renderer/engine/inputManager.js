@@ -1,6 +1,3 @@
-// src/renderer/engine/inputManager.js
-// Handles user clicks, carrot/food dragging, bunny picking up, petting, and click-through switching
-
 const { soundEngine } = require('./soundEngine');
 
 class InputManager {
@@ -14,8 +11,7 @@ class InputManager {
     this.isInteractiveHover = false;
     this.lastClickTime = 0;
 
-    // Drag target tracking
-    this.dragTarget = null; // 'food' | 'bunny' | 'drawer-food' | 'menu'
+    this.dragTarget = null;
     this.draggedFood = null;
     this.dragFoodOffsetX = 0;
     this.dragFoodOffsetY = 0;
@@ -43,7 +39,6 @@ class InputManager {
 
   findFoodAt(px, py) {
     if (!this.app.worldFoods) return null;
-    // Check foods in reverse order (topmost first)
     for (let i = this.app.worldFoods.length - 1; i >= 0; i--) {
       const food = this.app.worldFoods[i];
       const dist = Math.hypot(food.x - px, (food.y - 4) - py);
@@ -57,19 +52,11 @@ class InputManager {
   checkInteractivity(px, py) {
     if (this.isDragging) return true;
 
-    // 1. Dropped Food hit test (highest priority)
     if (this.findFoodAt(px, py)) return true;
-
-    // 2. Bunny hit test (smaller tight hitbox)
     if (this.app.bunny && this.app.bunny.isPointInside(px, py)) return true;
-
-    // 3. HUD hit test
     if (this.app.hud && this.app.hud.isPointInside(px, py)) return true;
-
-    // 4. Garden hit test
     if (this.app.garden && this.app.garden.isPointInside(px, py)) return true;
 
-    // 5. If food is selected to drop, clicking anywhere is interactive
     if (this.app.hud && this.app.hud.selectedFoodToDrop) {
       return true;
     }
@@ -123,7 +110,6 @@ class InputManager {
 
     const dist = Math.hypot(px - this.mouseDownX, py - this.mouseDownY);
 
-    // 1. Dragging dropped food
     if (this.dragTarget === 'food' && this.draggedFood) {
       if (dist > 3) this.isDragging = true;
       if (this.isDragging) {
@@ -133,7 +119,6 @@ class InputManager {
         this.draggedFood.isGrounded = false;
         this.draggedFood.vy = 0;
 
-        // Bunny tracks the carrot with its head
         if (this.app.bunny) {
           this.app.bunny.direction = (this.draggedFood.x > this.app.bunny.x) ? 1 : -1;
         }
@@ -141,7 +126,6 @@ class InputManager {
       return;
     }
 
-    // 2. Dragging directly from drawer slot
     if (this.dragTarget === 'drawer-food' && this.pendingFoodSlot) {
       if (dist > 8) {
         if (this.app.inventory.foods[this.pendingFoodSlot] > 0) {
@@ -169,7 +153,6 @@ class InputManager {
       return;
     }
 
-    // 3. Dragging menu
     if (this.dragTarget === 'menu' && this.app.hud) {
       if (dist > 4) this.isDragging = true;
       if (this.isDragging) {
@@ -179,7 +162,6 @@ class InputManager {
       return;
     }
 
-    // 4. Dragging bunny
     if (this.dragTarget === 'bunny' && this.app.bunny) {
       if (dist > 5) {
         if (!this.isDragging) {
@@ -201,7 +183,6 @@ class InputManager {
     const px = e.clientX;
     const py = e.clientY;
 
-    // 1. Check if clicking on dropped food
     const food = this.findFoodAt(px, py);
     if (food) {
       this.dragTarget = 'food';
@@ -211,13 +192,11 @@ class InputManager {
       return;
     }
 
-    // 2. Check if clicking on bunny
     if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
       this.dragTarget = 'bunny';
       return;
     }
 
-    // 3. Check if clicking on drawer food slot or draggable menu
     if (this.app.hud) {
       const btn = this.app.hud.getButtonAt(px, py);
       if (btn) {
@@ -353,7 +332,6 @@ class InputManager {
   }
 
   handleClick(px, py, now) {
-    // 1. If dropping food selected from drawer
     if (this.app.hud && this.app.hud.selectedFoodToDrop) {
       const foodId = this.app.hud.selectedFoodToDrop;
       this.app.dropFood(foodId, px, py);
@@ -361,12 +339,11 @@ class InputManager {
       return;
     }
 
-    // 2. Check dropped food click -> bunny walks over to it
     const food = this.findFoodAt(px, py);
     if (food) {
       if (this.app.bunny) {
-        this.app.bunny.targetX = food.x;
-        this.app.bunny.targetY = food.y;
+        this.app.bunny.targetX = food.x - ((food.x > this.app.bunny.x ? 1 : -1) * 10);
+        this.app.bunny.targetY = this.app.bunny.groundY;
         this.app.bunny.direction = (food.x > this.app.bunny.x) ? 1 : -1;
         this.app.bunny.stateMachine.setState('walk', 6000);
         soundEngine.playHop();
@@ -374,7 +351,6 @@ class InputManager {
       return;
     }
 
-    // 3. Check HUD buttons
     if (this.app.hud) {
       const btn = this.app.hud.getButtonAt(px, py);
       if (btn) {
@@ -405,13 +381,11 @@ class InputManager {
       }
     }
 
-    // 4. Check Garden harvest
     if (this.app.garden && this.app.garden.isPointInside(px, py)) {
       this.app.garden.harvest(1);
       return;
     }
 
-    // 5. Check Bunny (Pet or Double Click Hop)
     if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
       const isDoubleClick = (now - this.lastClickTime < 320);
       this.lastClickTime = now;

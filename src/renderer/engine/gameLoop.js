@@ -1,6 +1,3 @@
-// src/renderer/engine/gameLoop.js
-// 30 FPS game loop with automatic idle-throttling to achieve near 0% CPU usage
-
 class GameLoop {
   constructor(updateFn, renderFn) {
     this.update = updateFn;

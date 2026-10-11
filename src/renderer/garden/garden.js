@@ -1,6 +1,3 @@
-// src/renderer/garden/garden.js
-// Carrot mini-garden plot simulation and growth tracking
-
 const { ItemSprites } = require('../sprites/itemSprites');
 const { soundEngine } = require('../engine/soundEngine');
 

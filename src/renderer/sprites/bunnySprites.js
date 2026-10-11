@@ -1,6 +1,3 @@
-// src/renderer/sprites/bunnySprites.js
-// Procedural pixel-perfect 32x32 layered bunny renderer with frame anchors
-
 const { PALETTES } = require('./palette');
 
 class BunnySpriteGenerator {

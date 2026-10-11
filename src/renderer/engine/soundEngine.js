@@ -1,6 +1,3 @@
-// src/renderer/engine/soundEngine.js
-// Zero-asset procedural sound effects synthesizer using Web Audio API
-
 class SoundEngine {
   constructor() {
     this.audioCtx = null;

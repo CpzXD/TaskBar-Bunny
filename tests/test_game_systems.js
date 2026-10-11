@@ -1,6 +1,3 @@
-// tests/test_game_systems.js
-// Automated verification tests using native node:test runner
-
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { DEFAULT_STATE, FOODS, ACCESSORIES, ACHIEVEMENTS, HUNGER_SPEED_FACTORS } = require('../src/shared/constants');
@@ -8,7 +5,7 @@ const { BunnyNeeds } = require('../src/renderer/bunny/needs');
 const { PALETTES } = require('../src/renderer/sprites/palette');
 const storage = require('../src/main/storage');
 
-test('Constants and catalogs integrity', () => {
+test('food items and accessories catalogs are defined', () => {
   assert.ok(FOODS.carrot, 'Carrot must exist in FOODS');
   assert.ok(FOODS.carrot.hungerRestore > 0, 'Carrot must restore hunger');
   assert.ok(ACCESSORIES.head.length >= 8, 'At least 8 head accessories');
@@ -20,7 +17,7 @@ test('Constants and catalogs integrity', () => {
   assert.strictEqual(DEFAULT_STATE.bunny.outfitPresets.length, 3, 'Must have 3 outfit presets');
 });
 
-test('Needs, feeding, and leveling mechanics', () => {
+test('feeding restores hunger and grants xp toward leveling up', () => {
   const needs = new BunnyNeeds({ hunger: 30, happiness: 40, level: 1, xp: 0 }, { hungerSpeed: 'normal' });
   assert.ok(needs.isHungry(), 'Bunny with 30 hunger should report isHungry()');
 
@@ -37,7 +34,7 @@ test('Needs, feeding, and leveling mechanics', () => {
   assert.ok(leveledUp, 'Level up callback must be triggered');
 });
 
-test('Offline progress simulation math', () => {
+test('offline time drains hunger smoothly without dropping below minimum', () => {
   function simulateOffline(startHunger, elapsedMinutes, hungerSpeed = 'normal') {
     const factor = HUNGER_SPEED_FACTORS[hungerSpeed] || 1.0;
     const drainPerHour = 30 * factor;
@@ -53,14 +50,14 @@ test('Offline progress simulation math', () => {
   assert.strictEqual(h24h, 5, `Long offline drain must be safely capped (was ${h24h})`);
 });
 
-test('Palettes and dynamic tinting definitions', () => {
+test('fur and eye color palettes are configured', () => {
   assert.ok(PALETTES.fur.white, 'White fur palette exists');
   assert.ok(PALETTES.fur.spotted, 'Spotted fur palette exists');
   assert.ok(PALETTES.eyes.ruby, 'Ruby eye palette exists');
   assert.ok(PALETTES.blush, 'Blush color exists');
 });
 
-test('Settings menuScale and Achievements catalog', () => {
+test('settings menu scale and achievements data are valid', () => {
   assert.strictEqual(typeof DEFAULT_STATE.settings.menuScale, 'number', 'menuScale setting must exist and be numeric');
   assert.ok(DEFAULT_STATE.settings.menuScale >= 1.0, 'menuScale must be at least 1.0');
   ACHIEVEMENTS.forEach(ach => {
@@ -69,14 +66,14 @@ test('Settings menuScale and Achievements catalog', () => {
   });
 });
 
-test('Carrot Garden random positioning', () => {
+test('carrot garden picks a random x position on the taskbar', () => {
   const { CarrotGarden } = require('../src/renderer/garden/garden');
   const garden = new CarrotGarden({}, () => {});
   garden.randomizePosition(1920);
   assert.ok(garden.x >= 320 && garden.x <= 1920 - 70, `Garden x should be within [320, 1850], got ${garden.x}`);
 });
 
-test('Prototype pollution protection in storage.deepMerge', () => {
+test('deepMerge blocks prototype pollution attempts', () => {
   const target = { a: 1, nested: { b: 2 } };
   const malicious = JSON.parse('{"__proto__": {"polluted": true}, "constructor": {"polluted": true}, "nested": {"b": 3}}');
 
@@ -87,7 +84,7 @@ test('Prototype pollution protection in storage.deepMerge', () => {
   assert.strictEqual(target.polluted, undefined, 'polluted property must not exist on target');
 });
 
-test('Roaming area and floor mode configurations and sanitization', () => {
+test('roaming area, floor mode, and menu position are properly sanitized', () => {
   assert.ok(['taskbar', 'cozy', 'desk', 'full'].includes(DEFAULT_STATE.settings.roamingArea), 'roamingArea default is valid');
   assert.ok(['taskbar', 'free'].includes(DEFAULT_STATE.settings.floorMode), 'floorMode default is valid');
 
@@ -109,7 +106,7 @@ test('Roaming area and floor mode configurations and sanitization', () => {
   assert.strictEqual(clean.bunny.customGroundY, 480);
 });
 
-test('Bunny roaming heights for bigger area movement', () => {
+test('bunny roaming height responds to roamingArea setting', () => {
   const { Bunny } = require('../src/renderer/bunny/bunny');
   const b1 = new Bunny({}, { roamingArea: 'taskbar' }, 1920, 1080);
   assert.strictEqual(b1.getRoamingHeight(), 40, 'taskbar mode should be 40px');
@@ -124,7 +121,7 @@ test('Bunny roaming heights for bigger area movement', () => {
   assert.ok(b4.getRoamingHeight() >= 900, 'full screen mode should span screen height');
 });
 
-test('Movable menu HUD positioning and drawer anchoring', () => {
+test('menu can be dragged and repositioned with drawer anchoring correctly', () => {
   const { HUD } = require('../src/renderer/ui/hud');
   const mockApp = {
     canvas: { width: 1920, height: 1080 },

@@ -1,6 +1,3 @@
-// src/main/windowManager.js
-// Multi-monitor positioning, transparent taskbar overlay, and popup window management
-
 const { BrowserWindow, screen, app } = require('electron');
 const path = require('path');
 

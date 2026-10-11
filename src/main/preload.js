@@ -1,6 +1,3 @@
-// src/main/preload.js
-// Context bridge exposing safe IPC channels to the renderer
-
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {

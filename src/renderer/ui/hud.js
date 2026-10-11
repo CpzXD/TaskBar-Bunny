@@ -1,6 +1,3 @@
-// src/renderer/ui/hud.js
-// Overlay HUD: inventory bag, food drop drawer, notifications, dropped items, and garden
-
 const { ItemSprites } = require('../sprites/itemSprites');
 const { FOODS } = require('../../shared/constants');
 const { soundEngine } = require('../engine/soundEngine');
@@ -140,7 +137,6 @@ class HUD {
   }
 
   getButtonAt(px, py) {
-    // 1. Check Bag Button
     if (
       px >= this.bagBtn.x - this.bagBtn.width / 2 &&
       px <= this.bagBtn.x + this.bagBtn.width / 2 &&
@@ -150,7 +146,6 @@ class HUD {
       return { type: 'bag' };
     }
 
-    // 2. Check Drawer buttons if open
     if (this.isDrawerOpen) {
       const db = this.getDrawerBounds();
       if (px >= db.x && px <= db.x + db.width && py >= db.y && py <= db.y + db.height) {
@@ -161,7 +156,6 @@ class HUD {
         const startX = db.x + Math.round(8 * s);
         const startY = db.y + Math.round(6 * s);
 
-        // Food item slots (row 1)
         for (let i = 0; i < this.foodKeys.length; i++) {
           const fx = startX + i * slotGap;
           if (px >= fx && px <= fx + slotW && py >= startY && py <= startY + slotH) {
@@ -169,7 +163,6 @@ class HUD {
           }
         }
 
-        // Action icons (row 2: Wardrobe, Settings, Exit)
         const btnY = db.y + Math.round(45 * s);
         const btnH = Math.round(22 * s);
         const btn1W = Math.round(52 * s);
@@ -208,11 +201,9 @@ class HUD {
 
     const s = this.scale;
 
-    // 1. Bag Button
     const bx = Math.floor(this.bagBtn.x - this.bagBtn.width / 2);
     const by = Math.floor(this.bagBtn.y - this.bagBtn.height / 2);
 
-    // Cute rounded pill button
     ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
     ctx.strokeStyle = '#fcd34d';
     ctx.lineWidth = Math.max(1.5, Math.round(2 * s));
@@ -221,7 +212,6 @@ class HUD {
     ctx.fill();
     ctx.stroke();
 
-    // Subtle drag grip dots on the left of bag button
     ctx.fillStyle = '#f59e0b';
     const gx = bx + Math.round(5 * s);
     const gy = by + Math.round(this.bagBtn.height / 2);
@@ -231,7 +221,6 @@ class HUD {
     ctx.arc(gx, gy + Math.round(4 * s), Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
     ctx.fill();
 
-    // Carrot icon & count
     ItemSprites.drawFood(ctx, 'carrot', bx + Math.round(16 * s), by + Math.round(14 * s), Math.round(16 * s));
     ctx.fillStyle = '#4a2810';
     ctx.font = `bold ${Math.max(10, Math.round(11 * s))}px sans-serif`;
@@ -239,11 +228,9 @@ class HUD {
     ctx.textBaseline = 'middle';
     ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(27 * s), by + Math.round(14 * s));
 
-    // 2. Drawer Panel
     if (this.isDrawerOpen) {
       const db = this.getDrawerBounds();
 
-      // Drawer background card
       ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = Math.max(1.5, Math.round(2 * s));

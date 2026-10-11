@@ -1,6 +1,3 @@
-// src/renderer/bunny/needs.js
-// Hunger decay, happiness stats, leveling, XP, and passive income timers
-
 const { HUNGER_SPEED_FACTORS, FOODS } = require('../../shared/constants');
 
 class BunnyNeeds {

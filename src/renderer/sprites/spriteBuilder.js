@@ -1,6 +1,3 @@
-// src/renderer/sprites/spriteBuilder.js
-// Utility to compile pixel matrices and layers into crisp offscreen canvases
-
 class SpriteBuilder {
   /**
    * Render an ASCII/character matrix onto a canvas using a color map.

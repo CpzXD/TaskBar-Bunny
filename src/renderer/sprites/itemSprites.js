@@ -1,6 +1,3 @@
-// src/renderer/sprites/itemSprites.js
-// Procedural pixel sprites for food items, garden growth stages, thought bubbles, and particle effects
-
 class ItemSprites {
   /**
    * Draw a food item centered at (x, y)

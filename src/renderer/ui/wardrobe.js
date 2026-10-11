@@ -1,6 +1,3 @@
-// src/renderer/ui/wardrobe.js
-// Interactive wardrobe logic, live animated preview, and cosmetic inventory management
-
 const { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS } = require('../../shared/constants');
 const { BunnySpriteGenerator } = require('../sprites/bunnySprites');
 const { AccessoryRenderer } = require('../sprites/accessories');

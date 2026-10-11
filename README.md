@@ -27,14 +27,14 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
 
 - **Transparent & Non-Intrusive**:
   - Automatically docks right on top of the Windows taskbar across screen resolutions.
-  - **100% Click-Through**: You can click your desktop icons and apps underneath freely. Mouse events are only captured when interacting with the bunny or the floating bag.
+  - **Click-Through Overlay**: You can click desktop icons and apps underneath freely. Mouse events are only captured when interacting with the bunny or the floating bag.
   - Never appears in the taskbar app list or Alt+Tab (`skipTaskbar: true`).
   - Does not steal focus from your active apps (`focusable: false`).
 - **Cozy Bunny AI & State Machine**:
   - Natural behavioral cycle: idle, walk, sit, groom face, hop, eat treats, and curl into a loaf to sleep.
   - Real-time hunger decay (relaxed ~60m, normal ~30m, fast ~15m).
   - Sleeps automatically during late night hours (system clock) or when ignored for long periods.
-  - Never dies! A hungry bunny simply walks slower, looks sad, and shows a thought bubble.
+  - No permadeath or penalties: a hungry bunny simply walks slower, looks sad, and shows a thought bubble until fed.
 - **Interactive Physics**:
   - **Pet**: Click to pet (spawns hearts, boosts happiness, plays chime).
   - **Drag & Drop**: Click and drag to pick up the bunny (dangling legs animation) and release to let it bounce back down onto the taskbar.
@@ -62,9 +62,9 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
   - Full display transparent click-through overlay. Move the bunny around anywhere across your screen, and customize roaming height in Settings (Taskbar line, Cozy 220px, Lower Desk 450px, or Full Screen free roam).
   - Flexible floor mode: keep the bunny attached to the taskbar, or enable "Free Perch" to let the bunny live and walk at whatever height you place it!
   - The inventory pill and food drawer menu are fully draggable—click and drag the bag button or drawer card anywhere on screen, and your chosen position is automatically remembered.
-- **Lightweight & Zero-Asset Web Audio**:
+- **Lightweight & Web Audio**:
   - Pure vanilla JavaScript and HTML Canvas.
-  - Minimal resource footprint with adaptive idle frame throttling.
+  - Low resource footprint with adaptive idle frame throttling.
   - Procedural sound effects generated on-the-fly via the Web Audio API (crunch, hop, pet, fanfare, chime).
 
 ---
@@ -194,7 +194,7 @@ All game definitions are located in clean, modular files:
 ```
 taskbar-bunny/
 ├── package.json
-├── build.js                     # 50ms esbuild bundler for renderer scripts
+├── build.js                     # Bundles renderer scripts with esbuild
 ├── assets/
 │   ├── icon.png                 # Bunny application icon
 │   └── tray-icon.png            # 16x16 pixel system tray icon
