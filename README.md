@@ -1,8 +1,25 @@
 # 🐰 Taskbar Bunny
 
+<p align="center">
+  <img src="assets/taskbar-gameplay.png" alt="Taskbar Bunny Gameplay Preview" width="900" />
+</p>
+
 A cozy, lightweight, pixel-art desktop pet game for Windows that lives directly on top of your taskbar, in the spirit of *Taskbar Hero*.
 
-Barnaby (or your custom-named bunny) hops, wanders, nibbles carrots, takes naps, and reacts to your interactions—all while running quietly in the background without stealing focus or blocking your clicks.
+Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interactions—all while running quietly in the background without stealing focus or blocking your clicks.
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="assets/wardrobe-headwear.png" alt="Bunny Wardrobe & Customizer" width="370" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/settings-preview.png" alt="Taskbar Bunny Settings" width="350" />
+</p>
+<p align="center">
+  <em>Left: Live Animated Wardrobe & Customizer &bull; Right: Companion Settings & Multi-Monitor Controls</em>
+</p>
 
 ---
 
@@ -52,6 +69,18 @@ Barnaby (or your custom-named bunny) hops, wanders, nibbles carrots, takes naps,
 1. Go to the [Releases](https://github.com/CpzXD/TaskBar-Bunny/releases) page on GitHub.
 2. Download the standalone executable: **[Taskbar-Bunny-Portable.exe](https://github.com/CpzXD/TaskBar-Bunny/releases/download/1.0.0/Taskbar-Bunny-Portable.exe)** from the [1.0.0 Release](https://github.com/CpzXD/TaskBar-Bunny/releases/tag/1.0.0).
 3. Run it and Barnaby will immediately appear sitting on your taskbar!
+
+### 🛡️ Windows SmartScreen / Security Note
+Because **Taskbar Bunny** is a free indie open-source project and not code-signed with an expensive corporate enterprise certificate ($400+/year), Windows SmartScreen may show a prompt on first launch:
+> *"Windows protected your PC — Microsoft Defender SmartScreen prevented an unrecognized app from starting."*
+
+**How to open:**
+1. Click **"More info"** on the popup.
+2. Click **"Run anyway"**.
+
+> **Note**: Taskbar Bunny is **100% open-source, offline, and safe**. It makes zero network calls, contains zero telemetry, and saves game data strictly on your local computer in `%APPDATA%\taskbar-bunny`.
+
+---
 
 ### For Developers & Running from Source
 ```bash
