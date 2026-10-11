@@ -182,6 +182,7 @@ const DEFAULT_STATE = {
   },
   settings: {
     bunnyScale: 2.5,
+    menuScale: 1.0,
     monitorIndex: 0,
     volume: 0.6,
     isMuted: false,

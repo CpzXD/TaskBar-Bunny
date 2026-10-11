@@ -5,6 +5,7 @@
       this.closeBtn = document.getElementById("closeBtn");
       this.monitorSelect = document.getElementById("monitorSelect");
       this.scaleSelect = document.getElementById("scaleSelect");
+      this.menuScaleSelect = document.getElementById("menuScaleSelect");
       this.hungerSpeedSelect = document.getElementById("hungerSpeedSelect");
       this.volumeSlider = document.getElementById("volumeSlider");
       this.volumeVal = document.getElementById("volumeVal");
@@ -40,6 +41,11 @@
       this.scaleSelect.value = (s.bunnyScale || 2.5).toString();
       this.scaleSelect.addEventListener("change", (e) => {
         this.state.settings.bunnyScale = parseFloat(e.target.value);
+        this.saveState();
+      });
+      this.menuScaleSelect.value = (s.menuScale || 1).toString();
+      this.menuScaleSelect.addEventListener("change", (e) => {
+        this.state.settings.menuScale = parseFloat(e.target.value);
         this.saveState();
       });
       this.hungerSpeedSelect.value = s.hungerSpeed || "normal";

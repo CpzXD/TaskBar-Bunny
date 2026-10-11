@@ -67,4 +67,22 @@ assert(PALETTES.eyes.ruby, 'Ruby eye palette exists');
 assert(PALETTES.blush, 'Blush color exists');
 console.log('  ✓ Palettes passed.');
 
+// Test 5: Settings menuScale and Achievements Catalog
+console.log('[Test 5] Validating menuScale and Achievements...');
+assert(typeof DEFAULT_STATE.settings.menuScale === 'number', 'menuScale setting must exist and be numeric');
+assert(DEFAULT_STATE.settings.menuScale >= 1.0, 'menuScale must be at least 1.0');
+ACHIEVEMENTS.forEach(ach => {
+  assert(ach.id && ach.name && ach.description, `Achievement ${ach.id} must have id, name and description`);
+  assert(ach.rewardCoins >= 0 && ach.rewardXp >= 0, `Achievement ${ach.id} must have valid rewards`);
+});
+console.log('  ✓ menuScale and Achievements catalog passed.');
+
+// Test 6: Carrot Garden Random Positioning
+console.log('[Test 6] Validating Carrot Garden positioning...');
+const { CarrotGarden } = require('../src/renderer/garden/garden');
+const garden = new CarrotGarden({}, () => {});
+garden.randomizePosition(1920);
+assert(garden.x >= 320 && garden.x <= 1920 - 70, `Garden x should be within [320, 1850], got ${garden.x}`);
+console.log('  ✓ Carrot Garden random positioning passed.');
+
 console.log('--- ALL SYSTEMS VERIFIED SUCCESSFULLY ---');

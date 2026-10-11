@@ -1,7 +1,7 @@
 // src/renderer/ui/wardrobe.js
 // Interactive wardrobe logic, live animated preview, and cosmetic inventory management
 
-const { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS } = require('../../shared/constants');
+const { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS } = require('../../shared/constants');
 const { BunnySpriteGenerator } = require('../sprites/bunnySprites');
 const { AccessoryRenderer } = require('../sprites/accessories');
 const { soundEngine } = require('../engine/soundEngine');
@@ -24,6 +24,14 @@ class WardrobeController {
     this.init();
   }
 
+  syncAudioSettings() {
+    if (!this.state || !this.state.settings) return;
+    soundEngine.setMuted(Boolean(this.state.settings.isMuted));
+    if (typeof this.state.settings.volume === 'number') {
+      soundEngine.setVolume(this.state.settings.volume);
+    }
+  }
+
   async init() {
     this.closeBtn.addEventListener('click', () => {
       window.api.closeWindow('wardrobe');
@@ -42,6 +50,7 @@ class WardrobeController {
     // Load initial state
     const { state } = await window.api.loadState();
     this.state = state;
+    this.syncAudioSettings();
     this.updateHeaderInfo();
     this.renderTabContent();
 
@@ -51,6 +60,7 @@ class WardrobeController {
     // Listen for state syncs
     window.api.onStateUpdate((newState) => {
       this.state = newState;
+      this.syncAudioSettings();
       this.updateHeaderInfo();
       this.renderTabContent();
     });
@@ -118,6 +128,8 @@ class WardrobeController {
       this.renderBaseCustomization();
     } else if (this.activeTab === 'presets') {
       this.renderPresets();
+    } else if (this.activeTab === 'achievements') {
+      this.renderAchievements();
     } else {
       this.renderAccessoriesCategory(this.activeTab);
     }
@@ -189,6 +201,50 @@ class WardrobeController {
     this.tabContent.appendChild(container);
   }
 
+  renderItemIcon(canvas, category, itemId) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false;
+
+    if (itemId === 'none') {
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, canvas.height / 2, 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2 - 8, canvas.height / 2 + 8);
+      ctx.lineTo(canvas.width / 2 + 8, canvas.height / 2 - 8);
+      ctx.stroke();
+      return;
+    }
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 32;
+    tempCanvas.height = 32;
+    const tCtx = tempCanvas.getContext('2d');
+    tCtx.imageSmoothingEnabled = false;
+
+    // Centered anchor coordinates in 32x32 frame
+    const anchors = {
+      head: { x: 16, y: 22 },
+      face: { x: 16, y: 15 },
+      neck: { x: 16, y: 15 },
+      back: { x: 17, y: 14 },
+      held: { x: 14, y: 20 }
+    };
+    if (category === 'held' && itemId === 'balloon') {
+      anchors.held = { x: 15, y: 24 };
+    } else if (category === 'back' && itemId === 'cape') {
+      anchors.back = { x: 18, y: 12 };
+    }
+
+    AccessoryRenderer.renderAccessories(tCtx, { [category]: itemId }, anchors, 1, 0);
+
+    ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+  }
+
   renderAccessoriesCategory(category) {
     const items = ACCESSORIES[category] || [];
     const equippedId = this.state.bunny.equipped[category] || 'none';
@@ -206,8 +262,11 @@ class WardrobeController {
           <div class="item-title">${item.name}</div>
           <span class="item-tier tier-${item.tier}">${item.tier}</span>
         </div>
-        <div style="font-size: 11px; color: #64748b; margin: 4px 0;">
-          ${isUnlocked ? (isEquipped ? 'Currently Wearing' : 'Owned') : `Price: 🪙 ${item.price}`}
+        <div class="item-visual-wrap">
+          <canvas class="item-preview-canvas" width="48" height="48"></canvas>
+        </div>
+        <div style="font-size: 11px; color: #64748b; margin: 2px 0; text-align: center;">
+          ${isUnlocked ? (isEquipped ? 'Currently Wearing' : 'Owned') : `Price: <span class="coin-icon"></span> ${item.price}`}
         </div>
         <div>
           ${
@@ -215,10 +274,13 @@ class WardrobeController {
               ? `<button class="item-btn btn-unequip">Unequip</button>`
               : (isUnlocked
                   ? `<button class="item-btn btn-equip">Equip</button>`
-                  : `<button class="item-btn btn-buy">Buy 🪙 ${item.price}</button>`)
+                  : `<button class="item-btn btn-buy">Buy <span class="coin-icon"></span> ${item.price}</button>`)
           }
         </div>
       `;
+
+      const previewCanvas = card.querySelector('.item-preview-canvas');
+      this.renderItemIcon(previewCanvas, category, item.id);
 
       const btn = card.querySelector('.item-btn');
       btn.addEventListener('click', () => {
@@ -247,6 +309,96 @@ class WardrobeController {
 
       this.tabContent.appendChild(card);
     }
+  }
+
+  renderAchievements() {
+    for (const ach of ACHIEVEMENTS) {
+      const { isUnlocked, current, max, pct } = this.getAchievementProgress(ach);
+
+      const card = document.createElement('div');
+      card.className = `achievement-card ${isUnlocked ? 'unlocked' : ''}`;
+
+      card.innerHTML = `
+        <div class="ach-header">
+          <div class="ach-icon">${isUnlocked ? '🏆' : '🔒'}</div>
+          <div class="ach-info">
+            <div class="ach-title">${ach.name}</div>
+            <div class="ach-desc">${ach.description}</div>
+          </div>
+          <div class="ach-reward">
+            +<span class="coin-icon"></span> ${ach.rewardCoins}
+            <span class="ach-xp">+${ach.rewardXp} XP</span>
+          </div>
+        </div>
+        <div class="ach-progress-row">
+          <div class="ach-progress-bar">
+            <div class="ach-progress-fill" style="width: ${pct}%"></div>
+          </div>
+          <div class="ach-progress-text">${isUnlocked ? 'Completed! ✨' : `${current} / ${max} (${pct}%)`}</div>
+        </div>
+      `;
+
+      this.tabContent.appendChild(card);
+    }
+  }
+
+  getAchievementProgress(ach) {
+    const isUnlocked = Boolean(this.state.achievements?.unlocked?.includes(ach.id));
+    let current = 0;
+    let max = 1;
+
+    switch (ach.id) {
+      case 'first_carrot':
+        max = 1;
+        current = Math.min(max, this.state.bunny.totalCarrotsFed || 0);
+        break;
+      case 'fed_25':
+        max = 25;
+        current = Math.min(max, this.state.bunny.totalCarrotsFed || 0);
+        break;
+      case 'fed_100':
+        max = 100;
+        current = Math.min(max, this.state.bunny.totalCarrotsFed || 0);
+        break;
+      case 'pet_50':
+        max = 50;
+        current = Math.min(max, this.state.bunny.totalPetCount || 0);
+        break;
+      case 'pet_200':
+        max = 200;
+        current = Math.min(max, this.state.bunny.totalPetCount || 0);
+        break;
+      case 'first_harvest':
+        max = 1;
+        current = isUnlocked ? 1 : 0;
+        break;
+      case 'fashion_pioneer':
+        max = 1;
+        const hasEquipped = Object.values(this.state.bunny.equipped || {}).some(v => v && v !== 'none');
+        current = isUnlocked || hasEquipped ? 1 : 0;
+        break;
+      case 'three_presets':
+        max = 3;
+        const savedCount = (this.state.bunny.outfitPresets || []).filter(p =>
+          Object.entries(p).some(([k, v]) => k !== 'name' && v !== 'none')
+        ).length;
+        current = isUnlocked ? 3 : Math.min(max, savedCount);
+        break;
+      case 'level_5':
+        max = 5;
+        current = Math.min(max, this.state.bunny.level || 1);
+        break;
+      case 'level_10':
+        max = 10;
+        current = Math.min(max, this.state.bunny.level || 1);
+        break;
+      default:
+        current = isUnlocked ? 1 : 0;
+        max = 1;
+    }
+
+    const pct = isUnlocked ? 100 : Math.min(100, Math.round((current / max) * 100));
+    return { isUnlocked, current, max, pct };
   }
 
   renderPresets() {

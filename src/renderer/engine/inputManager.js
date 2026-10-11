@@ -236,8 +236,15 @@ class InputManager {
       // Dropped onto ground/taskbar
       food.vy = 1.2;
       food.groundY = this.app.groundY;
-      // Safety clamp: keep at least 90px from left edge so it never hides behind the counter pill
-      food.x = Math.max(90, Math.min(this.app.canvas.width - 40, food.x));
+      // Safety clamp: ensure food never falls behind the drawer or counter pill
+      const db = this.app.hud ? this.app.hud.getDrawerBounds() : null;
+      const minX = (this.app.hud && this.app.hud.isDrawerOpen && db) ? (db.x + db.width + 30) : 100;
+      if (food.x < minX) {
+        const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
+        food.x = Math.floor(Math.random() * (maxX - minX)) + minX;
+      } else {
+        food.x = Math.min(this.app.canvas.width - 40, food.x);
+      }
       food.isGrounded = false;
       soundEngine.playHop();
 
@@ -276,7 +283,14 @@ class InputManager {
     // 1. If dropping food selected from drawer
     if (this.app.hud && this.app.hud.selectedFoodToDrop) {
       const foodId = this.app.hud.selectedFoodToDrop;
-      this.app.dropFood(foodId, px, py);
+      const db = this.app.hud.getDrawerBounds();
+      const minX = (this.app.hud.isDrawerOpen && db) ? (db.x + db.width + 30) : 100;
+      let targetX = px;
+      if (targetX < minX) {
+        const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
+        targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
+      }
+      this.app.dropFood(foodId, targetX, py);
       this.app.hud.selectedFoodToDrop = null;
       return;
     }
@@ -302,7 +316,12 @@ class InputManager {
           return;
         } else if (btn.type === 'food') {
           if (this.app.inventory.foods[btn.foodId] > 0) {
-            this.app.hud.selectedFoodToDrop = btn.foodId;
+            const db = this.app.hud.getDrawerBounds();
+            const minX = db ? (db.x + db.width + 40) : 340;
+            const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
+            const dropX = Math.floor(Math.random() * (maxX - minX)) + minX;
+            this.app.dropFood(btn.foodId, dropX, 30);
+            this.app.hud.selectedFoodToDrop = null;
           }
           return;
         } else if (btn.type === 'open-wardrobe') {

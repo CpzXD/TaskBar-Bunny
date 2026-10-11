@@ -10,11 +10,27 @@ class CarrotGarden {
       { id: 1, planted: true, plantedAt: Date.now() - 30000, growDurationMs: 90000, ready: false }
     ];
     this.onHarvest = onHarvestCallback;
-    this.x = 240; // Default screen X position
+    this.x = gardenData.x || 360; // Screen X position
     this.y = 168; // Ground Y position
     this.width = 36;
     this.height = 24;
     this.animationFrame = 0;
+    this.lastCanvasWidth = 1200;
+
+    if (!gardenData.x) {
+      this.randomizePosition(1200);
+    }
+  }
+
+  randomizePosition(canvasWidth) {
+    if (canvasWidth && canvasWidth > 400) {
+      this.lastCanvasWidth = canvasWidth;
+    }
+    const width = this.lastCanvasWidth || 1200;
+    // Keep clear of drawer on the left (min 320px) and margin on the right (max width - 70px)
+    const minX = 320;
+    const maxX = Math.max(minX + 80, width - 70);
+    this.x = Math.floor(Math.random() * (maxX - minX)) + minX;
   }
 
   update(deltaTime) {
@@ -46,6 +62,7 @@ class CarrotGarden {
       emptyPlot.plantedAt = Date.now();
       emptyPlot.growDurationMs = 90000;
       emptyPlot.ready = false;
+      this.randomizePosition(this.lastCanvasWidth);
       return true;
     }
     return false;
@@ -57,11 +74,12 @@ class CarrotGarden {
       plot.planted = false;
       plot.ready = false;
       soundEngine.playCoin();
-      // Auto re-plant after short delay
+      // Auto re-plant after short delay in a new random spot on the taskbar!
       setTimeout(() => {
         plot.planted = true;
         plot.plantedAt = Date.now();
         plot.ready = false;
+        this.randomizePosition(this.lastCanvasWidth);
       }, 1500);
 
       const reward = {
@@ -86,6 +104,9 @@ class CarrotGarden {
   }
 
   draw(ctx) {
+    if (ctx && ctx.canvas && ctx.canvas.width) {
+      this.lastCanvasWidth = ctx.canvas.width;
+    }
     const plot = this.plots[0];
     if (!plot) return;
 

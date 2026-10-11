@@ -6,6 +6,7 @@ class SettingsController {
     this.closeBtn = document.getElementById('closeBtn');
     this.monitorSelect = document.getElementById('monitorSelect');
     this.scaleSelect = document.getElementById('scaleSelect');
+    this.menuScaleSelect = document.getElementById('menuScaleSelect');
     this.hungerSpeedSelect = document.getElementById('hungerSpeedSelect');
     this.volumeSlider = document.getElementById('volumeSlider');
     this.volumeVal = document.getElementById('volumeVal');
@@ -50,6 +51,13 @@ class SettingsController {
     this.scaleSelect.value = (s.bunnyScale || 2.5).toString();
     this.scaleSelect.addEventListener('change', (e) => {
       this.state.settings.bunnyScale = parseFloat(e.target.value);
+      this.saveState();
+    });
+
+    // Menu / HUD Size Scale
+    this.menuScaleSelect.value = (s.menuScale || 1.0).toString();
+    this.menuScaleSelect.addEventListener('change', (e) => {
+      this.state.settings.menuScale = parseFloat(e.target.value);
       this.saveState();
     });
 

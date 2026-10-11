@@ -1204,6 +1204,7 @@
         },
         settings: {
           bunnyScale: 2.5,
+          menuScale: 1,
           monitorIndex: 0,
           volume: 0.6,
           isMuted: false,
@@ -1803,11 +1804,24 @@
             { id: 1, planted: true, plantedAt: Date.now() - 3e4, growDurationMs: 9e4, ready: false }
           ];
           this.onHarvest = onHarvestCallback;
-          this.x = 240;
+          this.x = gardenData.x || 360;
           this.y = 168;
           this.width = 36;
           this.height = 24;
           this.animationFrame = 0;
+          this.lastCanvasWidth = 1200;
+          if (!gardenData.x) {
+            this.randomizePosition(1200);
+          }
+        }
+        randomizePosition(canvasWidth) {
+          if (canvasWidth && canvasWidth > 400) {
+            this.lastCanvasWidth = canvasWidth;
+          }
+          const width = this.lastCanvasWidth || 1200;
+          const minX = 320;
+          const maxX = Math.max(minX + 80, width - 70);
+          this.x = Math.floor(Math.random() * (maxX - minX)) + minX;
         }
         update(deltaTime) {
           this.animationFrame++;
@@ -1835,6 +1849,7 @@
             emptyPlot.plantedAt = Date.now();
             emptyPlot.growDurationMs = 9e4;
             emptyPlot.ready = false;
+            this.randomizePosition(this.lastCanvasWidth);
             return true;
           }
           return false;
@@ -1849,6 +1864,7 @@
               plot.planted = true;
               plot.plantedAt = Date.now();
               plot.ready = false;
+              this.randomizePosition(this.lastCanvasWidth);
             }, 1500);
             const reward = {
               carrots: 2 + Math.floor(Math.random() * 2),
@@ -1867,6 +1883,9 @@
           return px >= this.x - this.width / 2 && px <= this.x + this.width / 2 && py >= this.y - this.height && py <= this.y + 6;
         }
         draw(ctx) {
+          if (ctx && ctx.canvas && ctx.canvas.width) {
+            this.lastCanvasWidth = ctx.canvas.width;
+          }
           const plot = this.plots[0];
           if (!plot) return;
           const stage = this.getPlotStage(plot);
@@ -1909,11 +1928,20 @@
           this.drawerY = 78;
           this.foodKeys = ["carrot", "lettuce", "apple", "clover", "strawberry"];
         }
+        get scale() {
+          return this.app.state?.settings?.menuScale || 1;
+        }
         // Anchor the bottom-left controls to the visible bottom edge (the top of the taskbar)
         layout(canvasHeight, taskbarOverlap = 0) {
+          this.canvasHeight = canvasHeight;
+          this.taskbarOverlap = taskbarOverlap;
+          const s = this.scale;
           const bottom = canvasHeight - taskbarOverlap;
-          this.bagBtn.y = bottom - 26;
-          this.drawerY = bottom - 102;
+          this.bagBtn.width = Math.round(52 * s);
+          this.bagBtn.height = Math.round(28 * s);
+          this.bagBtn.x = Math.round(16 + this.bagBtn.width / 2);
+          this.bagBtn.y = bottom - Math.round(this.bagBtn.height / 2) - 8;
+          this.drawerY = bottom - Math.round(115 * s) - 8;
         }
         toggleDrawer() {
           this.isDrawerOpen = !this.isDrawerOpen;
@@ -1942,11 +1970,12 @@
         }
         getDrawerBounds() {
           if (!this.isDrawerOpen) return null;
+          const s = this.scale;
           return {
             x: 16,
             y: this.drawerY,
-            width: 250,
-            height: 68
+            width: Math.round(270 * s),
+            height: Math.round(76 * s)
           };
         }
         getButtonAt(px, py) {
@@ -1956,24 +1985,28 @@
           if (this.isDrawerOpen) {
             const db = this.getDrawerBounds();
             if (px >= db.x && px <= db.x + db.width && py >= db.y && py <= db.y + db.height) {
-              const slotW = 36;
-              const startX = db.x + 8;
-              const startY = db.y + 6;
+              const s = this.scale;
+              const slotW = Math.round(38 * s);
+              const slotH = Math.round(36 * s);
+              const slotGap = Math.round(44 * s);
+              const startX = db.x + Math.round(8 * s);
+              const startY = db.y + Math.round(6 * s);
               for (let i = 0; i < this.foodKeys.length; i++) {
-                const fx = startX + i * 42;
-                const fy = startY;
-                if (px >= fx && px <= fx + 36 && py >= fy && py <= fy + 36) {
+                const fx = startX + i * slotGap;
+                if (px >= fx && px <= fx + slotW && py >= startY && py <= startY + slotH) {
                   return { type: "food", foodId: this.foodKeys[i] };
                 }
               }
-              const wx = db.x + 10;
-              const wy = db.y + 44;
-              if (px >= wx && px <= wx + 56 && py >= wy && py <= wy + 20) {
+              const btnY = db.y + Math.round(45 * s);
+              const btnH = Math.round(22 * s);
+              const btn1W = Math.round(68 * s);
+              const btn2W = Math.round(68 * s);
+              const wx = db.x + Math.round(8 * s);
+              if (px >= wx && px <= wx + btn1W && py >= btnY && py <= btnY + btnH) {
                 return { type: "open-wardrobe" };
               }
-              const sx = db.x + 72;
-              const sy = db.y + 44;
-              if (px >= sx && px <= sx + 54 && py >= sy && py <= sy + 20) {
+              const sx = wx + btn1W + Math.round(6 * s);
+              if (px >= sx && px <= sx + btn2W && py >= btnY && py <= btnY + btnH) {
                 return { type: "open-settings" };
               }
               return { type: "drawer-bg" };
@@ -1988,82 +2021,94 @@
         draw(ctx, inventory, coins, level, hunger, happiness) {
           ctx.save();
           ctx.imageSmoothingEnabled = false;
+          const s = this.scale;
           const bx = Math.floor(this.bagBtn.x - this.bagBtn.width / 2);
           const by = Math.floor(this.bagBtn.y - this.bagBtn.height / 2);
           ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
           ctx.strokeStyle = "#fcd34d";
-          ctx.lineWidth = 2;
+          ctx.lineWidth = Math.max(1.5, Math.round(2 * s));
           ctx.beginPath();
-          ctx.roundRect(bx, by, this.bagBtn.width, this.bagBtn.height, 8);
+          ctx.roundRect(bx, by, this.bagBtn.width, this.bagBtn.height, Math.round(8 * s));
           ctx.fill();
           ctx.stroke();
-          ItemSprites2.drawFood(ctx, "carrot", bx + 12, by + 12, 16);
+          ItemSprites2.drawFood(ctx, "carrot", bx + Math.round(14 * s), by + Math.round(14 * s), Math.round(16 * s));
           ctx.fillStyle = "#4a2810";
-          ctx.font = "bold 11px sans-serif";
+          ctx.font = `bold ${Math.max(10, Math.round(11 * s))}px sans-serif`;
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          ctx.fillText(`${inventory.foods.carrot || 0}`, bx + 22, by + 12);
+          ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(24 * s), by + Math.round(14 * s));
           if (this.isDrawerOpen) {
             const db = this.getDrawerBounds();
             ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
             ctx.strokeStyle = "#e2e8f0";
-            ctx.lineWidth = 2;
+            ctx.lineWidth = Math.max(1.5, Math.round(2 * s));
             ctx.beginPath();
-            ctx.roundRect(db.x, db.y, db.width, db.height, 10);
+            ctx.roundRect(db.x, db.y, db.width, db.height, Math.round(10 * s));
             ctx.fill();
             ctx.stroke();
-            const startX = db.x + 8;
-            const startY = db.y + 6;
+            const slotW = Math.round(38 * s);
+            const slotH = Math.round(36 * s);
+            const slotGap = Math.round(44 * s);
+            const startX = db.x + Math.round(8 * s);
+            const startY = db.y + Math.round(6 * s);
             for (let i = 0; i < this.foodKeys.length; i++) {
               const key = this.foodKeys[i];
-              const fx = startX + i * 42;
+              const fx = startX + i * slotGap;
               const count = inventory.foods[key] || 0;
               const isSelected = this.selectedFoodToDrop === key;
               ctx.fillStyle = isSelected ? "#ffedd5" : "#f8fafc";
               ctx.strokeStyle = isSelected ? "#f97316" : "#cbd5e1";
               ctx.lineWidth = 1.5;
               ctx.beginPath();
-              ctx.roundRect(fx, startY, 36, 34, 6);
+              ctx.roundRect(fx, startY, slotW, slotH, Math.round(6 * s));
               ctx.fill();
               ctx.stroke();
-              ItemSprites2.drawFood(ctx, key, fx + 18, startY + 14, 16);
+              ItemSprites2.drawFood(ctx, key, fx + Math.round(slotW / 2), startY + Math.round(15 * s), Math.round(16 * s));
               ctx.fillStyle = count > 0 ? "#1e293b" : "#94a3b8";
-              ctx.font = "bold 9px sans-serif";
+              ctx.font = `bold ${Math.max(8, Math.round(9 * s))}px sans-serif`;
               ctx.textAlign = "center";
-              ctx.fillText(`x${count}`, fx + 18, startY + 29);
+              ctx.fillText(`x${count}`, fx + Math.round(slotW / 2), startY + Math.round(29 * s));
             }
+            const btnY = db.y + Math.round(45 * s);
+            const btnH = Math.round(22 * s);
+            const btn1W = Math.round(68 * s);
+            const btn2W = Math.round(68 * s);
+            const wx = db.x + Math.round(8 * s);
+            const sx = wx + btn1W + Math.round(6 * s);
             ctx.fillStyle = "#fce7f3";
             ctx.strokeStyle = "#f472b6";
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.roundRect(db.x + 10, db.y + 44, 56, 18, 4);
+            ctx.roundRect(wx, btnY, btn1W, btnH, Math.round(4 * s));
             ctx.fill();
             ctx.stroke();
             ctx.fillStyle = "#9d174d";
-            ctx.font = "bold 9px sans-serif";
+            ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("\u{1F457} Closet", db.x + 38, db.y + 53);
+            ctx.fillText("\u{1F457} Closet", wx + Math.round(btn1W / 2), btnY + Math.round(btnH / 2));
             ctx.fillStyle = "#f1f5f9";
             ctx.strokeStyle = "#94a3b8";
             ctx.beginPath();
-            ctx.roundRect(db.x + 72, db.y + 44, 54, 18, 4);
+            ctx.roundRect(sx, btnY, btn2W, btnH, Math.round(4 * s));
             ctx.fill();
             ctx.stroke();
             ctx.fillStyle = "#334155";
-            ctx.fillText("\u2699\uFE0F Setup", db.x + 99, db.y + 53);
+            ctx.fillText("\u2699\uFE0F Setup", sx + Math.round(btn2W / 2), btnY + Math.round(btnH / 2));
+            const coinY = btnY + Math.round(btnH / 2);
+            const coinX = sx + btn2W + Math.round(14 * s);
             ctx.fillStyle = "#ffd700";
             ctx.beginPath();
-            ctx.arc(db.x + 144, db.y + 53, 5, 0, Math.PI * 2);
+            ctx.arc(coinX, coinY, Math.round(5 * s), 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = "#b45309";
-            ctx.font = "bold 10px sans-serif";
+            ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
             ctx.textAlign = "left";
-            ctx.fillText(`${coins || 0}g`, db.x + 152, db.y + 53);
+            ctx.fillText(`${coins || 0}g`, coinX + Math.round(8 * s), coinY);
             ctx.fillStyle = "#4f46e5";
-            ctx.font = "bold 9px sans-serif";
+            ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
             ctx.textAlign = "right";
-            ctx.fillText(`Lv.${level || 1}`, db.x + db.width - 8, db.y + 53);
+            ctx.fillText(`Lv.${level || 1}`, db.x + db.width - Math.round(8 * s), coinY);
           }
           if (this.selectedFoodToDrop) {
             ctx.save();
@@ -2305,7 +2350,14 @@
             }
             food.vy = 1.2;
             food.groundY = this.app.groundY;
-            food.x = Math.max(90, Math.min(this.app.canvas.width - 40, food.x));
+            const db = this.app.hud ? this.app.hud.getDrawerBounds() : null;
+            const minX = this.app.hud && this.app.hud.isDrawerOpen && db ? db.x + db.width + 30 : 100;
+            if (food.x < minX) {
+              const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
+              food.x = Math.floor(Math.random() * (maxX - minX)) + minX;
+            } else {
+              food.x = Math.min(this.app.canvas.width - 40, food.x);
+            }
             food.isGrounded = false;
             soundEngine2.playHop();
             if (this.app.bunny && this.app.bunny.stateMachine.currentState !== "dangling") {
@@ -2335,7 +2387,14 @@
         handleClick(px, py, now) {
           if (this.app.hud && this.app.hud.selectedFoodToDrop) {
             const foodId = this.app.hud.selectedFoodToDrop;
-            this.app.dropFood(foodId, px, py);
+            const db = this.app.hud.getDrawerBounds();
+            const minX = this.app.hud.isDrawerOpen && db ? db.x + db.width + 30 : 100;
+            let targetX = px;
+            if (targetX < minX) {
+              const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
+              targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
+            }
+            this.app.dropFood(foodId, targetX, py);
             this.app.hud.selectedFoodToDrop = null;
             return;
           }
@@ -2357,7 +2416,12 @@
                 return;
               } else if (btn.type === "food") {
                 if (this.app.inventory.foods[btn.foodId] > 0) {
-                  this.app.hud.selectedFoodToDrop = btn.foodId;
+                  const db = this.app.hud.getDrawerBounds();
+                  const minX = db ? db.x + db.width + 40 : 340;
+                  const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
+                  const dropX = Math.floor(Math.random() * (maxX - minX)) + minX;
+                  this.app.dropFood(btn.foodId, dropX, 30);
+                  this.app.hud.selectedFoodToDrop = null;
                 }
                 return;
               } else if (btn.type === "open-wardrobe") {
@@ -2558,14 +2622,15 @@
       this.canvas.height = window.innerHeight;
       this.applyLayout();
     }
-    // Re-anchor everything that stands on the floor or sits at the bottom of the screen
     applyLayout() {
       if (this.bunny) {
         this.bunny.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
       }
       if (this.garden) {
         this.garden.y = this.groundY;
-        this.garden.x = Math.min(260, this.canvas.width - 100);
+        if (!this.garden.x || this.garden.x < 320) {
+          this.garden.randomizePosition(this.canvas.width);
+        }
       }
       if (this.hud) {
         this.hud.layout(this.canvas.height, this.taskbarOverlap);
@@ -2593,7 +2658,15 @@
       }
       this.inventory.foods[foodId]--;
       const groundY = this.groundY;
-      const safeX = Math.max(90, Math.min(this.canvas.width - 35, x));
+      const db = this.hud ? this.hud.getDrawerBounds() : null;
+      const minX = this.hud && this.hud.isDrawerOpen && db ? db.x + db.width + 30 : 100;
+      let safeX = x;
+      if (safeX < minX) {
+        const maxX = Math.max(minX + 80, this.canvas.width - 50);
+        safeX = Math.floor(Math.random() * (maxX - minX)) + minX;
+      } else {
+        safeX = Math.min(this.canvas.width - 35, safeX);
+      }
       this.worldFoods.push({
         id: foodId,
         x: safeX,
@@ -2654,8 +2727,10 @@
     }
     update(deltaTime) {
       for (const food of this.worldFoods) {
-        if (food.x < 85) {
-          food.x = 95 + Math.random() * 30;
+        const db = this.hud ? this.hud.getDrawerBounds() : null;
+        const minX = this.hud && this.hud.isDrawerOpen && db ? db.x + db.width + 25 : 95;
+        if (food.x < minX) {
+          food.x = minX + 20 + Math.random() * 60;
         }
         if (!food.isGrounded) {
           food.vy += 0.35;
@@ -2812,6 +2887,7 @@
       this.state.bunny.blush = this.bunny.appearance.blush;
       if (this.garden) {
         this.state.garden.plots = this.garden.plots;
+        this.state.garden.x = this.garden.x;
       }
       if (window.api && window.api.saveState) {
         window.api.saveState(this.state);

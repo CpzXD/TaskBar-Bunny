@@ -134,14 +134,15 @@ class TaskbarBunnyApp {
     this.applyLayout();
   }
 
-  // Re-anchor everything that stands on the floor or sits at the bottom of the screen
   applyLayout() {
     if (this.bunny) {
       this.bunny.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
     }
     if (this.garden) {
       this.garden.y = this.groundY;
-      this.garden.x = Math.min(260, this.canvas.width - 100);
+      if (!this.garden.x || this.garden.x < 320) {
+        this.garden.randomizePosition(this.canvas.width);
+      }
     }
     if (this.hud) {
       this.hud.layout(this.canvas.height, this.taskbarOverlap);
@@ -173,8 +174,15 @@ class TaskbarBunnyApp {
 
     this.inventory.foods[foodId]--;
     const groundY = this.groundY;
-    // Always place dropped food safely clear of the bottom-left counter pill (min x: 90)
-    const safeX = Math.max(90, Math.min(this.canvas.width - 35, x));
+    const db = this.hud ? this.hud.getDrawerBounds() : null;
+    const minX = (this.hud && this.hud.isDrawerOpen && db) ? (db.x + db.width + 30) : 100;
+    let safeX = x;
+    if (safeX < minX) {
+      const maxX = Math.max(minX + 80, this.canvas.width - 50);
+      safeX = Math.floor(Math.random() * (maxX - minX)) + minX;
+    } else {
+      safeX = Math.min(this.canvas.width - 35, safeX);
+    }
 
     this.worldFoods.push({
       id: foodId,
@@ -248,9 +256,11 @@ class TaskbarBunnyApp {
   update(deltaTime) {
     // 1. Update World dropped foods
     for (const food of this.worldFoods) {
-      // Un-trap any legacy food from behind the counter badge
-      if (food.x < 85) {
-        food.x = 95 + Math.random() * 30;
+      // Un-trap any legacy food from behind the counter badge or drawer
+      const db = this.hud ? this.hud.getDrawerBounds() : null;
+      const minX = (this.hud && this.hud.isDrawerOpen && db) ? (db.x + db.width + 25) : 95;
+      if (food.x < minX) {
+        food.x = minX + 20 + Math.random() * 60;
       }
 
       if (!food.isGrounded) {
@@ -452,6 +462,7 @@ class TaskbarBunnyApp {
 
     if (this.garden) {
       this.state.garden.plots = this.garden.plots;
+      this.state.garden.x = this.garden.x;
     }
 
     if (window.api && window.api.saveState) {

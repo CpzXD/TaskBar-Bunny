@@ -113,7 +113,30 @@
       color: #b45309;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
+    }
+    .coin-icon {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      background: radial-gradient(circle at 35% 35%, #fef08a, #eab308 60%, #ca8a04 100%);
+      border: 1.5px solid #a16207;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.8);
+      vertical-align: middle;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .coin-icon::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 5px;
+      height: 5px;
+      border: 1px solid rgba(161, 98, 7, 0.6);
+      border-radius: 50%;
     }
 
     /* Tabs */
@@ -209,6 +232,116 @@
     .btn-buy { background: #f59e0b; color: white; }
     .item-btn:hover { opacity: 0.9; }
 
+    .item-visual-wrap {
+      width: 48px;
+      height: 48px;
+      background: radial-gradient(circle, #fff7ed 40%, #ffedd5 100%);
+      border: 1.5px solid #fed7aa;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2px auto 4px auto;
+    }
+    .item-preview-canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* Achievement Cards */
+    .achievement-card {
+      grid-column: span 2;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .achievement-card.unlocked {
+      border-color: #f59e0b;
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
+    }
+    .ach-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ach-icon {
+      font-size: 20px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .achievement-card.unlocked .ach-icon {
+      background: #fef08a;
+    }
+    .ach-info {
+      flex: 1;
+    }
+    .ach-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .ach-desc {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .ach-reward {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #b45309;
+      background: rgba(254, 243, 199, 0.7);
+      padding: 4px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .ach-xp {
+      color: #4f46e5;
+      margin-left: 4px;
+    }
+    .ach-progress-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ach-progress-bar {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .ach-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .achievement-card.unlocked .ach-progress-fill {
+      background: linear-gradient(90deg, #f59e0b, #10b981);
+    }
+    .ach-progress-text {
+      font-size: 10px;
+      font-weight: 600;
+      color: #475569;
+      min-width: 60px;
+      text-align: right;
+    }
+
     /* Base customization controls */
     .base-controls {
       grid-column: span 2;
@@ -283,7 +416,7 @@
       </div>
       <div class="preview-info">
         <div class="bunny-name" id="bunnyName">Barnaby</div>
-        <div class="coin-display">🪙 <span id="coinCount">0</span> Coins</div>
+        <div class="coin-display"><span class="coin-icon"></span> <span id="coinCount">0</span> Coins</div>
         <div style="font-size: 11px; color: #64748b;">Live Wardrobe Preview</div>
       </div>
     </div>
@@ -297,6 +430,7 @@
       <button class="tab-btn" data-tab="back">Back</button>
       <button class="tab-btn" data-tab="held">Held Item</button>
       <button class="tab-btn" data-tab="presets">Presets</button>
+      <button class="tab-btn" data-tab="achievements">🏆 Trophies</button>
     </div>
 
     <!-- Tab Content -->
