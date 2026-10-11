@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+/dist/
+
+# Temporary files & logs
+*.log
+*.tmp
+*.lnk
+create_shortcuts.vbs
+
+# OS generated files
+Thumbs.db
+.DS_Store

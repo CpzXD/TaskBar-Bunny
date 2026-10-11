@@ -1,0 +1,43 @@
+{
+  "name": "taskbar-bunny",
+  "version": "1.0.0",
+  "description": "Taskbar Bunny",
+  "main": "src/main/main.js",
+  "scripts": {
+    "build:renderer": "node build.js",
+    "start": "node build.js && electron .",
+    "build": "node build.js && electron-builder --win",
+    "build:portable": "node build.js && electron-builder --win portable",
+    "pack": "node build.js && electron-builder --dir"
+  },
+  "author": "Taskbar Bunny Team",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.28.2"
+  },
+  "build": {
+    "appId": "com.taskbarbunny.app",
+    "productName": "Taskbar Bunny",
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ]
+  }
+}

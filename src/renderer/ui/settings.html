@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+  <title>Settings — Taskbar Bunny</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background: rgba(250, 250, 252, 0.98);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border: 3px solid #cbd5e1;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      border-bottom: 2px solid #cbd5e1;
+      -webkit-app-region: drag;
+    }
+    .titlebar-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      background: #ef4444;
+      color: white;
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-btn:hover { background: #dc2626; }
+
+    .settings-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .setting-item {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .setting-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .setting-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .setting-desc {
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    select, input[type="range"] {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 12px;
+    }
+    input[type="checkbox"] {
+      transform: scale(1.3);
+      cursor: pointer;
+    }
+
+    .danger-zone {
+      margin-top: 10px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-reset {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-reset:hover { background: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="titlebar-title">⚙️ Taskbar Bunny Settings</div>
+    <button class="close-btn" id="closeBtn">✕</button>
+  </div>
+
+  <div class="settings-body">
+    <!-- Monitor Selection -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Monitor / Display</div>
+        <div class="setting-desc">Choose which monitor the bunny lives on</div>
+      </div>
+      <select id="monitorSelect"></select>
+    </div>
+
+    <!-- Bunny Size -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Bunny Size</div>
+        <div class="setting-desc">Pixel scale along the taskbar</div>
+      </div>
+      <select id="scaleSelect">
+        <option value="2.0">Small (2.0x)</option>
+        <option value="2.5">Normal (2.5x)</option>
+        <option value="3.0">Large (3.0x)</option>
+      </select>
+    </div>
+
+    <!-- Hunger Drain Speed -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Hunger Speed</div>
+        <div class="setting-desc">Frequency bunny asks for snacks</div>
+      </div>
+      <select id="hungerSpeedSelect">
+        <option value="relaxed">Relaxed (~60 mins)</option>
+        <option value="normal">Normal (~30 mins)</option>
+        <option value="fast">Fast (~15 mins)</option>
+      </select>
+    </div>
+
+    <!-- Sound Volume -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Sound Volume</div>
+        <div class="setting-desc">Munch, hop, pet, and fanfare SFX</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" style="width: 80px;">
+        <span id="volumeVal" style="font-size: 11px; font-weight: bold; width: 28px;">60%</span>
+      </div>
+    </div>
+
+    <!-- Mute SFX -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Mute All Sounds</div>
+        <div class="setting-desc">Completely silence the bunny</div>
+      </div>
+      <input type="checkbox" id="muteCheck">
+    </div>
+
+    <!-- Start with Windows -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Start with Windows</div>
+        <div class="setting-desc">Launch Taskbar Bunny when logging in</div>
+      </div>
+      <input type="checkbox" id="startWindowsCheck">
+    </div>
+
+    <!-- Do Not Disturb -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Do Not Disturb Mode</div>
+        <div class="setting-desc">Bunny rests quietly in place without wandering</div>
+      </div>
+      <input type="checkbox" id="dndCheck">
+    </div>
+
+    <!-- Reset Save Data -->
+    <div class="danger-zone">
+      <div>
+        <div style="font-size: 13px; font-weight: bold; color: #991b1b;">Reset Save Data</div>
+        <div style="font-size: 11px; color: #b91c1c;">Clear all coins, progress, and inventory</div>
+      </div>
+      <button class="btn-reset" id="resetBtn">Reset All</button>
+    </div>
+  </div>
+
+  <script src="../dist/settings.js"></script>
+</body>
+</html>
