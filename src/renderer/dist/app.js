@@ -1344,21 +1344,23 @@
             if (onPassiveCarrot) onPassiveCarrot();
           }
         }
-        feed(foodId) {
+        feed(foodId, onLevelUp) {
           const food = FOODS2[foodId] || FOODS2.carrot;
           const prevHunger = this.hunger;
           this.hunger = Math.min(100, this.hunger + food.hungerRestore);
           this.happiness = Math.min(100, this.happiness + food.happinessBonus);
           const xpGained = Math.round(food.hungerRestore * 0.8 + food.happinessBonus * 0.5);
+          this.addXp(xpGained, onLevelUp);
           return {
             hungerRestored: this.hunger - prevHunger,
             happinessGained: food.happinessBonus,
             xpGained
           };
         }
-        pet() {
+        pet(onLevelUp) {
           this.happiness = Math.min(100, this.happiness + 2);
           const xpGained = 2;
+          this.addXp(xpGained, onLevelUp);
           return { happiness: this.happiness, xpGained };
         }
         addXp(amount, onLevelUp) {
@@ -1628,6 +1630,7 @@
           this.stateMachine.setState("idle");
           this.totalPetCount = initialData.totalPetCount || 0;
           this.totalCarrotsFed = initialData.totalCarrotsFed || 0;
+          this.onLevelUpCallback = null;
         }
         resize(newWidth, newHeight, taskbarOverlap = 0) {
           this.screenWidth = newWidth;
@@ -1683,6 +1686,7 @@
         update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
           if (this.nameTimer > 0) this.nameTimer -= deltaTime;
           this.worldFoods = worldFoods;
+          this.onLevelUpCallback = onLevelUp;
           this.needs.update(onLevelUp, onPassiveCarrot);
           const activeTerrain = this.settings?.activeTerrain || "grassy";
           if (activeTerrain === "icy" && !this.isSleepingInDen && !this.isDragging) {
@@ -1806,7 +1810,7 @@
           }
           if (this.stateMachine.stateTimer >= this.stateMachine.stateDuration) {
             const foodId = this.currentEatingFood.id;
-            const res = this.needs.feed(foodId);
+            const res = this.needs.feed(foodId, this.onLevelUpCallback);
             this.totalCarrotsFed++;
             for (let i = 0; i < 4; i++) {
               const vx = (Math.random() - 0.5) * 1.2;
@@ -1877,7 +1881,7 @@
           this.isSleepingInDen = false;
           this.totalPetCount++;
           this.nameTimer = 2500;
-          this.needs.pet();
+          this.needs.pet(this.onLevelUpCallback);
           soundEngine2.playPet();
           for (let i = 0; i < 3; i++) {
             const vx = (Math.random() - 0.5) * 1.5;

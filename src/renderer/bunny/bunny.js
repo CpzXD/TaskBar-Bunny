@@ -86,6 +86,7 @@ class Bunny {
     // Stats tracking
     this.totalPetCount = initialData.totalPetCount || 0;
     this.totalCarrotsFed = initialData.totalCarrotsFed || 0;
+    this.onLevelUpCallback = null;
   }
 
   resize(newWidth, newHeight, taskbarOverlap = 0) {
@@ -141,6 +142,7 @@ class Bunny {
   update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
     if (this.nameTimer > 0) this.nameTimer -= deltaTime;
     this.worldFoods = worldFoods;
+    this.onLevelUpCallback = onLevelUp;
     this.needs.update(onLevelUp, onPassiveCarrot);
 
     // Ice terrain check: skating glints and random slip (every 30-40s)
@@ -294,7 +296,7 @@ class Bunny {
     if (this.stateMachine.stateTimer >= this.stateMachine.stateDuration) {
       // Finished meal!
       const foodId = this.currentEatingFood.id;
-      const res = this.needs.feed(foodId);
+      const res = this.needs.feed(foodId, this.onLevelUpCallback);
       this.totalCarrotsFed++;
 
       // Heart burst
@@ -379,7 +381,7 @@ class Bunny {
     this.isSleepingInDen = false;
     this.totalPetCount++;
     this.nameTimer = 2500;
-    this.needs.pet();
+    this.needs.pet(this.onLevelUpCallback);
     soundEngine.playPet();
     for (let i = 0; i < 3; i++) {
       const vx = (Math.random() - 0.5) * 1.5;

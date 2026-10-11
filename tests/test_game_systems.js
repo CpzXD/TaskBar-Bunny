@@ -25,6 +25,7 @@ test('feeding restores hunger and grants xp toward leveling up', () => {
   assert.ok(needs.hunger > 30, 'Feeding carrot must increase hunger');
   assert.ok(needs.happiness > 40, 'Feeding carrot must increase happiness');
   assert.ok(feedRes.xpGained > 0, 'Feeding carrot must grant XP');
+  assert.strictEqual(needs.xp, feedRes.xpGained, 'Feeding must directly increment bunny xp');
 
   let leveledUp = false;
   needs.addXp(150, (newLv) => {

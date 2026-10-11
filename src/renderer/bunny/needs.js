@@ -37,12 +37,13 @@ class BunnyNeeds {
     }
   }
 
-  feed(foodId) {
+  feed(foodId, onLevelUp) {
     const food = FOODS[foodId] || FOODS.carrot;
     const prevHunger = this.hunger;
     this.hunger = Math.min(100, this.hunger + food.hungerRestore);
     this.happiness = Math.min(100, this.happiness + food.happinessBonus);
     const xpGained = Math.round(food.hungerRestore * 0.8 + food.happinessBonus * 0.5);
+    this.addXp(xpGained, onLevelUp);
     return {
       hungerRestored: this.hunger - prevHunger,
       happinessGained: food.happinessBonus,
@@ -50,9 +51,10 @@ class BunnyNeeds {
     };
   }
 
-  pet() {
+  pet(onLevelUp) {
     this.happiness = Math.min(100, this.happiness + 2);
     const xpGained = 2;
+    this.addXp(xpGained, onLevelUp);
     return { happiness: this.happiness, xpGained };
   }
 
