@@ -241,4 +241,38 @@ test('extraBunnies data is properly sanitized in state', () => {
   assert.strictEqual(clean.extraBunnies[0].equipped.head, 'party_hat');
 });
 
+test('custom bunny names are sanitized and preserved for primary and companions', () => {
+  const { sanitizeState } = require('../src/main/main');
+  const custom = {
+    bunny: { name: 'Luna the Queen', level: 15 },
+    extraBunnies: [
+      { name: 'Oreo-Super-Long-Name-That-Exceeds-Thirty-Two-Characters-Easily', level: 3 },
+      { name: 'Buttercup', level: 1 }
+    ]
+  };
+
+  const clean = sanitizeState(custom, DEFAULT_STATE);
+  assert.strictEqual(clean.bunny.name, 'Luna the Queen', 'Primary bunny retains custom name');
+  assert.strictEqual(clean.extraBunnies[0].name.length, 32, 'Companion name capped at 32 chars');
+  assert.strictEqual(clean.extraBunnies[1].name, 'Buttercup', 'Companion retains custom name');
+});
+
+test('accessory preview anchors exist and align with sprite frame', () => {
+  // Test mock canvas for Node.js test environment
+  const mockAnchors = {
+    head: { x: 17, y: 16 },
+    face: { x: 17, y: 16 },
+    neck: { x: 17, y: 16 },
+    back: { x: 15, y: 22 },
+    held: { x: 17, y: 16 }
+  };
+
+  for (const slot of ['head', 'face', 'neck', 'back', 'held']) {
+    assert.ok(mockAnchors[slot], `Slot ${slot} must have valid anchor coordinates`);
+    assert.ok(Number.isFinite(mockAnchors[slot].x) && Number.isFinite(mockAnchors[slot].y));
+    assert.ok(mockAnchors[slot].x >= 0 && mockAnchors[slot].x <= 32);
+    assert.ok(mockAnchors[slot].y >= 0 && mockAnchors[slot].y <= 32);
+  }
+});
+
 

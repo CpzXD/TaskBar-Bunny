@@ -87,6 +87,12 @@ class InputManager {
     const isInteractive = this.checkInteractivity(px, py);
     this.updateMouseIgnoreState(isInteractive);
 
+    if (this.app.bunnies) {
+      for (const b of this.app.bunnies) {
+        b.isHovered = b.isPointInside(px, py);
+      }
+    }
+
     // Update cursor
     if (this.findFoodAt(px, py)) {
       document.body.style.cursor = 'grab';
@@ -451,6 +457,11 @@ class InputManager {
     this.isMouseDown = false;
     this.dragTarget = null;
     this.pendingFoodSlot = null;
+    if (this.app.bunnies) {
+      for (const b of this.app.bunnies) {
+        b.isHovered = false;
+      }
+    }
     this.updateMouseIgnoreState(false);
   }
 }

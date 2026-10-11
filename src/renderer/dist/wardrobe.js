@@ -1070,7 +1070,8 @@
       this.tabContent = document.getElementById("tabContent");
       this.tabsBar = document.getElementById("tabsBar");
       this.coinCountEl = document.getElementById("coinCount");
-      this.bunnyNameEl = document.getElementById("bunnyName");
+      this.bunnyNameInput = document.getElementById("bunnyNameInput");
+      this.saveNameBtn = document.getElementById("saveNameBtn");
       this.bunnySelectEl = document.getElementById("bunnySelect");
       this.closeBtn = document.getElementById("closeBtn");
       this.state = null;
@@ -1089,6 +1090,19 @@
       }
       return this.state.bunny;
     }
+    handleSaveName(nameVal = null) {
+      const currentBunny = this.getCurrentBunny();
+      if (!currentBunny) return;
+      const val = (nameVal !== null ? nameVal : this.bunnyNameInput ? this.bunnyNameInput.value : "").trim();
+      if (!val) return;
+      if (currentBunny.name !== val) {
+        currentBunny.name = val;
+        soundEngine.playCoin();
+        this.saveState();
+        this.updateHeaderInfo();
+        this.renderTabContent();
+      }
+    }
     syncAudioSettings() {
       if (!this.state || !this.state.settings) return;
       soundEngine.setMuted(Boolean(this.state.settings.isMuted));
@@ -1100,6 +1114,22 @@
       this.closeBtn.addEventListener("click", () => {
         window.api.closeWindow("wardrobe");
       });
+      if (this.saveNameBtn) {
+        this.saveNameBtn.addEventListener("click", () => {
+          this.handleSaveName();
+        });
+      }
+      if (this.bunnyNameInput) {
+        this.bunnyNameInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            this.handleSaveName();
+            this.bunnyNameInput.blur();
+          }
+        });
+        this.bunnyNameInput.addEventListener("blur", () => {
+          this.handleSaveName();
+        });
+      }
       this.tabsBar.addEventListener("click", (e) => {
         if (e.target.classList.contains("tab-btn")) {
           document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
@@ -1115,6 +1145,11 @@
       this.renderTabContent();
       this.startPreviewLoop();
       window.api.onStateUpdate((newState) => {
+        const prevExtraCount = this.state && this.state.extraBunnies ? this.state.extraBunnies.length : 0;
+        const newExtraCount = newState && newState.extraBunnies ? newState.extraBunnies.length : 0;
+        if (newExtraCount > prevExtraCount) {
+          this.selectedBunnyIndex = newExtraCount;
+        }
         this.state = newState;
         this.syncAudioSettings();
         this.updateHeaderInfo();
@@ -1124,7 +1159,10 @@
     updateHeaderInfo() {
       if (!this.state) return;
       const currentBunny = this.getCurrentBunny();
-      this.bunnyNameEl.textContent = currentBunny ? currentBunny.name || "Barnaby" : "Barnaby";
+      const currentName = currentBunny ? currentBunny.name || "Barnaby" : "Barnaby";
+      if (this.bunnyNameInput && document.activeElement !== this.bunnyNameInput) {
+        this.bunnyNameInput.value = currentName;
+      }
       this.coinCountEl.textContent = this.state.inventory.coins || 0;
       if (this.bunnySelectEl) {
         if (this.state.extraBunnies && this.state.extraBunnies.length > 0) {
@@ -1213,6 +1251,30 @@
       if (!b) return;
       const container = document.createElement("div");
       container.className = "base-controls";
+      const nameRow = document.createElement("div");
+      nameRow.className = "base-row";
+      nameRow.innerHTML = `
+      <label>Bunny Name:</label>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <input type="text" id="tabNameInput" class="bunny-name-input" maxlength="16" value="${b.name || "Barnaby"}" style="font-size: 13px; width: 130px; padding: 4px 8px;">
+        <button class="item-btn btn-equip" id="tabSaveNameBtn" style="width: auto; padding: 4px 10px; cursor: pointer;">Save</button>
+      </div>
+    `;
+      const tabInput = nameRow.querySelector("#tabNameInput");
+      const tabSaveBtn = nameRow.querySelector("#tabSaveNameBtn");
+      tabSaveBtn.addEventListener("click", () => {
+        this.handleSaveName(tabInput.value);
+      });
+      tabInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          this.handleSaveName(tabInput.value);
+          tabInput.blur();
+        }
+      });
+      tabInput.addEventListener("blur", () => {
+        this.handleSaveName(tabInput.value);
+      });
+      container.appendChild(nameRow);
       const furRow = document.createElement("div");
       furRow.className = "base-row";
       furRow.innerHTML = `
@@ -1270,37 +1332,47 @@
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.imageSmoothingEnabled = false;
-      if (itemId === "none") {
-        ctx.strokeStyle = "#cbd5e1";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(canvas.width / 2, canvas.height / 2, 12, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2 - 8, canvas.height / 2 + 8);
-        ctx.lineTo(canvas.width / 2 + 8, canvas.height / 2 - 8);
-        ctx.stroke();
-        return;
-      }
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = 32;
-      tempCanvas.height = 32;
-      const tCtx = tempCanvas.getContext("2d");
-      tCtx.imageSmoothingEnabled = false;
-      const anchors = {
-        head: { x: 16, y: 22 },
-        face: { x: 16, y: 15 },
-        neck: { x: 16, y: 15 },
-        back: { x: 17, y: 14 },
-        held: { x: 14, y: 20 }
+      const currentBunny = this.getCurrentBunny();
+      const appearance = {
+        furColor: currentBunny?.furColor || "white",
+        earStyle: currentBunny?.earStyle || "upright",
+        eyeColor: currentBunny?.eyeColor || "ruby",
+        blush: currentBunny?.blush !== false
       };
-      if (category === "held" && itemId === "balloon") {
-        anchors.held = { x: 15, y: 24 };
-      } else if (category === "back" && itemId === "cape") {
-        anchors.back = { x: 18, y: 12 };
+      const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
+        state: "idle",
+        frameIndex: 0,
+        direction: 1,
+        appearance
+      });
+      const frameCtx = frameCanvas.getContext("2d");
+      frameCtx.imageSmoothingEnabled = false;
+      if (itemId !== "none") {
+        AccessoryRenderer.renderAccessories(
+          frameCtx,
+          { [category]: itemId },
+          anchors,
+          1,
+          0
+        );
       }
-      AccessoryRenderer.renderAccessories(tCtx, { [category]: itemId }, anchors, 1, 0);
-      ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frameCanvas, 0, 0, canvas.width, canvas.height);
+      if (itemId === "none") {
+        ctx.strokeStyle = "#ef4444";
+        ctx.fillStyle = "rgba(239, 68, 68, 0.2)";
+        ctx.lineWidth = 2;
+        const cx = canvas.width - 12;
+        const cy = 12;
+        const r = 7;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 5, cy + 5);
+        ctx.lineTo(cx + 5, cy - 5);
+        ctx.stroke();
+      }
     }
     renderAccessoriesCategory(category) {
       const currentBunny = this.getCurrentBunny();
@@ -1320,7 +1392,7 @@
           <span class="item-tier tier-${item.tier}">${item.tier}</span>
         </div>
         <div class="item-visual-wrap">
-          <canvas class="item-preview-canvas" width="48" height="48"></canvas>
+          <canvas class="item-preview-canvas" width="64" height="64"></canvas>
         </div>
         <div style="font-size: 11px; color: #64748b; margin: 2px 0; text-align: center;">
           ${isUnlocked ? isEquipped ? "Currently Wearing" : "Owned" : `Price: <span class="coin-icon"></span> ${item.price}`}

@@ -98,10 +98,39 @@
       flex-direction: column;
       gap: 6px;
     }
-    .bunny-name {
-      font-size: 18px;
-      font-weight: bold;
+    .bunny-name-input {
+      font-size: 14px;
+      font-weight: 700;
       color: #831843;
+      background: #fdf2f8;
+      border: 1.5px solid #f472b6;
+      border-radius: 6px;
+      padding: 3px 8px;
+      width: 120px;
+      outline: none;
+      transition: all 0.15s;
+    }
+    .bunny-name-input:focus {
+      background: #ffffff;
+      border-color: #db2777;
+      box-shadow: 0 0 0 2px rgba(244, 114, 182, 0.25);
+    }
+    .btn-name-save {
+      background: #ec4899;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: background 0.15s;
+    }
+    .btn-name-save:hover {
+      background: #db2777;
     }
     .coin-display {
       background: #fef3c7;
@@ -233,17 +262,19 @@
     .item-btn:hover { opacity: 0.9; }
 
     .item-visual-wrap {
-      width: 48px;
-      height: 48px;
+      width: 68px;
+      height: 68px;
       background: radial-gradient(circle, #fff7ed 40%, #ffedd5 100%);
       border: 1.5px solid #fed7aa;
-      border-radius: 8px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 2px auto 4px auto;
+      margin: 2px auto 6px auto;
     }
     .item-preview-canvas {
+      width: 64px;
+      height: 64px;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
@@ -415,9 +446,10 @@
         <canvas id="previewCanvas" width="96" height="96"></canvas>
       </div>
       <div class="preview-info">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="bunny-name" id="bunnyName">Barnaby</div>
-          <select id="bunnySelect" style="display: none; padding: 2px 6px; font-size: 11px; border-radius: 6px; border: 1px solid #f472b6; background: #fff; color: #831843; font-weight: bold; cursor: pointer;"></select>
+        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+          <input type="text" id="bunnyNameInput" class="bunny-name-input" maxlength="16" value="Barnaby" placeholder="Bunny Name" title="Edit name and press Enter or Rename">
+          <button id="saveNameBtn" class="btn-name-save" title="Save Bunny Name">Rename ✏️</button>
+          <select id="bunnySelect" style="display: none; padding: 3px 6px; font-size: 11px; border-radius: 6px; border: 1.5px solid #f472b6; background: #fff; color: #831843; font-weight: bold; cursor: pointer;"></select>
         </div>
         <div class="coin-display"><span class="coin-icon"></span> <span id="coinCount">0</span> Coins</div>
         <div style="font-size: 11px; color: #64748b;">Live Wardrobe Preview</div>

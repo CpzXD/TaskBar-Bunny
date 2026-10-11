@@ -34,6 +34,8 @@ class Bunny {
     };
 
     this.name = initialData.name || 'Barnaby';
+    this.nameTimer = 0;
+    this.isHovered = false;
 
     // Needs & stats
     this.needs = new BunnyNeeds(initialData, settings);
@@ -108,6 +110,7 @@ class Bunny {
   }
 
   update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
+    if (this.nameTimer > 0) this.nameTimer -= deltaTime;
     this.worldFoods = worldFoods;
     this.needs.update(onLevelUp, onPassiveCarrot);
     this.stateMachine.update(deltaTime);
@@ -281,6 +284,7 @@ class Bunny {
 
   pet(mouseX, mouseY) {
     this.totalPetCount++;
+    this.nameTimer = 2500;
     this.needs.pet();
     soundEngine.playPet();
     for (let i = 0; i < 3; i++) {
@@ -402,6 +406,32 @@ class Bunny {
     }
 
     this.drawParticles(ctx);
+
+    if (this.nameTimer > 0 || this.isHovered) {
+      const nameText = this.name || 'Barnaby';
+      ctx.save();
+      ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      const textW = ctx.measureText(nameText).width;
+      const badgeW = textW + 14;
+      const badgeH = 16;
+      const badgeX = Math.round(this.x - badgeW / 2);
+      const badgeY = Math.round(drawY - badgeH - 4);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#831843';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(nameText, this.x, badgeY + badgeH / 2);
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 }

@@ -1535,6 +1535,8 @@
             held: "none"
           };
           this.name = initialData.name || "Barnaby";
+          this.nameTimer = 0;
+          this.isHovered = false;
           this.needs = new BunnyNeeds(initialData, settings);
           this.baseSpriteSize = 32;
           this.width = this.baseSpriteSize * this.scale;
@@ -1592,6 +1594,7 @@
           }
         }
         update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
+          if (this.nameTimer > 0) this.nameTimer -= deltaTime;
           this.worldFoods = worldFoods;
           this.needs.update(onLevelUp, onPassiveCarrot);
           this.stateMachine.update(deltaTime);
@@ -1735,6 +1738,7 @@
         }
         pet(mouseX, mouseY) {
           this.totalPetCount++;
+          this.nameTimer = 2500;
           this.needs.pet();
           soundEngine2.playPet();
           for (let i = 0; i < 3; i++) {
@@ -1841,6 +1845,28 @@
             ItemSprites2.drawThoughtBubble(ctx, this.x, drawY - 4, "carrot");
           }
           this.drawParticles(ctx);
+          if (this.nameTimer > 0 || this.isHovered) {
+            const nameText = this.name || "Barnaby";
+            ctx.save();
+            ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            const textW = ctx.measureText(nameText).width;
+            const badgeW = textW + 14;
+            const badgeH = 16;
+            const badgeX = Math.round(this.x - badgeW / 2);
+            const badgeY = Math.round(drawY - badgeH - 4);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
+            ctx.strokeStyle = "#f472b6";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 8);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#831843";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(nameText, this.x, badgeY + badgeH / 2);
+            ctx.restore();
+          }
           ctx.restore();
         }
       };
@@ -2424,6 +2450,11 @@
           this.lastMouseY = py;
           const isInteractive = this.checkInteractivity(px, py);
           this.updateMouseIgnoreState(isInteractive);
+          if (this.app.bunnies) {
+            for (const b of this.app.bunnies) {
+              b.isHovered = b.isPointInside(px, py);
+            }
+          }
           if (this.findFoodAt(px, py)) {
             document.body.style.cursor = "grab";
           } else if (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py)) {
@@ -2751,6 +2782,11 @@
           this.isMouseDown = false;
           this.dragTarget = null;
           this.pendingFoodSlot = null;
+          if (this.app.bunnies) {
+            for (const b of this.app.bunnies) {
+              b.isHovered = false;
+            }
+          }
           this.updateMouseIgnoreState(false);
         }
       };
@@ -2908,7 +2944,10 @@
       this.bunnies.push(newBunny);
       soundEngine.playLevelUp();
       if (this.hud) {
-        this.hud.showNotification(`\u{1F430} Welcome ${newBunny.name}!`, "A new companion joined your taskbar family!", 5e3, "\u2728");
+        this.hud.showNotification(`\u{1F430} Welcome ${newBunny.name}!`, "Customize or rename your companion in the Wardrobe!", 5e3, "\u2728");
+      }
+      if (window.api && window.api.openWardrobe) {
+        window.api.openWardrobe();
       }
       for (let i = 0; i < 12; i++) {
         const vx = (Math.random() - 0.5) * 4;
@@ -3286,30 +3325,47 @@
     syncState(updatedState) {
       if (!updatedState) return;
       this.state = updatedState;
-      if (this.bunny) {
-        this.bunny.appearance = {
+      if (this.bunnies && this.bunnies[0] && this.state.bunny) {
+        const primary = this.bunnies[0];
+        if (this.state.bunny.name) primary.name = this.state.bunny.name;
+        primary.appearance = {
           furColor: this.state.bunny.furColor,
           earStyle: this.state.bunny.earStyle,
           eyeColor: this.state.bunny.eyeColor,
           blush: this.state.bunny.blush
         };
-        this.bunny.equipped = this.state.bunny.equipped;
-        if (this.state.settings) {
-          for (const b of this.bunnies) {
-            b.scale = this.state.settings.bunnyScale || 2.5;
-            b.width = b.baseSpriteSize * b.scale;
-            b.height = b.baseSpriteSize * b.scale;
-            b.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
-            b.roamingArea = this.state.settings.roamingArea || "cozy";
-            b.floorMode = this.state.settings.floorMode || "taskbar";
-            if (b.floorMode === "taskbar") {
-              b.groundY = b.taskbarFloorY;
-              b.customGroundY = null;
-            }
+        primary.equipped = this.state.bunny.equipped;
+      }
+      if (this.bunnies && Array.isArray(this.state.extraBunnies)) {
+        this.state.extraBunnies.forEach((eb, idx) => {
+          const companion = this.bunnies[idx + 1];
+          if (companion) {
+            if (eb.name) companion.name = eb.name;
+            companion.appearance = {
+              furColor: eb.furColor,
+              earStyle: eb.earStyle,
+              eyeColor: eb.eyeColor,
+              blush: eb.blush
+            };
+            companion.equipped = eb.equipped;
           }
-          soundEngine.setVolume(this.state.settings.volume ?? 0.6);
-          soundEngine.setMuted(Boolean(this.state.settings.isMuted));
+        });
+      }
+      if (this.state.settings && this.bunnies) {
+        for (const b of this.bunnies) {
+          b.scale = this.state.settings.bunnyScale || 2.5;
+          b.width = b.baseSpriteSize * b.scale;
+          b.height = b.baseSpriteSize * b.scale;
+          b.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
+          b.roamingArea = this.state.settings.roamingArea || "cozy";
+          b.floorMode = this.state.settings.floorMode || "taskbar";
+          if (b.floorMode === "taskbar") {
+            b.groundY = b.taskbarFloorY;
+            b.customGroundY = null;
+          }
         }
+        soundEngine.setVolume(this.state.settings.volume ?? 0.6);
+        soundEngine.setMuted(Boolean(this.state.settings.isMuted));
       }
       if (this.hud) {
         this.hud.layout(this.canvas.height, this.taskbarOverlap);

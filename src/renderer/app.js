@@ -117,7 +117,10 @@ class TaskbarBunnyApp {
 
     soundEngine.playLevelUp();
     if (this.hud) {
-      this.hud.showNotification(`🐰 Welcome ${newBunny.name}!`, 'A new companion joined your taskbar family!', 5000, '✨');
+      this.hud.showNotification(`🐰 Welcome ${newBunny.name}!`, 'Customize or rename your companion in the Wardrobe!', 5000, '✨');
+    }
+    if (window.api && window.api.openWardrobe) {
+      window.api.openWardrobe();
     }
 
     for (let i = 0; i < 12; i++) {
@@ -570,30 +573,49 @@ class TaskbarBunnyApp {
     if (!updatedState) return;
     this.state = updatedState;
 
-    if (this.bunny) {
-      this.bunny.appearance = {
+    if (this.bunnies && this.bunnies[0] && this.state.bunny) {
+      const primary = this.bunnies[0];
+      if (this.state.bunny.name) primary.name = this.state.bunny.name;
+      primary.appearance = {
         furColor: this.state.bunny.furColor,
         earStyle: this.state.bunny.earStyle,
         eyeColor: this.state.bunny.eyeColor,
         blush: this.state.bunny.blush
       };
-      this.bunny.equipped = this.state.bunny.equipped;
-      if (this.state.settings) {
-        for (const b of this.bunnies) {
-          b.scale = this.state.settings.bunnyScale || 2.5;
-          b.width = b.baseSpriteSize * b.scale;
-          b.height = b.baseSpriteSize * b.scale;
-          b.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
-          b.roamingArea = this.state.settings.roamingArea || 'cozy';
-          b.floorMode = this.state.settings.floorMode || 'taskbar';
-          if (b.floorMode === 'taskbar') {
-            b.groundY = b.taskbarFloorY;
-            b.customGroundY = null;
-          }
+      primary.equipped = this.state.bunny.equipped;
+    }
+
+    if (this.bunnies && Array.isArray(this.state.extraBunnies)) {
+      this.state.extraBunnies.forEach((eb, idx) => {
+        const companion = this.bunnies[idx + 1];
+        if (companion) {
+          if (eb.name) companion.name = eb.name;
+          companion.appearance = {
+            furColor: eb.furColor,
+            earStyle: eb.earStyle,
+            eyeColor: eb.eyeColor,
+            blush: eb.blush
+          };
+          companion.equipped = eb.equipped;
         }
-        soundEngine.setVolume(this.state.settings.volume ?? 0.6);
-        soundEngine.setMuted(Boolean(this.state.settings.isMuted));
+      });
+    }
+
+    if (this.state.settings && this.bunnies) {
+      for (const b of this.bunnies) {
+        b.scale = this.state.settings.bunnyScale || 2.5;
+        b.width = b.baseSpriteSize * b.scale;
+        b.height = b.baseSpriteSize * b.scale;
+        b.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
+        b.roamingArea = this.state.settings.roamingArea || 'cozy';
+        b.floorMode = this.state.settings.floorMode || 'taskbar';
+        if (b.floorMode === 'taskbar') {
+          b.groundY = b.taskbarFloorY;
+          b.customGroundY = null;
+        }
       }
+      soundEngine.setVolume(this.state.settings.volume ?? 0.6);
+      soundEngine.setMuted(Boolean(this.state.settings.isMuted));
     }
     if (this.hud) {
       this.hud.layout(this.canvas.height, this.taskbarOverlap);
