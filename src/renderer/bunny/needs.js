@@ -58,9 +58,8 @@ class BunnyNeeds {
 
   addXp(amount, onLevelUp) {
     this.xp += amount;
-    const requiredXp = this.level * 100;
-    if (this.xp >= requiredXp) {
-      this.xp -= requiredXp;
+    while (this.xp >= this.level * 100) {
+      this.xp -= this.level * 100;
       this.level += 1;
       if (onLevelUp) onLevelUp(this.level);
     }

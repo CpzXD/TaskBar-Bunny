@@ -117,6 +117,7 @@ class BunnyStateMachine {
           this.bunny.x = walkTargetX;
           this.bunny.y = walkTargetY;
           this.bunny.direction = approachDirection;
+          nearestFood.beingEatenBy = this.bunny;
           this.bunny.currentEatingFood = nearestFood;
           this.setState('eat', 3200);
           return;

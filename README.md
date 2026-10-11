@@ -39,9 +39,14 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
   - **Pet**: Click to pet (spawns hearts, boosts happiness, plays chime).
   - **Drag & Drop**: Click and drag to pick up the bunny (dangling legs animation) and release to let it bounce back down onto the taskbar.
   - **Double Click**: Double click to make the bunny perform an excited high hop!
-- **Feeding & Carrot Garden**:
-  - Drop carrots, lettuce, apple slices, four-leaf clovers, and strawberries onto the taskbar.
-  - The bunny notices the treat, walks over, and crunches it down with crumb particles and sound effects.
+- **Multi-Bunny Family (Unlock Every 10 Levels)**:
+  - Reach Level 10, 20, 30, and beyond to unlock additional companion bunnies for your desktop!
+  - Adopt new bunny friends directly from the food drawer menu with distinct names, fur coats, ear shapes, and eye colors.
+  - Each bunny independently wanders, hops, naps, and eats treats, and can be dressed up separately in the Closet.
+- **Feeding & Sky Food Drops**:
+  - Drop carrots, lettuce, apple slices, four-leaf clovers, and strawberries from the food drawer or tray.
+  - Treats tumble gracefully from above the screen down to the taskbar with gravity physics, bounce effects, and crumb landing puffs.
+  - Whichever bunny is nearest notices the falling treat, hops over, and crunches it down with crumb particles and sound effects.
   - Mini garden plot on the taskbar: carrots grow in real time and can be harvested for bonus carrots, coins, and XP!
   - Passive income: earn free carrots periodically just by keeping the app open.
 - **Deep Wardrobe & Layered Cosmetics**:

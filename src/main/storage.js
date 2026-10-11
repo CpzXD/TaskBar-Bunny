@@ -57,6 +57,17 @@ class StorageManager {
       this.state.bunny.happiness = Math.max(20, this.state.bunny.happiness - 15);
     }
 
+    if (Array.isArray(this.state.extraBunnies)) {
+      for (const eb of this.state.extraBunnies) {
+        if (typeof eb.hunger === 'number') {
+          eb.hunger = Math.max(5, eb.hunger - cappedDrain);
+          if (eb.hunger < 25) {
+            eb.happiness = Math.max(20, (eb.happiness || 90) - 15);
+          }
+        }
+      }
+    }
+
     let carrotsGrown = 0;
     if (this.state.garden && Array.isArray(this.state.garden.plots)) {
       for (const plot of this.state.garden.plots) {

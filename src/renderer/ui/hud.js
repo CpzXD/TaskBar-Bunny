@@ -110,7 +110,7 @@ class HUD {
   getDrawerBounds() {
     if (!this.isDrawerOpen) return null;
     const s = this.scale;
-    const width = Math.round(270 * s);
+    const width = Math.round(315 * s);
     const height = Math.round(76 * s);
     const maxW = this.canvasWidth || ((typeof window !== 'undefined') ? window.innerWidth : 1920);
     const maxH = (this.canvasHeight || ((typeof window !== 'undefined') ? window.innerHeight : 1080)) - this.taskbarOverlap;
@@ -160,6 +160,17 @@ class HUD {
           const fx = startX + i * slotGap;
           if (px >= fx && px <= fx + slotW && py >= startY && py <= startY + slotH) {
             return { type: 'food', foodId: this.foodKeys[i] };
+          }
+        }
+
+        // Bunny family status / adopt button
+        const bx = startX + 5 * slotGap;
+        const bw = Math.round(79 * s);
+        if (px >= bx && px <= bx + bw && py >= startY && py <= startY + slotH) {
+          if (this.app && this.app.canAddBunny && this.app.canAddBunny()) {
+            return { type: 'add-bunny' };
+          } else {
+            return { type: 'bunny-status' };
           }
         }
 
@@ -277,6 +288,51 @@ class HUD {
         ctx.font = `bold ${Math.max(8, Math.round(9 * s))}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText(`x${count}`, fx + Math.round(slotW / 2), startY + Math.round(29 * s));
+      }
+
+      // Bunny Adoption / Family Card
+      const bx = startX + 5 * slotGap;
+      const bw = Math.round(79 * s);
+      const canAdd = this.app && this.app.canAddBunny && this.app.canAddBunny();
+      const bunnyCount = (this.app && this.app.bunnies && this.app.bunnies.length) || 1;
+      const maxBunnies = (this.app && this.app.getMaxBunnies) ? this.app.getMaxBunnies() : 1;
+
+      if (canAdd) {
+        ctx.fillStyle = '#ecfdf5';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(bx, startY, bw, slotH, Math.round(6 * s));
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#047857';
+        ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('+ Adopt 🐰', bx + Math.round(bw / 2), startY + Math.round(14 * s));
+
+        ctx.fillStyle = '#059669';
+        ctx.font = `bold ${Math.max(8, Math.round(8.5 * s))}px sans-serif`;
+        ctx.fillText('(Click to add!)', bx + Math.round(bw / 2), startY + Math.round(27 * s));
+      } else {
+        ctx.fillStyle = '#f8fafc';
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(bx, startY, bw, slotH, Math.round(6 * s));
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#334155';
+        ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`🐰 ${bunnyCount}/${maxBunnies}`, bx + Math.round(bw / 2), startY + Math.round(14 * s));
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = `${Math.max(8, Math.round(8.5 * s))}px sans-serif`;
+        ctx.fillText(`Next: Lv.${bunnyCount * 10}`, bx + Math.round(bw / 2), startY + Math.round(27 * s));
       }
 
       // Action buttons: Wardrobe, Settings & Exit

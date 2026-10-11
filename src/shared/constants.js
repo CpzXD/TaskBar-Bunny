@@ -157,6 +157,7 @@ const DEFAULT_STATE = {
       { name: 'Preset 3', head: 'none', face: 'none', neck: 'none', back: 'none', held: 'none' }
     ]
   },
+  extraBunnies: [],
   inventory: {
     coins: 50,
     foods: {

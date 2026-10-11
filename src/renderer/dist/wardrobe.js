@@ -166,6 +166,7 @@
             { name: "Preset 3", head: "none", face: "none", neck: "none", back: "none", held: "none" }
           ]
         },
+        extraBunnies: [],
         inventory: {
           coins: 50,
           foods: {
@@ -1070,12 +1071,23 @@
       this.tabsBar = document.getElementById("tabsBar");
       this.coinCountEl = document.getElementById("coinCount");
       this.bunnyNameEl = document.getElementById("bunnyName");
+      this.bunnySelectEl = document.getElementById("bunnySelect");
       this.closeBtn = document.getElementById("closeBtn");
       this.state = null;
+      this.selectedBunnyIndex = 0;
+      this.bunnySelectBound = false;
       this.activeTab = "base";
       this.previewFrame = 0;
       this.previewTimer = 0;
       this.init();
+    }
+    getCurrentBunny() {
+      if (!this.state) return null;
+      if (this.selectedBunnyIndex === 0) return this.state.bunny;
+      if (this.state.extraBunnies && this.state.extraBunnies[this.selectedBunnyIndex - 1]) {
+        return this.state.extraBunnies[this.selectedBunnyIndex - 1];
+      }
+      return this.state.bunny;
     }
     syncAudioSettings() {
       if (!this.state || !this.state.settings) return;
@@ -1111,8 +1123,36 @@
     }
     updateHeaderInfo() {
       if (!this.state) return;
-      this.bunnyNameEl.textContent = this.state.bunny.name || "Barnaby";
+      const currentBunny = this.getCurrentBunny();
+      this.bunnyNameEl.textContent = currentBunny ? currentBunny.name || "Barnaby" : "Barnaby";
       this.coinCountEl.textContent = this.state.inventory.coins || 0;
+      if (this.bunnySelectEl) {
+        if (this.state.extraBunnies && this.state.extraBunnies.length > 0) {
+          this.bunnySelectEl.style.display = "inline-block";
+          this.bunnySelectEl.innerHTML = "";
+          const primaryOpt = document.createElement("option");
+          primaryOpt.value = "0";
+          primaryOpt.textContent = `1. ${this.state.bunny.name || "Barnaby"}`;
+          this.bunnySelectEl.appendChild(primaryOpt);
+          this.state.extraBunnies.forEach((eb, idx) => {
+            const opt = document.createElement("option");
+            opt.value = `${idx + 1}`;
+            opt.textContent = `${idx + 2}. ${eb.name || "Companion"}`;
+            this.bunnySelectEl.appendChild(opt);
+          });
+          this.bunnySelectEl.value = String(this.selectedBunnyIndex);
+          if (!this.bunnySelectBound) {
+            this.bunnySelectBound = true;
+            this.bunnySelectEl.addEventListener("change", (e) => {
+              this.selectedBunnyIndex = parseInt(e.target.value, 10);
+              this.updateHeaderInfo();
+              this.renderTabContent();
+            });
+          }
+        } else {
+          this.bunnySelectEl.style.display = "none";
+        }
+      }
     }
     startPreviewLoop() {
       const loop = (time) => {
@@ -1130,11 +1170,13 @@
       if (!this.state) return;
       this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
       this.previewCtx.imageSmoothingEnabled = false;
+      const currentBunny = this.getCurrentBunny();
+      if (!currentBunny) return;
       const appearance = {
-        furColor: this.state.bunny.furColor,
-        earStyle: this.state.bunny.earStyle,
-        eyeColor: this.state.bunny.eyeColor,
-        blush: this.state.bunny.blush
+        furColor: currentBunny.furColor,
+        earStyle: currentBunny.earStyle,
+        eyeColor: currentBunny.eyeColor,
+        blush: currentBunny.blush
       };
       const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
         state: "idle",
@@ -1146,7 +1188,7 @@
       frameCtx.imageSmoothingEnabled = false;
       AccessoryRenderer.renderAccessories(
         frameCtx,
-        this.state.bunny.equipped,
+        currentBunny.equipped || {},
         anchors,
         1,
         this.previewFrame
@@ -1167,7 +1209,8 @@
       }
     }
     renderBaseCustomization() {
-      const b = this.state.bunny;
+      const b = this.getCurrentBunny();
+      if (!b) return;
       const container = document.createElement("div");
       container.className = "base-controls";
       const furRow = document.createElement("div");
@@ -1179,7 +1222,7 @@
       </select>
     `;
       furRow.querySelector("select").addEventListener("change", (e) => {
-        this.state.bunny.furColor = e.target.value;
+        b.furColor = e.target.value;
         this.saveState();
       });
       container.appendChild(furRow);
@@ -1192,7 +1235,7 @@
       </select>
     `;
       earRow.querySelector("select").addEventListener("change", (e) => {
-        this.state.bunny.earStyle = e.target.value;
+        b.earStyle = e.target.value;
         this.saveState();
       });
       container.appendChild(earRow);
@@ -1205,7 +1248,7 @@
       </select>
     `;
       eyeRow.querySelector("select").addEventListener("change", (e) => {
-        this.state.bunny.eyeColor = e.target.value;
+        b.eyeColor = e.target.value;
         this.saveState();
       });
       container.appendChild(eyeRow);
@@ -1216,7 +1259,7 @@
       <input type="checkbox" id="blushCheck" ${b.blush !== false ? "checked" : ""} style="transform: scale(1.3); cursor: pointer;">
     `;
       blushRow.querySelector("input").addEventListener("change", (e) => {
-        this.state.bunny.blush = e.target.checked;
+        b.blush = e.target.checked;
         this.saveState();
       });
       container.appendChild(blushRow);
@@ -1260,8 +1303,11 @@
       ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
     }
     renderAccessoriesCategory(category) {
+      const currentBunny = this.getCurrentBunny();
+      if (!currentBunny) return;
+      if (!currentBunny.equipped) currentBunny.equipped = {};
       const items = ACCESSORIES[category] || [];
-      const equippedId = this.state.bunny.equipped[category] || "none";
+      const equippedId = currentBunny.equipped[category] || "none";
       const unlockedList = this.state.inventory.unlockedCosmetics || [];
       for (const item of items) {
         const isEquipped = equippedId === item.id;
@@ -1289,16 +1335,16 @@
         const btn = card.querySelector(".item-btn");
         btn.addEventListener("click", () => {
           if (isEquipped) {
-            this.state.bunny.equipped[category] = "none";
+            currentBunny.equipped[category] = "none";
             soundEngine.playHop();
           } else if (isUnlocked) {
-            this.state.bunny.equipped[category] = item.id;
+            currentBunny.equipped[category] = item.id;
             soundEngine.playHop();
           } else {
             if (this.state.inventory.coins >= item.price) {
               this.state.inventory.coins -= item.price;
               this.state.inventory.unlockedCosmetics.push(`${category}:${item.id}`);
-              this.state.bunny.equipped[category] = item.id;
+              currentBunny.equipped[category] = item.id;
               soundEngine.playCoin();
               this.updateHeaderInfo();
             } else {

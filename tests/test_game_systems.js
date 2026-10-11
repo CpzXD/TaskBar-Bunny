@@ -158,5 +158,87 @@ test('menu can be dragged and repositioned with drawer anchoring correctly', () 
   const quitBtn = hud.getButtonAt(qx + 2, qy + 2);
   assert.ok(quitBtn, 'Quit button should be found at calculated coordinates');
   assert.strictEqual(quitBtn.type, 'quit-app', 'Button type should be quit-app');
+
+  // Verify HUD bunny adoption card hit test
+  const bx = testDb.x + Math.round(8 * testS) + 5 * Math.round(44 * testS);
+  const by = testDb.y + Math.round(6 * testS);
+  const bunnyBtn = hud.getButtonAt(bx + 4, by + 4);
+  assert.ok(bunnyBtn, 'Bunny card button should be found');
+  assert.strictEqual(bunnyBtn.type, 'bunny-status', 'Default should be bunny-status when maxed');
 });
+
+test('companion bunny unlocks at every 10 levels milestone', () => {
+  function getMaxBunniesForLevel(level) {
+    return Math.min(10, 1 + Math.floor(level / 10));
+  }
+
+  assert.strictEqual(getMaxBunniesForLevel(1), 1, 'Level 1 allows 1 bunny');
+  assert.strictEqual(getMaxBunniesForLevel(9), 1, 'Level 9 allows 1 bunny');
+  assert.strictEqual(getMaxBunniesForLevel(10), 2, 'Level 10 unlocks 2nd bunny');
+  assert.strictEqual(getMaxBunniesForLevel(19), 2, 'Level 19 allows 2 bunnies');
+  assert.strictEqual(getMaxBunniesForLevel(20), 3, 'Level 20 unlocks 3rd bunny');
+  assert.strictEqual(getMaxBunniesForLevel(30), 4, 'Level 30 unlocks 4th bunny');
+  assert.strictEqual(getMaxBunniesForLevel(40), 5, 'Level 40 unlocks 5th bunny');
+});
+
+test('food drops from above the screen and falls towards the ground', () => {
+  const groundY = 1000;
+  const food = {
+    id: 'carrot',
+    x: 500,
+    y: -28,
+    vy: 2.0,
+    rotation: 0,
+    spin: 0.05,
+    groundY: groundY,
+    isGrounded: false
+  };
+
+  assert.ok(food.y < 0, 'Food starts above the screen');
+  assert.strictEqual(food.isGrounded, false, 'Food is not grounded initially');
+
+  // Simulate falling frames
+  for (let frame = 0; frame < 100; frame++) {
+    if (!food.isGrounded) {
+      food.vy += 0.45;
+      if (food.vy > 14) food.vy = 14;
+      food.y += food.vy;
+      if (food.y >= food.groundY) {
+        food.y = food.groundY;
+        food.vy = 0;
+        food.isGrounded = true;
+      }
+    }
+  }
+
+  assert.strictEqual(food.isGrounded, true, 'Food lands on ground after falling');
+  assert.strictEqual(food.y, groundY, 'Food rests on groundY');
+});
+
+test('extraBunnies data is properly sanitized in state', () => {
+  const { sanitizeState } = require('../src/main/main');
+  const dirty = {
+    bunny: { name: 'Barnaby', level: 10 },
+    extraBunnies: [
+      {
+        name: 'Pip',
+        level: 2,
+        hunger: 70,
+        happiness: 95,
+        furColor: 'brown',
+        earStyle: 'floppy',
+        equipped: { head: 'party_hat' }
+      }
+    ]
+  };
+
+  const clean = sanitizeState(dirty, DEFAULT_STATE);
+  assert.ok(Array.isArray(clean.extraBunnies), 'clean.extraBunnies must be an array');
+  assert.strictEqual(clean.extraBunnies.length, 1);
+  assert.strictEqual(clean.extraBunnies[0].name, 'Pip');
+  assert.strictEqual(clean.extraBunnies[0].level, 2);
+  assert.strictEqual(clean.extraBunnies[0].furColor, 'brown');
+  assert.strictEqual(clean.extraBunnies[0].equipped.head, 'party_hat');
+});
+
 

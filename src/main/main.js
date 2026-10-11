@@ -105,6 +105,34 @@ function sanitizeState(incoming, current) {
     }
   }
 
+  if (Array.isArray(incoming.extraBunnies)) {
+    safe.extraBunnies = incoming.extraBunnies.slice(0, 10).map((eb, idx) => {
+      if (!eb || typeof eb !== 'object') return null;
+      const item = {
+        name: typeof eb.name === 'string' ? eb.name.slice(0, 32) : `Bunny ${idx + 2}`,
+        hunger: clamp(eb.hunger, 0, 100) ?? 85,
+        happiness: clamp(eb.happiness, 0, 100) ?? 90,
+        level: clamp(eb.level, 1, 100) ?? 1,
+        xp: clamp(eb.xp, 0) ?? 0,
+        totalCarrotsFed: clamp(eb.totalCarrotsFed, 0) ?? 0,
+        totalPetCount: clamp(eb.totalPetCount, 0) ?? 0,
+        customGroundY: clamp(eb.customGroundY, 0) ?? null,
+        furColor: typeof eb.furColor === 'string' ? eb.furColor : 'brown',
+        earStyle: typeof eb.earStyle === 'string' ? eb.earStyle : 'floppy',
+        eyeColor: typeof eb.eyeColor === 'string' ? eb.eyeColor : 'ruby',
+        blush: typeof eb.blush === 'boolean' ? eb.blush : true,
+        equipped: {
+          head: typeof eb.equipped?.head === 'string' ? eb.equipped.head : 'none',
+          face: typeof eb.equipped?.face === 'string' ? eb.equipped.face : 'none',
+          neck: typeof eb.equipped?.neck === 'string' ? eb.equipped.neck : 'none',
+          back: typeof eb.equipped?.back === 'string' ? eb.equipped.back : 'none',
+          held: typeof eb.equipped?.held === 'string' ? eb.equipped.held : 'none'
+        }
+      };
+      return item;
+    }).filter(Boolean);
+  }
+
   const inv = incoming.inventory;
   if (inv && typeof inv === 'object' && !Array.isArray(inv)) {
     safe.inventory = safe.inventory || {};

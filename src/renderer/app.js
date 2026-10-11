@@ -12,7 +12,7 @@ class TaskbarBunnyApp {
     this.canvas = document.getElementById('gameCanvas');
     this.ctx = this.canvas.getContext('2d');
     this.state = null;
-    this.bunny = null;
+    this.bunnies = [];
     this.garden = null;
     this.hud = null;
     this.input = null;
@@ -25,13 +25,109 @@ class TaskbarBunnyApp {
     this.taskbarOverlap = 0;
 
     // Cute random events (butterfly, coin find, sneeze)
-    this.butterfly = null; // { x, y, vx, vy, life }
+    this.butterfly = null;
     this.randomEventTimer = 0;
 
     // Auto-save timer
     this.autoSaveTimer = 0;
 
     this.init();
+  }
+
+  get bunny() {
+    return this.bunnies[0] || null;
+  }
+
+  set bunny(b) {
+    if (this.bunnies.length === 0) {
+      this.bunnies.push(b);
+    } else {
+      this.bunnies[0] = b;
+    }
+  }
+
+  getBunnyAt(px, py) {
+    for (let i = this.bunnies.length - 1; i >= 0; i--) {
+      if (this.bunnies[i].isPointInside(px, py)) {
+        return this.bunnies[i];
+      }
+    }
+    return null;
+  }
+
+  getMaxBunnies() {
+    const primaryLevel = (this.bunny && this.bunny.needs) ? this.bunny.needs.level : 1;
+    return Math.min(10, 1 + Math.floor(primaryLevel / 10));
+  }
+
+  canAddBunny() {
+    return this.bunnies.length < this.getMaxBunnies();
+  }
+
+  addBunny(customData = null) {
+    if (!this.canAddBunny()) {
+      const nextLv = this.bunnies.length * 10;
+      if (this.hud) {
+        this.hud.showNotification('Bunny limit reached!', `Reach Level ${nextLv} to adopt another bunny`, 4000, '🔒');
+      }
+      return false;
+    }
+
+    const bunnyIndex = this.bunnies.length;
+    const names = ['Pip', 'Mochi', 'Clover', 'Boba', 'Daisy', 'Thumper', 'Coco', 'Snowball', 'Bibi', 'Oliver', 'Bella'];
+    const furColors = ['brown', 'gray', 'pink', 'black', 'caramel', 'dutch', 'white'];
+    const earStyles = ['floppy', 'upright', 'derpy'];
+    const eyeColors = ['ruby', 'dark', 'emerald', 'sapphire', 'amber'];
+
+    const usedNames = this.bunnies.map(b => b.name);
+    const availableName = names.find(n => !usedNames.includes(n)) || `Bunny ${bunnyIndex + 1}`;
+    const furColor = furColors[(bunnyIndex - 1) % furColors.length];
+    const earStyle = earStyles[(bunnyIndex - 1) % earStyles.length];
+    const eyeColor = eyeColors[(bunnyIndex - 1) % eyeColors.length];
+
+    const data = customData || {
+      name: availableName,
+      furColor: furColor,
+      earStyle: earStyle,
+      eyeColor: eyeColor,
+      blush: true,
+      equipped: { head: 'none', face: 'none', neck: 'none', back: 'none', held: 'none' },
+      hunger: 85,
+      happiness: 90,
+      level: 1,
+      xp: 0,
+      totalCarrotsFed: 0,
+      totalPetCount: 0
+    };
+
+    const newBunny = new Bunny(data, this.state.settings, this.canvas.width, this.canvas.height);
+    newBunny.name = data.name || availableName;
+    newBunny.x = Math.max(100, Math.min(this.canvas.width - 100, Math.random() * (this.canvas.width - 200) + 100));
+    newBunny.y = -30;
+    newBunny.vy = 2.0;
+    newBunny.stateMachine.setState('falling', 2000);
+
+    newBunny.onFoodEaten = (eatenFood) => {
+      this.removeWorldFood(eatenFood);
+      this.checkAchievements();
+      this.saveState();
+    };
+
+    this.bunnies.push(newBunny);
+
+    soundEngine.playLevelUp();
+    if (this.hud) {
+      this.hud.showNotification(`🐰 Welcome ${newBunny.name}!`, 'A new companion joined your taskbar family!', 5000, '✨');
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const vx = (Math.random() - 0.5) * 4;
+      const vy = -1.5 - Math.random() * 2.5;
+      newBunny.addParticle(newBunny.x, newBunny.groundY - 20, vx, vy, 'star');
+    }
+
+    this.saveState();
+    return true;
   }
 
   // Y coordinate of the floor: just above the taskbar, whatever its height
@@ -63,18 +159,38 @@ class TaskbarBunnyApp {
       soundEngine.setMuted(Boolean(this.state.settings.isMuted));
     }
 
-    this.bunny = new Bunny(
+    this.bunnies = [];
+    const primaryBunny = new Bunny(
       this.state.bunny,
       this.state.settings,
       this.canvas.width,
       this.canvas.height
     );
-
-    this.bunny.onFoodEaten = (eatenFood) => {
+    primaryBunny.name = this.state.bunny.name || 'Barnaby';
+    primaryBunny.onFoodEaten = (eatenFood) => {
       this.removeWorldFood(eatenFood);
       this.checkAchievements();
       this.saveState();
     };
+    this.bunnies.push(primaryBunny);
+
+    if (Array.isArray(this.state.extraBunnies)) {
+      for (const eb of this.state.extraBunnies) {
+        const companion = new Bunny(
+          eb,
+          this.state.settings,
+          this.canvas.width,
+          this.canvas.height
+        );
+        companion.name = eb.name || 'Companion Bunny';
+        companion.onFoodEaten = (eatenFood) => {
+          this.removeWorldFood(eatenFood);
+          this.checkAchievements();
+          this.saveState();
+        };
+        this.bunnies.push(companion);
+      }
+    }
 
     this.garden = new CarrotGarden(this.state.garden, (reward) => {
       this.inventory.foods.carrot = (this.inventory.foods.carrot || 0) + reward.carrots;
@@ -101,7 +217,7 @@ class TaskbarBunnyApp {
     window.api.onTrayAction((action) => {
       if (action === 'feed-carrot') {
         const dropX = Math.max(95, this.bunny ? this.bunny.x + (this.bunny.direction * 35) : 120);
-        this.dropFood('carrot', dropX, 40);
+        this.dropFood('carrot', dropX, -28);
       }
     });
 
@@ -123,8 +239,8 @@ class TaskbarBunnyApp {
   }
 
   applyLayout() {
-    if (this.bunny) {
-      this.bunny.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
+    for (const b of this.bunnies) {
+      b.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
     }
     if (this.garden) {
       this.garden.y = this.groundY;
@@ -163,7 +279,9 @@ class TaskbarBunnyApp {
     this.inventory.foods[foodId]--;
     const groundY = this.bunny ? this.bunny.groundY : this.groundY;
     const db = this.hud ? this.hud.getDrawerBounds() : null;
-    let safeX = x;
+    let safeX = (x !== undefined && Number.isFinite(x))
+      ? x
+      : Math.floor(Math.random() * (this.canvas.width - 200)) + 100;
 
     // Ensure food does not drop behind drawer card
     if (this.hud && this.hud.isDrawerOpen && db) {
@@ -175,11 +293,15 @@ class TaskbarBunnyApp {
     }
     safeX = Math.max(40, Math.min(this.canvas.width - 40, safeX));
 
+    // Food drops from above the screen
+    const startY = (y !== undefined && y > 0 && y < groundY - 50) ? y : -28;
     this.worldFoods.push({
       id: foodId,
       x: safeX,
-      y: Math.min(y, groundY - 10),
-      vy: 1.5,
+      y: startY,
+      vy: 2.0,
+      rotation: 0,
+      spin: (Math.random() - 0.5) * 0.08,
       groundY: groundY,
       isGrounded: false
     });
@@ -195,16 +317,30 @@ class TaskbarBunnyApp {
     }
   }
 
-  onLevelUp(newLevel) {
+  onLevelUp(newLevel, levelingBunny) {
     soundEngine.playLevelUp();
     this.inventory.coins = (this.inventory.coins || 0) + 50;
-    this.hud.showNotification(`LEVEL UP! Now Level ${newLevel}!`, '+50 Coins awarded', 5000, '⭐');
+    const bName = (levelingBunny && levelingBunny.name) ? levelingBunny.name : 'Barnaby';
+    this.hud.showNotification(`LEVEL UP! ${bName} reached Level ${newLevel}!`, '+50 Coins awarded', 5000, '⭐');
+
+    if (newLevel % 10 === 0) {
+      const maxAllowed = 1 + Math.floor(newLevel / 10);
+      this.hud.showNotification(
+        `🎉 Milestone Level ${newLevel}!`,
+        `New bunny unlocked! (${this.bunnies.length}/${maxAllowed} active — click '+ Bunny' in menu)`,
+        7000,
+        '🐰'
+      );
+    }
 
     // Spawn celebration stars
-    for (let i = 0; i < 8; i++) {
-      const vx = (Math.random() - 0.5) * 3;
-      const vy = -1.5 - Math.random() * 2;
-      this.bunny.addParticle(this.bunny.x, this.bunny.y - 20, vx, vy, 'star');
+    const targetBunny = levelingBunny || this.bunny;
+    if (targetBunny) {
+      for (let i = 0; i < 8; i++) {
+        const vx = (Math.random() - 0.5) * 3;
+        const vy = -1.5 - Math.random() * 2;
+        targetBunny.addParticle(targetBunny.x, targetBunny.y - 20, vx, vy, 'star');
+      }
     }
 
     this.checkAchievements();
@@ -248,20 +384,31 @@ class TaskbarBunnyApp {
     for (const food of this.worldFoods) {
       const db = this.hud ? this.hud.getDrawerBounds() : null;
       const minX = (this.hud && this.hud.isDrawerOpen && db) ? (db.x + db.width + 25) : 95;
-      if (food.x < minX) {
+      if (food.isGrounded && food.x < minX) {
         food.x = minX + 20 + Math.random() * 60;
       }
 
       if (!food.isGrounded) {
-        food.vy += 0.35;
-        food.y += food.vy;
+        food.vy += 0.45;
+        if (food.vy > 14) food.vy = 14;
+        food.y += food.vy * (deltaTime / 16.6);
+
+        if (food.rotation !== undefined) {
+          food.rotation += (food.spin || 0.04);
+        }
+
         if (food.y >= food.groundY) {
           food.y = food.groundY;
-          if (food.vy > 1.2) {
-            food.vy = -food.vy * 0.3;
+          if (food.vy > 2.0) {
+            food.vy = -food.vy * 0.35;
+            soundEngine.playHop();
+            if (this.bunny) {
+              this.bunny.addParticle(food.x, food.groundY, (Math.random() - 0.5) * 1.5, -0.8, 'crumb');
+            }
           } else {
             food.vy = 0;
             food.isGrounded = true;
+            food.rotation = 0;
           }
         }
       }
@@ -271,11 +418,11 @@ class TaskbarBunnyApp {
       this.garden.update(deltaTime);
     }
 
-    if (this.bunny) {
-      this.bunny.update(
+    for (const bunny of this.bunnies) {
+      bunny.update(
         deltaTime,
         this.worldFoods,
-        (newLv) => this.onLevelUp(newLv),
+        (newLv) => this.onLevelUp(newLv, bunny),
         () => this.onPassiveCarrot()
       );
     }
@@ -286,19 +433,20 @@ class TaskbarBunnyApp {
 
     this.updateRandomEvents(deltaTime);
 
-    // 6. Intelligent Idle optimization
     if (this.loop && this.bunny) {
+      const allDormant = this.bunnies.every(b =>
+        (b.stateMachine.currentState === 'sleep' || b.stateMachine.currentState === 'sit') &&
+        b.particles.length === 0
+      );
       const isDormant = (
-        (this.bunny.stateMachine.currentState === 'sleep' || this.bunny.stateMachine.currentState === 'sit') &&
+        allDormant &&
         this.worldFoods.length === 0 &&
-        this.bunny.particles.length === 0 &&
         !this.input.isMouseDown &&
         !this.butterfly
       );
       this.loop.setIdleMode(isDormant);
     }
 
-    // 7. Auto-save every 30 seconds
     this.autoSaveTimer += deltaTime;
     if (this.autoSaveTimer >= 30000) {
       this.autoSaveTimer = 0;
@@ -368,8 +516,8 @@ class TaskbarBunnyApp {
       this.ctx.restore();
     }
 
-    if (this.bunny) {
-      this.bunny.draw(this.ctx);
+    for (const bunny of this.bunnies) {
+      bunny.draw(this.ctx);
     }
 
     if (this.hud && this.bunny) {
@@ -397,14 +545,23 @@ class TaskbarBunnyApp {
         this.ctx.restore();
       }
 
-      if (this.bunny && this.bunny.stateMachine.currentState === 'eat' && this.bunny.currentEatingFood === food) {
-        const progress = this.bunny.stateMachine.stateTimer / Math.max(1, this.bunny.stateMachine.stateDuration);
+      const eater = this.bunnies.find(b => b.stateMachine.currentState === 'eat' && b.currentEatingFood === food);
+      if (eater) {
+        const progress = eater.stateMachine.stateTimer / Math.max(1, eater.stateMachine.stateDuration);
         const nibbleSize = Math.max(8, 18 * (1 - progress * 0.5));
-        const holdX = this.bunny.x + (this.bunny.direction * 10);
-        const holdY = this.bunny.y - 12;
+        const holdX = eater.x + (eater.direction * 10);
+        const holdY = eater.y - 12;
         ItemSprites.drawFood(this.ctx, food.id, holdX, holdY, nibbleSize);
       } else {
-        ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+        if (!food.isGrounded && food.rotation) {
+          this.ctx.save();
+          this.ctx.translate(food.x, food.y - 4);
+          this.ctx.rotate(food.rotation);
+          ItemSprites.drawFood(this.ctx, food.id, 0, 0, 18);
+          this.ctx.restore();
+        } else {
+          ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+        }
       }
     }
   }
@@ -422,15 +579,17 @@ class TaskbarBunnyApp {
       };
       this.bunny.equipped = this.state.bunny.equipped;
       if (this.state.settings) {
-        this.bunny.scale = this.state.settings.bunnyScale || 2.5;
-        this.bunny.width = this.bunny.baseSpriteSize * this.bunny.scale;
-        this.bunny.height = this.bunny.baseSpriteSize * this.bunny.scale;
-        this.bunny.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
-        this.bunny.roamingArea = this.state.settings.roamingArea || 'cozy';
-        this.bunny.floorMode = this.state.settings.floorMode || 'taskbar';
-        if (this.bunny.floorMode === 'taskbar') {
-          this.bunny.groundY = this.bunny.taskbarFloorY;
-          this.bunny.customGroundY = null;
+        for (const b of this.bunnies) {
+          b.scale = this.state.settings.bunnyScale || 2.5;
+          b.width = b.baseSpriteSize * b.scale;
+          b.height = b.baseSpriteSize * b.scale;
+          b.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
+          b.roamingArea = this.state.settings.roamingArea || 'cozy';
+          b.floorMode = this.state.settings.floorMode || 'taskbar';
+          if (b.floorMode === 'taskbar') {
+            b.groundY = b.taskbarFloorY;
+            b.customGroundY = null;
+          }
         }
         soundEngine.setVolume(this.state.settings.volume ?? 0.6);
         soundEngine.setMuted(Boolean(this.state.settings.isMuted));
@@ -444,20 +603,40 @@ class TaskbarBunnyApp {
   saveState() {
     if (!this.state || !this.bunny) return;
 
-    this.state.bunny.hunger = Math.round(this.bunny.needs.hunger);
-    this.state.bunny.happiness = Math.round(this.bunny.needs.happiness);
-    this.state.bunny.level = this.bunny.needs.level;
-    this.state.bunny.xp = this.bunny.needs.xp;
-    this.state.bunny.totalCarrotsFed = this.bunny.totalCarrotsFed;
-    this.state.bunny.totalPetCount = this.bunny.totalPetCount;
-    this.state.bunny.equipped = this.bunny.equipped;
-    this.state.bunny.furColor = this.bunny.appearance.furColor;
-    this.state.bunny.earStyle = this.bunny.appearance.earStyle;
-    this.state.bunny.eyeColor = this.bunny.appearance.eyeColor;
-    this.state.bunny.blush = this.bunny.appearance.blush;
-    this.state.bunny.customGroundY = (this.bunny.floorMode === 'free' && this.bunny.customGroundY)
-      ? Math.round(this.bunny.customGroundY)
-      : null;
+    const primary = this.bunnies[0];
+    if (primary) {
+      this.state.bunny.name = primary.name || 'Barnaby';
+      this.state.bunny.hunger = Math.round(primary.needs.hunger);
+      this.state.bunny.happiness = Math.round(primary.needs.happiness);
+      this.state.bunny.level = primary.needs.level;
+      this.state.bunny.xp = primary.needs.xp;
+      this.state.bunny.totalCarrotsFed = primary.totalCarrotsFed;
+      this.state.bunny.totalPetCount = primary.totalPetCount;
+      this.state.bunny.equipped = primary.equipped;
+      this.state.bunny.furColor = primary.appearance.furColor;
+      this.state.bunny.earStyle = primary.appearance.earStyle;
+      this.state.bunny.eyeColor = primary.appearance.eyeColor;
+      this.state.bunny.blush = primary.appearance.blush;
+      this.state.bunny.customGroundY = (primary.floorMode === 'free' && primary.customGroundY)
+        ? Math.round(primary.customGroundY)
+        : null;
+    }
+
+    this.state.extraBunnies = this.bunnies.slice(1).map(b => ({
+      name: b.name,
+      hunger: Math.round(b.needs.hunger),
+      happiness: Math.round(b.needs.happiness),
+      level: b.needs.level,
+      xp: b.needs.xp,
+      totalCarrotsFed: b.totalCarrotsFed,
+      totalPetCount: b.totalPetCount,
+      equipped: b.equipped,
+      furColor: b.appearance.furColor,
+      earStyle: b.appearance.earStyle,
+      eyeColor: b.appearance.eyeColor,
+      blush: b.appearance.blush,
+      customGroundY: (b.floorMode === 'free' && b.customGroundY) ? Math.round(b.customGroundY) : null
+    }));
 
     if (this.garden) {
       this.state.garden.plots = this.garden.plots;

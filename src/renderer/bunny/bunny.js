@@ -33,6 +33,8 @@ class Bunny {
       held: 'none'
     };
 
+    this.name = initialData.name || 'Barnaby';
+
     // Needs & stats
     this.needs = new BunnyNeeds(initialData, settings);
 
@@ -207,7 +209,9 @@ class Bunny {
         this.addParticle(this.x + vx * 10, this.y - 25, vx, vy, 'heart');
       }
 
-      // Remove eaten food from world
+      if (this.currentEatingFood) {
+        this.currentEatingFood.beingEatenBy = null;
+      }
       if (this.onFoodEaten) {
         this.onFoodEaten(this.currentEatingFood);
       }
@@ -221,6 +225,11 @@ class Bunny {
     let closest = null;
     let minDistance = Infinity;
     for (const food of this.worldFoods) {
+      // Only target food that is grounded or near the floor
+      if (!food.isGrounded && food.y < this.groundY - 50) continue;
+      // Do not target food already claimed by another bunny
+      if (food.beingEatenBy && food.beingEatenBy !== this) continue;
+
       const dist = Math.hypot(this.x - food.x, this.y - food.y);
       if (dist < minDistance) {
         minDistance = dist;

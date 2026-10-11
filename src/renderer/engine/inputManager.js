@@ -13,6 +13,7 @@ class InputManager {
 
     this.dragTarget = null;
     this.draggedFood = null;
+    this.draggedBunny = null;
     this.dragFoodOffsetX = 0;
     this.dragFoodOffsetY = 0;
     this.pendingFoodSlot = null;
@@ -53,7 +54,7 @@ class InputManager {
     if (this.isDragging) return true;
 
     if (this.findFoodAt(px, py)) return true;
-    if (this.app.bunny && this.app.bunny.isPointInside(px, py)) return true;
+    if (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : (this.app.bunny && this.app.bunny.isPointInside(px, py))) return true;
     if (this.app.hud && this.app.hud.isPointInside(px, py)) return true;
     if (this.app.garden && this.app.garden.isPointInside(px, py)) return true;
 
@@ -89,7 +90,7 @@ class InputManager {
     // Update cursor
     if (this.findFoodAt(px, py)) {
       document.body.style.cursor = 'grab';
-    } else if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
+    } else if (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : (this.app.bunny && this.app.bunny.isPointInside(px, py))) {
       document.body.style.cursor = 'pointer';
     } else if (this.app.hud) {
       const btn = this.app.hud.getButtonAt(px, py);
@@ -162,14 +163,15 @@ class InputManager {
       return;
     }
 
-    if (this.dragTarget === 'bunny' && this.app.bunny) {
+    if (this.dragTarget === 'bunny' && this.draggedBunny) {
       if (dist > 5) {
         if (!this.isDragging) {
           this.isDragging = true;
-          this.app.bunny.startDrag(px, py);
+          this.draggedBunny.startDrag(px, py);
         }
-        this.app.bunny.updateDrag(px, py);
+        this.draggedBunny.updateDrag(px, py);
       }
+      return;
     }
   }
 
@@ -192,8 +194,10 @@ class InputManager {
       return;
     }
 
-    if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
+    const clickedBunny = this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : (this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null);
+    if (clickedBunny) {
       this.dragTarget = 'bunny';
+      this.draggedBunny = clickedBunny;
       return;
     }
 
@@ -233,19 +237,20 @@ class InputManager {
       this.isDragging = false;
       this.isMouseDown = false;
 
-      // Check if dropped directly on bunny
-      if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
-        this.app.bunny.needs.feed(food.id);
-        this.app.bunny.totalCarrotsFed++;
+      // Check if dropped directly on any bunny
+      const targetBunny = this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : (this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null);
+      if (targetBunny) {
+        targetBunny.needs.feed(food.id);
+        targetBunny.totalCarrotsFed++;
         soundEngine.playCrunch();
 
         for (let i = 0; i < 4; i++) {
           const vx = (Math.random() - 0.5) * 1.5;
           const vy = -1 - Math.random() * 1.5;
-          this.app.bunny.addParticle(this.app.bunny.x + vx * 10, this.app.bunny.y - 25, vx, vy, 'heart');
+          targetBunny.addParticle(targetBunny.x + vx * 10, targetBunny.y - 25, vx, vy, 'heart');
         }
 
-        this.app.bunny.stateMachine.setState('happy', 2200);
+        targetBunny.stateMachine.setState('happy', 2200);
         this.app.removeWorldFood(food);
         this.app.checkAchievements();
         this.app.saveState();
@@ -255,7 +260,6 @@ class InputManager {
       // Dropped onto ground/taskbar
       food.vy = 1.2;
       food.groundY = this.app.bunny ? this.app.bunny.groundY : this.app.groundY;
-      // Safety clamp: ensure food never falls behind the drawer
       const db = this.app.hud ? this.app.hud.getDrawerBounds() : null;
       if (this.app.hud && this.app.hud.isDrawerOpen && db) {
         if (food.x >= db.x - 20 && food.x <= db.x + db.width + 20) {
@@ -268,12 +272,20 @@ class InputManager {
       food.isGrounded = false;
       soundEngine.playHop();
 
-      // Bunny walks over to eat the dropped/moved treat
-      if (this.app.bunny && this.app.bunny.stateMachine.currentState !== 'dangling') {
-        this.app.bunny.targetX = food.x;
-        this.app.bunny.targetY = food.y;
-        this.app.bunny.direction = (food.x > this.app.bunny.x) ? 1 : -1;
-        this.app.bunny.stateMachine.setState('walk', 6000);
+      // Nearest bunny walks over to eat the dropped/moved treat
+      let closestBunny = null;
+      let minD = Infinity;
+      for (const b of (this.app.bunnies || [this.app.bunny])) {
+        if (b && b.stateMachine.currentState !== 'dangling') {
+          const d = Math.hypot(b.x - food.x, b.y - food.y);
+          if (d < minD) { minD = d; closestBunny = b; }
+        }
+      }
+      if (closestBunny) {
+        closestBunny.targetX = food.x;
+        closestBunny.targetY = food.y;
+        closestBunny.direction = (food.x > closestBunny.x) ? 1 : -1;
+        closestBunny.stateMachine.setState('walk', 6000);
       }
       return;
     }
@@ -295,7 +307,6 @@ class InputManager {
         }
         return;
       } else {
-        // Quick click on menu button
         if (clickDuration < 400 && this.app.hud) {
           const btn = this.app.hud.getButtonAt(px, py);
           if (btn && btn.type === 'bag') {
@@ -307,13 +318,15 @@ class InputManager {
     }
 
     // Handle dragged bunny drop
-    if (this.dragTarget === 'bunny' && this.app.bunny) {
+    if (this.dragTarget === 'bunny' && this.draggedBunny) {
       if (this.isDragging) {
-        this.app.bunny.endDrag();
+        this.draggedBunny.endDrag();
         this.isDragging = false;
         this.isMouseDown = false;
         this.dragTarget = null;
-        if (this.app.bunny.floorMode === 'free') {
+        const b = this.draggedBunny;
+        this.draggedBunny = null;
+        if (b.floorMode === 'free') {
           this.app.saveState();
         }
         return;
@@ -334,18 +347,26 @@ class InputManager {
   handleClick(px, py, now) {
     if (this.app.hud && this.app.hud.selectedFoodToDrop) {
       const foodId = this.app.hud.selectedFoodToDrop;
-      this.app.dropFood(foodId, px, py);
+      this.app.dropFood(foodId, px, -28);
       this.app.hud.selectedFoodToDrop = null;
       return;
     }
 
     const food = this.findFoodAt(px, py);
     if (food) {
-      if (this.app.bunny) {
-        this.app.bunny.targetX = food.x - ((food.x > this.app.bunny.x ? 1 : -1) * 10);
-        this.app.bunny.targetY = this.app.bunny.groundY;
-        this.app.bunny.direction = (food.x > this.app.bunny.x) ? 1 : -1;
-        this.app.bunny.stateMachine.setState('walk', 6000);
+      let closestBunny = null;
+      let minD = Infinity;
+      for (const b of (this.app.bunnies || [this.app.bunny])) {
+        if (b) {
+          const d = Math.hypot(b.x - food.x, b.y - food.y);
+          if (d < minD) { minD = d; closestBunny = b; }
+        }
+      }
+      if (closestBunny) {
+        closestBunny.targetX = food.x - ((food.x > closestBunny.x ? 1 : -1) * 10);
+        closestBunny.targetY = closestBunny.groundY;
+        closestBunny.direction = (food.x > closestBunny.x) ? 1 : -1;
+        closestBunny.stateMachine.setState('walk', 6000);
         soundEngine.playHop();
       }
       return;
@@ -361,10 +382,23 @@ class InputManager {
           if (this.app.inventory.foods[btn.foodId] > 0) {
             const margin = 80;
             const dropX = Math.floor(Math.random() * (this.app.canvas.width - margin * 2)) + margin;
-            const dropY = this.app.bunny ? this.app.bunny.y : 30;
-            this.app.dropFood(btn.foodId, dropX, dropY);
+            this.app.dropFood(btn.foodId, dropX, -28);
             this.app.hud.selectedFoodToDrop = null;
           }
+          return;
+        } else if (btn.type === 'add-bunny') {
+          this.app.addBunny();
+          return;
+        } else if (btn.type === 'bunny-status') {
+          const count = (this.app.bunnies && this.app.bunnies.length) || 1;
+          const max = this.app.getMaxBunnies ? this.app.getMaxBunnies() : 1;
+          const nextLv = count * 10;
+          this.app.hud.showNotification(
+            `Bunny Family (${count}/${max})`,
+            `Next companion unlocks at Level ${nextLv}!`,
+            4000,
+            '🐰'
+          );
           return;
         } else if (btn.type === 'open-wardrobe') {
           if (window.api) window.api.openWardrobe();
@@ -386,22 +420,26 @@ class InputManager {
       return;
     }
 
-    if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
+    const clickedBunny = this.draggedBunny || (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : (this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null));
+    this.draggedBunny = null;
+
+    if (clickedBunny) {
       const isDoubleClick = (now - this.lastClickTime < 320);
       this.lastClickTime = now;
 
       if (isDoubleClick) {
-        this.app.bunny.doubleClick();
+        clickedBunny.doubleClick();
       } else {
-        this.app.bunny.pet(px, py);
+        clickedBunny.pet(px, py);
       }
       return;
     }
   }
 
   onMouseLeave() {
-    if (this.isDragging && this.app.bunny && this.dragTarget === 'bunny') {
-      this.app.bunny.endDrag();
+    if (this.isDragging && this.dragTarget === 'bunny' && this.draggedBunny) {
+      this.draggedBunny.endDrag();
+      this.draggedBunny = null;
     }
     if (this.draggedFood) {
       this.draggedFood.isGrounded = false;

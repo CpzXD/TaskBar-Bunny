@@ -981,6 +981,7 @@
                 this.bunny.x = walkTargetX;
                 this.bunny.y = walkTargetY;
                 this.bunny.direction = approachDirection;
+                nearestFood.beingEatenBy = this.bunny;
                 this.bunny.currentEatingFood = nearestFood;
                 this.setState("eat", 3200);
                 return;
@@ -1191,6 +1192,7 @@
             { name: "Preset 3", head: "none", face: "none", neck: "none", back: "none", held: "none" }
           ]
         },
+        extraBunnies: [],
         inventory: {
           coins: 50,
           foods: {
@@ -1299,9 +1301,8 @@
         }
         addXp(amount, onLevelUp) {
           this.xp += amount;
-          const requiredXp = this.level * 100;
-          if (this.xp >= requiredXp) {
-            this.xp -= requiredXp;
+          while (this.xp >= this.level * 100) {
+            this.xp -= this.level * 100;
             this.level += 1;
             if (onLevelUp) onLevelUp(this.level);
           }
@@ -1533,6 +1534,7 @@
             back: "none",
             held: "none"
           };
+          this.name = initialData.name || "Barnaby";
           this.needs = new BunnyNeeds(initialData, settings);
           this.baseSpriteSize = 32;
           this.width = this.baseSpriteSize * this.scale;
@@ -1672,6 +1674,9 @@
               const vy = -1 - Math.random() * 1.5;
               this.addParticle(this.x + vx * 10, this.y - 25, vx, vy, "heart");
             }
+            if (this.currentEatingFood) {
+              this.currentEatingFood.beingEatenBy = null;
+            }
             if (this.onFoodEaten) {
               this.onFoodEaten(this.currentEatingFood);
             }
@@ -1684,6 +1689,8 @@
           let closest = null;
           let minDistance = Infinity;
           for (const food of this.worldFoods) {
+            if (!food.isGrounded && food.y < this.groundY - 50) continue;
+            if (food.beingEatenBy && food.beingEatenBy !== this) continue;
             const dist = Math.hypot(this.x - food.x, this.y - food.y);
             if (dist < minDistance) {
               minDistance = dist;
@@ -2054,7 +2061,7 @@
         getDrawerBounds() {
           if (!this.isDrawerOpen) return null;
           const s = this.scale;
-          const width = Math.round(270 * s);
+          const width = Math.round(315 * s);
           const height = Math.round(76 * s);
           const maxW = this.canvasWidth || (typeof window !== "undefined" ? window.innerWidth : 1920);
           const maxH = (this.canvasHeight || (typeof window !== "undefined" ? window.innerHeight : 1080)) - this.taskbarOverlap;
@@ -2091,6 +2098,15 @@
                 const fx = startX + i * slotGap;
                 if (px >= fx && px <= fx + slotW && py >= startY && py <= startY + slotH) {
                   return { type: "food", foodId: this.foodKeys[i] };
+                }
+              }
+              const bx = startX + 5 * slotGap;
+              const bw = Math.round(79 * s);
+              if (px >= bx && px <= bx + bw && py >= startY && py <= startY + slotH) {
+                if (this.app && this.app.canAddBunny && this.app.canAddBunny()) {
+                  return { type: "add-bunny" };
+                } else {
+                  return { type: "bunny-status" };
                 }
               }
               const btnY = db.y + Math.round(45 * s);
@@ -2184,6 +2200,44 @@
               ctx.font = `bold ${Math.max(8, Math.round(9 * s))}px sans-serif`;
               ctx.textAlign = "center";
               ctx.fillText(`x${count}`, fx + Math.round(slotW / 2), startY + Math.round(29 * s));
+            }
+            const bx2 = startX + 5 * slotGap;
+            const bw = Math.round(79 * s);
+            const canAdd = this.app && this.app.canAddBunny && this.app.canAddBunny();
+            const bunnyCount = this.app && this.app.bunnies && this.app.bunnies.length || 1;
+            const maxBunnies = this.app && this.app.getMaxBunnies ? this.app.getMaxBunnies() : 1;
+            if (canAdd) {
+              ctx.fillStyle = "#ecfdf5";
+              ctx.strokeStyle = "#10b981";
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.roundRect(bx2, startY, bw, slotH, Math.round(6 * s));
+              ctx.fill();
+              ctx.stroke();
+              ctx.fillStyle = "#047857";
+              ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText("+ Adopt \u{1F430}", bx2 + Math.round(bw / 2), startY + Math.round(14 * s));
+              ctx.fillStyle = "#059669";
+              ctx.font = `bold ${Math.max(8, Math.round(8.5 * s))}px sans-serif`;
+              ctx.fillText("(Click to add!)", bx2 + Math.round(bw / 2), startY + Math.round(27 * s));
+            } else {
+              ctx.fillStyle = "#f8fafc";
+              ctx.strokeStyle = "#cbd5e1";
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.roundRect(bx2, startY, bw, slotH, Math.round(6 * s));
+              ctx.fill();
+              ctx.stroke();
+              ctx.fillStyle = "#334155";
+              ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.fillText(`\u{1F430} ${bunnyCount}/${maxBunnies}`, bx2 + Math.round(bw / 2), startY + Math.round(14 * s));
+              ctx.fillStyle = "#64748b";
+              ctx.font = `${Math.max(8, Math.round(8.5 * s))}px sans-serif`;
+              ctx.fillText(`Next: Lv.${bunnyCount * 10}`, bx2 + Math.round(bw / 2), startY + Math.round(27 * s));
             }
             const btnY = db.y + Math.round(45 * s);
             const btnH = Math.round(22 * s);
@@ -2307,6 +2361,7 @@
           this.lastClickTime = 0;
           this.dragTarget = null;
           this.draggedFood = null;
+          this.draggedBunny = null;
           this.dragFoodOffsetX = 0;
           this.dragFoodOffsetY = 0;
           this.pendingFoodSlot = null;
@@ -2342,7 +2397,7 @@
         checkInteractivity(px, py) {
           if (this.isDragging) return true;
           if (this.findFoodAt(px, py)) return true;
-          if (this.app.bunny && this.app.bunny.isPointInside(px, py)) return true;
+          if (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py)) return true;
           if (this.app.hud && this.app.hud.isPointInside(px, py)) return true;
           if (this.app.garden && this.app.garden.isPointInside(px, py)) return true;
           if (this.app.hud && this.app.hud.selectedFoodToDrop) {
@@ -2371,7 +2426,7 @@
           this.updateMouseIgnoreState(isInteractive);
           if (this.findFoodAt(px, py)) {
             document.body.style.cursor = "grab";
-          } else if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
+          } else if (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py)) {
             document.body.style.cursor = "pointer";
           } else if (this.app.hud) {
             const btn = this.app.hud.getButtonAt(px, py);
@@ -2437,14 +2492,15 @@
             }
             return;
           }
-          if (this.dragTarget === "bunny" && this.app.bunny) {
+          if (this.dragTarget === "bunny" && this.draggedBunny) {
             if (dist > 5) {
               if (!this.isDragging) {
                 this.isDragging = true;
-                this.app.bunny.startDrag(px, py);
+                this.draggedBunny.startDrag(px, py);
               }
-              this.app.bunny.updateDrag(px, py);
+              this.draggedBunny.updateDrag(px, py);
             }
+            return;
           }
         }
         onMouseDown(e) {
@@ -2463,8 +2519,10 @@
             this.dragFoodOffsetY = food.y - py;
             return;
           }
-          if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
+          const clickedBunny = this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null;
+          if (clickedBunny) {
             this.dragTarget = "bunny";
+            this.draggedBunny = clickedBunny;
             return;
           }
           if (this.app.hud) {
@@ -2498,16 +2556,17 @@
             this.dragTarget = null;
             this.isDragging = false;
             this.isMouseDown = false;
-            if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
-              this.app.bunny.needs.feed(food.id);
-              this.app.bunny.totalCarrotsFed++;
+            const targetBunny = this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null;
+            if (targetBunny) {
+              targetBunny.needs.feed(food.id);
+              targetBunny.totalCarrotsFed++;
               soundEngine2.playCrunch();
               for (let i = 0; i < 4; i++) {
                 const vx = (Math.random() - 0.5) * 1.5;
                 const vy = -1 - Math.random() * 1.5;
-                this.app.bunny.addParticle(this.app.bunny.x + vx * 10, this.app.bunny.y - 25, vx, vy, "heart");
+                targetBunny.addParticle(targetBunny.x + vx * 10, targetBunny.y - 25, vx, vy, "heart");
               }
-              this.app.bunny.stateMachine.setState("happy", 2200);
+              targetBunny.stateMachine.setState("happy", 2200);
               this.app.removeWorldFood(food);
               this.app.checkAchievements();
               this.app.saveState();
@@ -2524,11 +2583,22 @@
             food.x = Math.max(40, Math.min(this.app.canvas.width - 40, food.x));
             food.isGrounded = false;
             soundEngine2.playHop();
-            if (this.app.bunny && this.app.bunny.stateMachine.currentState !== "dangling") {
-              this.app.bunny.targetX = food.x;
-              this.app.bunny.targetY = food.y;
-              this.app.bunny.direction = food.x > this.app.bunny.x ? 1 : -1;
-              this.app.bunny.stateMachine.setState("walk", 6e3);
+            let closestBunny = null;
+            let minD = Infinity;
+            for (const b of this.app.bunnies || [this.app.bunny]) {
+              if (b && b.stateMachine.currentState !== "dangling") {
+                const d = Math.hypot(b.x - food.x, b.y - food.y);
+                if (d < minD) {
+                  minD = d;
+                  closestBunny = b;
+                }
+              }
+            }
+            if (closestBunny) {
+              closestBunny.targetX = food.x;
+              closestBunny.targetY = food.y;
+              closestBunny.direction = food.x > closestBunny.x ? 1 : -1;
+              closestBunny.stateMachine.setState("walk", 6e3);
             }
             return;
           }
@@ -2556,13 +2626,15 @@
               return;
             }
           }
-          if (this.dragTarget === "bunny" && this.app.bunny) {
+          if (this.dragTarget === "bunny" && this.draggedBunny) {
             if (this.isDragging) {
-              this.app.bunny.endDrag();
+              this.draggedBunny.endDrag();
               this.isDragging = false;
               this.isMouseDown = false;
               this.dragTarget = null;
-              if (this.app.bunny.floorMode === "free") {
+              const b = this.draggedBunny;
+              this.draggedBunny = null;
+              if (b.floorMode === "free") {
                 this.app.saveState();
               }
               return;
@@ -2579,17 +2651,28 @@
         handleClick(px, py, now) {
           if (this.app.hud && this.app.hud.selectedFoodToDrop) {
             const foodId = this.app.hud.selectedFoodToDrop;
-            this.app.dropFood(foodId, px, py);
+            this.app.dropFood(foodId, px, -28);
             this.app.hud.selectedFoodToDrop = null;
             return;
           }
           const food = this.findFoodAt(px, py);
           if (food) {
-            if (this.app.bunny) {
-              this.app.bunny.targetX = food.x - (food.x > this.app.bunny.x ? 1 : -1) * 10;
-              this.app.bunny.targetY = this.app.bunny.groundY;
-              this.app.bunny.direction = food.x > this.app.bunny.x ? 1 : -1;
-              this.app.bunny.stateMachine.setState("walk", 6e3);
+            let closestBunny = null;
+            let minD = Infinity;
+            for (const b of this.app.bunnies || [this.app.bunny]) {
+              if (b) {
+                const d = Math.hypot(b.x - food.x, b.y - food.y);
+                if (d < minD) {
+                  minD = d;
+                  closestBunny = b;
+                }
+              }
+            }
+            if (closestBunny) {
+              closestBunny.targetX = food.x - (food.x > closestBunny.x ? 1 : -1) * 10;
+              closestBunny.targetY = closestBunny.groundY;
+              closestBunny.direction = food.x > closestBunny.x ? 1 : -1;
+              closestBunny.stateMachine.setState("walk", 6e3);
               soundEngine2.playHop();
             }
             return;
@@ -2604,10 +2687,23 @@
                 if (this.app.inventory.foods[btn.foodId] > 0) {
                   const margin = 80;
                   const dropX = Math.floor(Math.random() * (this.app.canvas.width - margin * 2)) + margin;
-                  const dropY = this.app.bunny ? this.app.bunny.y : 30;
-                  this.app.dropFood(btn.foodId, dropX, dropY);
+                  this.app.dropFood(btn.foodId, dropX, -28);
                   this.app.hud.selectedFoodToDrop = null;
                 }
+                return;
+              } else if (btn.type === "add-bunny") {
+                this.app.addBunny();
+                return;
+              } else if (btn.type === "bunny-status") {
+                const count = this.app.bunnies && this.app.bunnies.length || 1;
+                const max = this.app.getMaxBunnies ? this.app.getMaxBunnies() : 1;
+                const nextLv = count * 10;
+                this.app.hud.showNotification(
+                  `Bunny Family (${count}/${max})`,
+                  `Next companion unlocks at Level ${nextLv}!`,
+                  4e3,
+                  "\u{1F430}"
+                );
                 return;
               } else if (btn.type === "open-wardrobe") {
                 if (window.api) window.api.openWardrobe();
@@ -2627,20 +2723,23 @@
             this.app.garden.harvest(1);
             return;
           }
-          if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
+          const clickedBunny = this.draggedBunny || (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null);
+          this.draggedBunny = null;
+          if (clickedBunny) {
             const isDoubleClick = now - this.lastClickTime < 320;
             this.lastClickTime = now;
             if (isDoubleClick) {
-              this.app.bunny.doubleClick();
+              clickedBunny.doubleClick();
             } else {
-              this.app.bunny.pet(px, py);
+              clickedBunny.pet(px, py);
             }
             return;
           }
         }
         onMouseLeave() {
-          if (this.isDragging && this.app.bunny && this.dragTarget === "bunny") {
-            this.app.bunny.endDrag();
+          if (this.isDragging && this.dragTarget === "bunny" && this.draggedBunny) {
+            this.draggedBunny.endDrag();
+            this.draggedBunny = null;
           }
           if (this.draggedFood) {
             this.draggedFood.isGrounded = false;
@@ -2726,7 +2825,7 @@
       this.canvas = document.getElementById("gameCanvas");
       this.ctx = this.canvas.getContext("2d");
       this.state = null;
-      this.bunny = null;
+      this.bunnies = [];
       this.garden = null;
       this.hud = null;
       this.input = null;
@@ -2737,6 +2836,87 @@
       this.randomEventTimer = 0;
       this.autoSaveTimer = 0;
       this.init();
+    }
+    get bunny() {
+      return this.bunnies[0] || null;
+    }
+    set bunny(b) {
+      if (this.bunnies.length === 0) {
+        this.bunnies.push(b);
+      } else {
+        this.bunnies[0] = b;
+      }
+    }
+    getBunnyAt(px, py) {
+      for (let i = this.bunnies.length - 1; i >= 0; i--) {
+        if (this.bunnies[i].isPointInside(px, py)) {
+          return this.bunnies[i];
+        }
+      }
+      return null;
+    }
+    getMaxBunnies() {
+      const primaryLevel = this.bunny && this.bunny.needs ? this.bunny.needs.level : 1;
+      return Math.min(10, 1 + Math.floor(primaryLevel / 10));
+    }
+    canAddBunny() {
+      return this.bunnies.length < this.getMaxBunnies();
+    }
+    addBunny(customData = null) {
+      if (!this.canAddBunny()) {
+        const nextLv = this.bunnies.length * 10;
+        if (this.hud) {
+          this.hud.showNotification("Bunny limit reached!", `Reach Level ${nextLv} to adopt another bunny`, 4e3, "\u{1F512}");
+        }
+        return false;
+      }
+      const bunnyIndex = this.bunnies.length;
+      const names = ["Pip", "Mochi", "Clover", "Boba", "Daisy", "Thumper", "Coco", "Snowball", "Bibi", "Oliver", "Bella"];
+      const furColors = ["brown", "gray", "pink", "black", "caramel", "dutch", "white"];
+      const earStyles = ["floppy", "upright", "derpy"];
+      const eyeColors = ["ruby", "dark", "emerald", "sapphire", "amber"];
+      const usedNames = this.bunnies.map((b) => b.name);
+      const availableName = names.find((n) => !usedNames.includes(n)) || `Bunny ${bunnyIndex + 1}`;
+      const furColor = furColors[(bunnyIndex - 1) % furColors.length];
+      const earStyle = earStyles[(bunnyIndex - 1) % earStyles.length];
+      const eyeColor = eyeColors[(bunnyIndex - 1) % eyeColors.length];
+      const data = customData || {
+        name: availableName,
+        furColor,
+        earStyle,
+        eyeColor,
+        blush: true,
+        equipped: { head: "none", face: "none", neck: "none", back: "none", held: "none" },
+        hunger: 85,
+        happiness: 90,
+        level: 1,
+        xp: 0,
+        totalCarrotsFed: 0,
+        totalPetCount: 0
+      };
+      const newBunny = new Bunny(data, this.state.settings, this.canvas.width, this.canvas.height);
+      newBunny.name = data.name || availableName;
+      newBunny.x = Math.max(100, Math.min(this.canvas.width - 100, Math.random() * (this.canvas.width - 200) + 100));
+      newBunny.y = -30;
+      newBunny.vy = 2;
+      newBunny.stateMachine.setState("falling", 2e3);
+      newBunny.onFoodEaten = (eatenFood) => {
+        this.removeWorldFood(eatenFood);
+        this.checkAchievements();
+        this.saveState();
+      };
+      this.bunnies.push(newBunny);
+      soundEngine.playLevelUp();
+      if (this.hud) {
+        this.hud.showNotification(`\u{1F430} Welcome ${newBunny.name}!`, "A new companion joined your taskbar family!", 5e3, "\u2728");
+      }
+      for (let i = 0; i < 12; i++) {
+        const vx = (Math.random() - 0.5) * 4;
+        const vy = -1.5 - Math.random() * 2.5;
+        newBunny.addParticle(newBunny.x, newBunny.groundY - 20, vx, vy, "star");
+      }
+      this.saveState();
+      return true;
     }
     // Y coordinate of the floor: just above the taskbar, whatever its height
     get groundY() {
@@ -2761,17 +2941,37 @@
         soundEngine.setVolume(this.state.settings.volume ?? 0.6);
         soundEngine.setMuted(Boolean(this.state.settings.isMuted));
       }
-      this.bunny = new Bunny(
+      this.bunnies = [];
+      const primaryBunny = new Bunny(
         this.state.bunny,
         this.state.settings,
         this.canvas.width,
         this.canvas.height
       );
-      this.bunny.onFoodEaten = (eatenFood) => {
+      primaryBunny.name = this.state.bunny.name || "Barnaby";
+      primaryBunny.onFoodEaten = (eatenFood) => {
         this.removeWorldFood(eatenFood);
         this.checkAchievements();
         this.saveState();
       };
+      this.bunnies.push(primaryBunny);
+      if (Array.isArray(this.state.extraBunnies)) {
+        for (const eb of this.state.extraBunnies) {
+          const companion = new Bunny(
+            eb,
+            this.state.settings,
+            this.canvas.width,
+            this.canvas.height
+          );
+          companion.name = eb.name || "Companion Bunny";
+          companion.onFoodEaten = (eatenFood) => {
+            this.removeWorldFood(eatenFood);
+            this.checkAchievements();
+            this.saveState();
+          };
+          this.bunnies.push(companion);
+        }
+      }
       this.garden = new CarrotGarden(this.state.garden, (reward) => {
         this.inventory.foods.carrot = (this.inventory.foods.carrot || 0) + reward.carrots;
         this.inventory.coins = (this.inventory.coins || 0) + reward.coins;
@@ -2793,7 +2993,7 @@
       window.api.onTrayAction((action) => {
         if (action === "feed-carrot") {
           const dropX = Math.max(95, this.bunny ? this.bunny.x + this.bunny.direction * 35 : 120);
-          this.dropFood("carrot", dropX, 40);
+          this.dropFood("carrot", dropX, -28);
         }
       });
       this.loop = new GameLoop(
@@ -2811,8 +3011,8 @@
       this.applyLayout();
     }
     applyLayout() {
-      if (this.bunny) {
-        this.bunny.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
+      for (const b of this.bunnies) {
+        b.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
       }
       if (this.garden) {
         this.garden.y = this.groundY;
@@ -2847,18 +3047,21 @@
       this.inventory.foods[foodId]--;
       const groundY = this.bunny ? this.bunny.groundY : this.groundY;
       const db = this.hud ? this.hud.getDrawerBounds() : null;
-      let safeX = x;
+      let safeX = x !== void 0 && Number.isFinite(x) ? x : Math.floor(Math.random() * (this.canvas.width - 200)) + 100;
       if (this.hud && this.hud.isDrawerOpen && db) {
         if (safeX >= db.x - 20 && safeX <= db.x + db.width + 20) {
           safeX = db.x + db.width + 50 < this.canvas.width - 40 ? db.x + db.width + 40 + Math.random() * 40 : db.x - 50 - Math.random() * 40;
         }
       }
       safeX = Math.max(40, Math.min(this.canvas.width - 40, safeX));
+      const startY = y !== void 0 && y > 0 && y < groundY - 50 ? y : -28;
       this.worldFoods.push({
         id: foodId,
         x: safeX,
-        y: Math.min(y, groundY - 10),
-        vy: 1.5,
+        y: startY,
+        vy: 2,
+        rotation: 0,
+        spin: (Math.random() - 0.5) * 0.08,
         groundY,
         isGrounded: false
       });
@@ -2871,14 +3074,27 @@
         this.worldFoods.splice(idx, 1);
       }
     }
-    onLevelUp(newLevel) {
+    onLevelUp(newLevel, levelingBunny) {
       soundEngine.playLevelUp();
       this.inventory.coins = (this.inventory.coins || 0) + 50;
-      this.hud.showNotification(`LEVEL UP! Now Level ${newLevel}!`, "+50 Coins awarded", 5e3, "\u2B50");
-      for (let i = 0; i < 8; i++) {
-        const vx = (Math.random() - 0.5) * 3;
-        const vy = -1.5 - Math.random() * 2;
-        this.bunny.addParticle(this.bunny.x, this.bunny.y - 20, vx, vy, "star");
+      const bName = levelingBunny && levelingBunny.name ? levelingBunny.name : "Barnaby";
+      this.hud.showNotification(`LEVEL UP! ${bName} reached Level ${newLevel}!`, "+50 Coins awarded", 5e3, "\u2B50");
+      if (newLevel % 10 === 0) {
+        const maxAllowed = 1 + Math.floor(newLevel / 10);
+        this.hud.showNotification(
+          `\u{1F389} Milestone Level ${newLevel}!`,
+          `New bunny unlocked! (${this.bunnies.length}/${maxAllowed} active \u2014 click '+ Bunny' in menu)`,
+          7e3,
+          "\u{1F430}"
+        );
+      }
+      const targetBunny = levelingBunny || this.bunny;
+      if (targetBunny) {
+        for (let i = 0; i < 8; i++) {
+          const vx = (Math.random() - 0.5) * 3;
+          const vy = -1.5 - Math.random() * 2;
+          targetBunny.addParticle(targetBunny.x, targetBunny.y - 20, vx, vy, "star");
+        }
       }
       this.checkAchievements();
       this.saveState();
@@ -2916,19 +3132,28 @@
       for (const food of this.worldFoods) {
         const db = this.hud ? this.hud.getDrawerBounds() : null;
         const minX = this.hud && this.hud.isDrawerOpen && db ? db.x + db.width + 25 : 95;
-        if (food.x < minX) {
+        if (food.isGrounded && food.x < minX) {
           food.x = minX + 20 + Math.random() * 60;
         }
         if (!food.isGrounded) {
-          food.vy += 0.35;
-          food.y += food.vy;
+          food.vy += 0.45;
+          if (food.vy > 14) food.vy = 14;
+          food.y += food.vy * (deltaTime / 16.6);
+          if (food.rotation !== void 0) {
+            food.rotation += food.spin || 0.04;
+          }
           if (food.y >= food.groundY) {
             food.y = food.groundY;
-            if (food.vy > 1.2) {
-              food.vy = -food.vy * 0.3;
+            if (food.vy > 2) {
+              food.vy = -food.vy * 0.35;
+              soundEngine.playHop();
+              if (this.bunny) {
+                this.bunny.addParticle(food.x, food.groundY, (Math.random() - 0.5) * 1.5, -0.8, "crumb");
+              }
             } else {
               food.vy = 0;
               food.isGrounded = true;
+              food.rotation = 0;
             }
           }
         }
@@ -2936,11 +3161,11 @@
       if (this.garden) {
         this.garden.update(deltaTime);
       }
-      if (this.bunny) {
-        this.bunny.update(
+      for (const bunny of this.bunnies) {
+        bunny.update(
           deltaTime,
           this.worldFoods,
-          (newLv) => this.onLevelUp(newLv),
+          (newLv) => this.onLevelUp(newLv, bunny),
           () => this.onPassiveCarrot()
         );
       }
@@ -2949,7 +3174,10 @@
       }
       this.updateRandomEvents(deltaTime);
       if (this.loop && this.bunny) {
-        const isDormant = (this.bunny.stateMachine.currentState === "sleep" || this.bunny.stateMachine.currentState === "sit") && this.worldFoods.length === 0 && this.bunny.particles.length === 0 && !this.input.isMouseDown && !this.butterfly;
+        const allDormant = this.bunnies.every(
+          (b) => (b.stateMachine.currentState === "sleep" || b.stateMachine.currentState === "sit") && b.particles.length === 0
+        );
+        const isDormant = allDormant && this.worldFoods.length === 0 && !this.input.isMouseDown && !this.butterfly;
         this.loop.setIdleMode(isDormant);
       }
       this.autoSaveTimer += deltaTime;
@@ -3010,8 +3238,8 @@
         this.ctx.fillRect(bx, by - 1, 1, 3);
         this.ctx.restore();
       }
-      if (this.bunny) {
-        this.bunny.draw(this.ctx);
+      for (const bunny of this.bunnies) {
+        bunny.draw(this.ctx);
       }
       if (this.hud && this.bunny) {
         this.hud.draw(
@@ -3035,14 +3263,23 @@
           this.ctx.stroke();
           this.ctx.restore();
         }
-        if (this.bunny && this.bunny.stateMachine.currentState === "eat" && this.bunny.currentEatingFood === food) {
-          const progress = this.bunny.stateMachine.stateTimer / Math.max(1, this.bunny.stateMachine.stateDuration);
+        const eater = this.bunnies.find((b) => b.stateMachine.currentState === "eat" && b.currentEatingFood === food);
+        if (eater) {
+          const progress = eater.stateMachine.stateTimer / Math.max(1, eater.stateMachine.stateDuration);
           const nibbleSize = Math.max(8, 18 * (1 - progress * 0.5));
-          const holdX = this.bunny.x + this.bunny.direction * 10;
-          const holdY = this.bunny.y - 12;
+          const holdX = eater.x + eater.direction * 10;
+          const holdY = eater.y - 12;
           ItemSprites.drawFood(this.ctx, food.id, holdX, holdY, nibbleSize);
         } else {
-          ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+          if (!food.isGrounded && food.rotation) {
+            this.ctx.save();
+            this.ctx.translate(food.x, food.y - 4);
+            this.ctx.rotate(food.rotation);
+            ItemSprites.drawFood(this.ctx, food.id, 0, 0, 18);
+            this.ctx.restore();
+          } else {
+            ItemSprites.drawFood(this.ctx, food.id, food.x, food.y - 4, 18);
+          }
         }
       }
     }
@@ -3058,15 +3295,17 @@
         };
         this.bunny.equipped = this.state.bunny.equipped;
         if (this.state.settings) {
-          this.bunny.scale = this.state.settings.bunnyScale || 2.5;
-          this.bunny.width = this.bunny.baseSpriteSize * this.bunny.scale;
-          this.bunny.height = this.bunny.baseSpriteSize * this.bunny.scale;
-          this.bunny.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
-          this.bunny.roamingArea = this.state.settings.roamingArea || "cozy";
-          this.bunny.floorMode = this.state.settings.floorMode || "taskbar";
-          if (this.bunny.floorMode === "taskbar") {
-            this.bunny.groundY = this.bunny.taskbarFloorY;
-            this.bunny.customGroundY = null;
+          for (const b of this.bunnies) {
+            b.scale = this.state.settings.bunnyScale || 2.5;
+            b.width = b.baseSpriteSize * b.scale;
+            b.height = b.baseSpriteSize * b.scale;
+            b.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
+            b.roamingArea = this.state.settings.roamingArea || "cozy";
+            b.floorMode = this.state.settings.floorMode || "taskbar";
+            if (b.floorMode === "taskbar") {
+              b.groundY = b.taskbarFloorY;
+              b.customGroundY = null;
+            }
           }
           soundEngine.setVolume(this.state.settings.volume ?? 0.6);
           soundEngine.setMuted(Boolean(this.state.settings.isMuted));
@@ -3078,18 +3317,37 @@
     }
     saveState() {
       if (!this.state || !this.bunny) return;
-      this.state.bunny.hunger = Math.round(this.bunny.needs.hunger);
-      this.state.bunny.happiness = Math.round(this.bunny.needs.happiness);
-      this.state.bunny.level = this.bunny.needs.level;
-      this.state.bunny.xp = this.bunny.needs.xp;
-      this.state.bunny.totalCarrotsFed = this.bunny.totalCarrotsFed;
-      this.state.bunny.totalPetCount = this.bunny.totalPetCount;
-      this.state.bunny.equipped = this.bunny.equipped;
-      this.state.bunny.furColor = this.bunny.appearance.furColor;
-      this.state.bunny.earStyle = this.bunny.appearance.earStyle;
-      this.state.bunny.eyeColor = this.bunny.appearance.eyeColor;
-      this.state.bunny.blush = this.bunny.appearance.blush;
-      this.state.bunny.customGroundY = this.bunny.floorMode === "free" && this.bunny.customGroundY ? Math.round(this.bunny.customGroundY) : null;
+      const primary = this.bunnies[0];
+      if (primary) {
+        this.state.bunny.name = primary.name || "Barnaby";
+        this.state.bunny.hunger = Math.round(primary.needs.hunger);
+        this.state.bunny.happiness = Math.round(primary.needs.happiness);
+        this.state.bunny.level = primary.needs.level;
+        this.state.bunny.xp = primary.needs.xp;
+        this.state.bunny.totalCarrotsFed = primary.totalCarrotsFed;
+        this.state.bunny.totalPetCount = primary.totalPetCount;
+        this.state.bunny.equipped = primary.equipped;
+        this.state.bunny.furColor = primary.appearance.furColor;
+        this.state.bunny.earStyle = primary.appearance.earStyle;
+        this.state.bunny.eyeColor = primary.appearance.eyeColor;
+        this.state.bunny.blush = primary.appearance.blush;
+        this.state.bunny.customGroundY = primary.floorMode === "free" && primary.customGroundY ? Math.round(primary.customGroundY) : null;
+      }
+      this.state.extraBunnies = this.bunnies.slice(1).map((b) => ({
+        name: b.name,
+        hunger: Math.round(b.needs.hunger),
+        happiness: Math.round(b.needs.happiness),
+        level: b.needs.level,
+        xp: b.needs.xp,
+        totalCarrotsFed: b.totalCarrotsFed,
+        totalPetCount: b.totalPetCount,
+        equipped: b.equipped,
+        furColor: b.appearance.furColor,
+        earStyle: b.appearance.earStyle,
+        eyeColor: b.appearance.eyeColor,
+        blush: b.appearance.blush,
+        customGroundY: b.floorMode === "free" && b.customGroundY ? Math.round(b.customGroundY) : null
+      }));
       if (this.garden) {
         this.state.garden.plots = this.garden.plots;
         this.state.garden.x = this.garden.x;
