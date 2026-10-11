@@ -67,7 +67,7 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
 
 ### For Players (Download Executable)
 1. Go to the [Releases](https://github.com/CpzXD/TaskBar-Bunny/releases) page on GitHub.
-2. Download the standalone executable: **[Taskbar-Bunny-Portable.exe](https://github.com/CpzXD/TaskBar-Bunny/releases/download/1.0.0/Taskbar-Bunny-Portable.exe)** from the [1.0.0 Release](https://github.com/CpzXD/TaskBar-Bunny/releases/tag/1.0.0).
+2. Download the standalone executable: **[Taskbar-Bunny-Portable.exe](https://github.com/CpzXD/TaskBar-Bunny/releases/latest/download/Taskbar-Bunny-Portable.exe)** from the [Latest Release](https://github.com/CpzXD/TaskBar-Bunny/releases/latest).
 3. Run it and Barnaby will immediately appear sitting on your taskbar!
 
 ### 🛡️ Windows SmartScreen / Security Note
