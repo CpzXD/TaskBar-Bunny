@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   setStartWithWindows: (enable) => ipcRenderer.send('set-start-with-windows', enable),
   openWardrobe: () => ipcRenderer.send('open-wardrobe'),
   openSettings: () => ipcRenderer.send('open-settings'),
+  openTrophies: () => ipcRenderer.send('open-trophies'),
   closeWindow: (winName) => ipcRenderer.send('close-window', winName),
   quitApp: () => ipcRenderer.send('quit-app'),
 

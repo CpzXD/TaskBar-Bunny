@@ -1,4 +1,5 @@
 const { PALETTES } = require('./palette');
+const { AccessoryRenderer } = require('./accessories');
 
 class BunnySpriteGenerator {
   /**
@@ -8,9 +9,10 @@ class BunnySpriteGenerator {
    * @param {number} options.frameIndex - current animation frame index
    * @param {number} options.direction - 1 for right, -1 for left
    * @param {Object} options.appearance - { furColor, earStyle, eyeColor, blush }
+   * @param {Object} options.equipped - { head, face, neck, back, held }
    * @returns {{ canvas: HTMLCanvasElement, anchors: Object }}
    */
-  static renderFrame({ state = 'idle', frameIndex = 0, direction = 1, appearance = {} }) {
+  static renderFrame({ state = 'idle', frameIndex = 0, direction = 1, appearance = {}, equipped = null }) {
     const canvas = document.createElement('canvas');
     canvas.width = 32;
     canvas.height = 32;
@@ -379,7 +381,12 @@ class BunnySpriteGenerator {
       held: { x: baseHeadX + 7, y: baseBodyY }
     };
 
-    // If facing left (-1), flip the canvas horizontally
+    // If equipped accessories provided, draw them onto the frame before any flipping
+    if (equipped && typeof AccessoryRenderer !== 'undefined') {
+      AccessoryRenderer.renderAccessories(ctx, equipped, anchors, 1, frameIndex);
+    }
+
+    // If facing left (-1), flip the entire composite canvas (bunny + clothes) horizontally
     if (direction === -1) {
       const flippedCanvas = document.createElement('canvas');
       flippedCanvas.width = 32;

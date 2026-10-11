@@ -55,6 +55,7 @@ class InputManager {
 
     if (this.findFoodAt(px, py)) return true;
     if (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : (this.app.bunny && this.app.bunny.isPointInside(px, py))) return true;
+    if (this.app.den && this.app.den.isPointInside(px, py)) return true;
     if (this.app.hud && this.app.hud.isPointInside(px, py)) return true;
     if (this.app.garden && this.app.garden.isPointInside(px, py)) return true;
 
@@ -78,6 +79,17 @@ class InputManager {
     }
   }
 
+  wakeBunniesFromDen() {
+    if (!this.app.bunnies) return;
+    for (const b of this.app.bunnies) {
+      if (b.isSleepingInDen) {
+        b.isSleepingInDen = false;
+        b.x = this.app.den ? this.app.den.x + 34 : b.x + 30;
+        b.stateMachine.setState('idle', 1500);
+      }
+    }
+  }
+
   onMouseMove(e) {
     const px = e.clientX;
     const py = e.clientY;
@@ -85,6 +97,9 @@ class InputManager {
     this.lastMouseY = py;
 
     const isInteractive = this.checkInteractivity(px, py);
+    if (isInteractive) {
+      this.app.lastUserInteractionTime = Date.now();
+    }
     this.updateMouseIgnoreState(isInteractive);
 
     if (this.app.bunnies) {
@@ -182,6 +197,7 @@ class InputManager {
   }
 
   onMouseDown(e) {
+    this.app.lastUserInteractionTime = Date.now();
     this.isMouseDown = true;
     this.mouseDownX = e.clientX;
     this.mouseDownY = e.clientY;
@@ -193,6 +209,7 @@ class InputManager {
 
     const food = this.findFoodAt(px, py);
     if (food) {
+      this.wakeBunniesFromDen();
       this.dragTarget = 'food';
       this.draggedFood = food;
       this.dragFoodOffsetX = food.x - px;
@@ -202,6 +219,7 @@ class InputManager {
 
     const clickedBunny = this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : (this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null);
     if (clickedBunny) {
+      this.wakeBunniesFromDen();
       this.dragTarget = 'bunny';
       this.draggedBunny = clickedBunny;
       return;
@@ -352,6 +370,7 @@ class InputManager {
 
   handleClick(px, py, now) {
     if (this.app.hud && this.app.hud.selectedFoodToDrop) {
+      this.wakeBunniesFromDen();
       const foodId = this.app.hud.selectedFoodToDrop;
       this.app.dropFood(foodId, px, -28);
       this.app.hud.selectedFoodToDrop = null;
@@ -360,6 +379,7 @@ class InputManager {
 
     const food = this.findFoodAt(px, py);
     if (food) {
+      this.wakeBunniesFromDen();
       let closestBunny = null;
       let minD = Infinity;
       for (const b of (this.app.bunnies || [this.app.bunny])) {
@@ -386,6 +406,7 @@ class InputManager {
           return;
         } else if (btn.type === 'food') {
           if (this.app.inventory.foods[btn.foodId] > 0) {
+            this.wakeBunniesFromDen();
             const margin = 80;
             const dropX = Math.floor(Math.random() * (this.app.canvas.width - margin * 2)) + margin;
             this.app.dropFood(btn.foodId, dropX, -28);
@@ -412,6 +433,9 @@ class InputManager {
         } else if (btn.type === 'open-settings') {
           if (window.api) window.api.openSettings();
           return;
+        } else if (btn.type === 'open-trophies') {
+          if (window.api && window.api.openTrophies) window.api.openTrophies();
+          return;
         } else if (btn.type === 'quit-app') {
           if (this.app) this.app.saveState();
           if (window.api) window.api.quitApp();
@@ -419,6 +443,12 @@ class InputManager {
         }
         return;
       }
+    }
+
+    if (this.app.den && this.app.den.isPointInside(px, py)) {
+      this.app.den.toggleStats();
+      soundEngine.playHop();
+      return;
     }
 
     if (this.app.garden && this.app.garden.isPointInside(px, py)) {

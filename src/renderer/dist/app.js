@@ -101,10 +101,225 @@
     }
   });
 
+  // src/renderer/sprites/accessories.js
+  var require_accessories = __commonJS({
+    "src/renderer/sprites/accessories.js"(exports, module) {
+      var AccessoryRenderer = class {
+        /**
+         * Draws equipped accessories over the bunny canvas.
+         * @param {CanvasRenderingContext2D} ctx - Context of the target 32x32 canvas
+         * @param {Object} equipped - { head, face, neck, back, held }
+         * @param {Object} anchors - { head: {x,y}, face: {x,y}, neck: {x,y}, back: {x,y}, held: {x,y} }
+         * @param {number} direction - 1 for right, -1 for left
+         * @param {number} frame - animation frame
+         */
+        static renderAccessories(ctx, equipped = {}, anchors = {}, direction = 1, frame = 0) {
+          if (!anchors || !anchors.head) return;
+          const p = (x, y, color) => {
+            if (x >= 0 && x < 32 && y >= 0 && y < 32 && color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+            }
+          };
+          const rect = (x, y, w, h, color) => {
+            if (color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
+            }
+          };
+          const dir = direction;
+          if (equipped.back && equipped.back !== "none") {
+            const bx = anchors.back.x;
+            const by = anchors.back.y;
+            switch (equipped.back) {
+              case "backpack":
+                rect(bx - 2 * dir, by - 2, 4, 6, "#8b5a2b");
+                rect(bx - 1 * dir, by - 1, 2, 2, "#a06a38");
+                p(bx - 1 * dir, by + 1, "#ffd700");
+                p(bx - 3 * dir, by - 1, "#4a2f18");
+                p(bx - 3 * dir, by + 4, "#4a2f18");
+                break;
+              case "cape":
+                const flutter = frame % 2 === 0 ? 0 : 1;
+                rect(bx - 4 * dir, by - 1, 3, 7 + flutter, "#e63946");
+                rect(bx - 5 * dir, by + 1, 2, 6 + flutter, "#ba181b");
+                p(bx - 1 * dir, by - 2, "#ffd700");
+                break;
+              case "angel_wings":
+                const flap = frame % 2 === 0 ? 0 : -1;
+                rect(bx - 4 * dir, by - 4 + flap, 3, 5, "#ffffff");
+                rect(bx - 6 * dir, by - 5 + flap, 3, 4, "#e0f2fe");
+                p(bx - 7 * dir, by - 6 + flap, "#bae6fd");
+                p(bx - 5 * dir, by + 1 + flap, "#7dd3fc");
+                break;
+            }
+          }
+          if (equipped.neck && equipped.neck !== "none") {
+            const nx = anchors.neck.x;
+            const ny = anchors.neck.y - 2;
+            switch (equipped.neck) {
+              case "red_scarf":
+                rect(nx - 4, ny, 8, 3, "#e63946");
+                rect(nx - 2, ny + 1, 4, 1, "#ff6b6b");
+                rect(nx - 5 * dir, ny + 1, 3, 5, "#ba181b");
+                rect(nx - 6 * dir, ny + 5, 2, 1, "#ffd166");
+                break;
+              case "bowtie":
+                rect(nx - 3, ny, 2, 3, "#e63946");
+                rect(nx + 1, ny, 2, 3, "#e63946");
+                rect(nx - 1, ny + 1, 2, 1, "#ffffff");
+                break;
+              case "bell_collar":
+                rect(nx - 4, ny, 8, 2, "#d90429");
+                rect(nx - 1, ny + 2, 3, 3, "#ffd700");
+                p(nx, ny + 3, "#78350f");
+                break;
+              case "flower_lei":
+                p(nx - 4, ny, "#ff6b6b");
+                p(nx - 2, ny + 1, "#ffd166");
+                p(nx, ny + 1, "#48bb78");
+                p(nx + 2, ny + 1, "#38bdf8");
+                p(nx + 4, ny, "#f472b6");
+                break;
+            }
+          }
+          if (equipped.face && equipped.face !== "none") {
+            const fx = anchors.face.x;
+            const fy = anchors.face.y;
+            switch (equipped.face) {
+              case "glasses":
+                rect(fx - 4 * dir, fy - 1, 3, 3, "#1f2937");
+                rect(fx + 2 * dir, fy - 1, 3, 3, "#1f2937");
+                p(fx - 3 * dir, fy, "#93c5fd");
+                p(fx + 3 * dir, fy, "#93c5fd");
+                rect(fx - 1 * dir, fy, 2, 1, "#1f2937");
+                break;
+              case "sunglasses":
+                rect(fx - 5 * dir, fy - 1, 10, 3, "#111827");
+                p(fx - 3 * dir, fy, "#6b7280");
+                p(fx + 2 * dir, fy, "#6b7280");
+                break;
+              case "monocle":
+                rect(fx + 2 * dir, fy - 1, 3, 3, "#d97706");
+                p(fx + 3 * dir, fy, "#bae6fd");
+                p(fx + 4 * dir, fy + 2, "#d97706");
+                p(fx + 3 * dir, fy + 3, "#d97706");
+                break;
+              case "mustache":
+                rect(fx - 3, fy + 3, 6, 2, "#451a03");
+                p(fx - 4 * dir, fy + 2, "#451a03");
+                p(fx + 4 * dir, fy + 2, "#451a03");
+                break;
+            }
+          }
+          if (equipped.head && equipped.head !== "none") {
+            const hx = anchors.head.x;
+            const hy = anchors.head.y;
+            switch (equipped.head) {
+              case "party_hat":
+                rect(hx - 1, hy - 8, 3, 2, "#fbbf24");
+                rect(hx - 2, hy - 6, 4, 3, "#ec4899");
+                rect(hx - 3, hy - 3, 6, 3, "#3b82f6");
+                rect(hx - 4, hy, 8, 2, "#10b981");
+                break;
+              case "beanie":
+                p(hx, hy - 6, "#ffffff");
+                rect(hx - 4, hy - 5, 8, 4, "#dc2626");
+                rect(hx - 5, hy - 1, 10, 2, "#ffffff");
+                break;
+              case "cowboy_hat":
+                rect(hx - 3, hy - 6, 6, 4, "#78350f");
+                rect(hx - 2, hy - 2, 5, 1, "#f59e0b");
+                rect(hx - 6, hy - 1, 13, 2, "#92400e");
+                break;
+              case "wizard_hat":
+                p(hx - 1 * dir, hy - 10, "#fde047");
+                rect(hx - 1, hy - 8, 3, 3, "#4338ca");
+                rect(hx - 2, hy - 5, 5, 3, "#3730a3");
+                p(hx, hy - 4, "#fde047");
+                rect(hx - 6, hy - 2, 12, 2, "#312e81");
+                break;
+              case "flower_crown":
+                p(hx - 5, hy - 1, "#f43f5e");
+                p(hx - 3, hy - 2, "#fbbf24");
+                p(hx - 1, hy - 2, "#38bdf8");
+                p(hx + 1, hy - 2, "#a855f7");
+                p(hx + 3, hy - 1, "#22c55e");
+                p(hx + 5, hy, "#f43f5e");
+                break;
+              case "headphones":
+                rect(hx - 5, hy - 4, 10, 2, "#1f2937");
+                rect(hx - 6 * dir, hy - 2, 3, 5, "#ec4899");
+                rect(hx + 4 * dir, hy - 2, 3, 5, "#ec4899");
+                p(hx - 5 * dir, hy, "#ffffff");
+                p(hx + 5 * dir, hy, "#ffffff");
+                break;
+              case "golden_crown":
+                rect(hx - 4, hy - 4, 9, 2, "#f59e0b");
+                p(hx - 4, hy - 6, "#fbbf24");
+                p(hx, hy - 7, "#fbbf24");
+                p(hx + 4, hy - 6, "#fbbf24");
+                p(hx - 2, hy - 3, "#ef4444");
+                p(hx + 2, hy - 3, "#3b82f6");
+                break;
+              case "bunny_ears_headband":
+                rect(hx - 4, hy - 1, 9, 1, "#111827");
+                rect(hx - 3, hy - 7, 2, 6, "#f472b6");
+                p(hx - 2, hy - 6, "#ffffff");
+                rect(hx + 2, hy - 7, 2, 6, "#f472b6");
+                p(hx + 3, hy - 6, "#ffffff");
+                break;
+            }
+          }
+          if (equipped.held && equipped.held !== "none") {
+            const hx = anchors.held.x;
+            const hy = anchors.held.y;
+            switch (equipped.held) {
+              case "balloon":
+                const sway = frame % 2 === 0 ? 0 : 1;
+                const bx = hx + 1 * dir + sway;
+                const by = hy - 15;
+                rect(bx - 3, by, 6, 5, "#ff4d6d");
+                p(bx - 2, by - 1, "#ff4d6d");
+                p(bx + 1, by - 1, "#ff4d6d");
+                p(bx - 2, by + 1, "#ffccd5");
+                p(bx, by + 5, "#c9184a");
+                p(bx, by + 6, "#94a3b8");
+                p(bx, by + 8, "#94a3b8");
+                p(hx, hy, "#94a3b8");
+                break;
+              case "flag":
+                rect(hx, hy - 10, 1, 12, "#92400e");
+                rect(hx + 1 * dir, hy - 10, 5, 4, "#3b82f6");
+                p(hx + 3 * dir, hy - 8, "#ffffff");
+                break;
+              case "lollipop":
+                rect(hx, hy - 2, 1, 5, "#ffffff");
+                rect(hx - 2, hy - 6, 5, 4, "#fb7185");
+                rect(hx - 1, hy - 5, 3, 2, "#fde047");
+                p(hx, hy - 4, "#38bdf8");
+                break;
+              case "wand":
+                rect(hx, hy - 4, 1, 7, "#d97706");
+                p(hx, hy - 7, "#fef08a");
+                rect(hx - 1, hy - 6, 3, 2, "#eab308");
+                p(hx, hy - 5, "#ffffff");
+                break;
+            }
+          }
+        }
+      };
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = { AccessoryRenderer };
+      }
+    }
+  });
+
   // src/renderer/sprites/bunnySprites.js
   var require_bunnySprites = __commonJS({
     "src/renderer/sprites/bunnySprites.js"(exports, module) {
       var { PALETTES } = require_palette();
+      var { AccessoryRenderer } = require_accessories();
       var BunnySpriteGenerator = class {
         /**
          * Generates a 32x32 canvas for a specific state, frame, direction, and appearance.
@@ -113,9 +328,10 @@
          * @param {number} options.frameIndex - current animation frame index
          * @param {number} options.direction - 1 for right, -1 for left
          * @param {Object} options.appearance - { furColor, earStyle, eyeColor, blush }
+         * @param {Object} options.equipped - { head, face, neck, back, held }
          * @returns {{ canvas: HTMLCanvasElement, anchors: Object }}
          */
-        static renderFrame({ state = "idle", frameIndex = 0, direction = 1, appearance = {} }) {
+        static renderFrame({ state = "idle", frameIndex = 0, direction = 1, appearance = {}, equipped = null }) {
           const canvas = document.createElement("canvas");
           canvas.width = 32;
           canvas.height = 32;
@@ -422,6 +638,9 @@
             back: { x: baseBodyX - 4, y: baseBodyY - 1 },
             held: { x: baseHeadX + 7, y: baseBodyY }
           };
+          if (equipped && typeof AccessoryRenderer !== "undefined") {
+            AccessoryRenderer.renderAccessories(ctx, equipped, anchors, 1, frameIndex);
+          }
           if (direction === -1) {
             const flippedCanvas = document.createElement("canvas");
             flippedCanvas.width = 32;
@@ -443,220 +662,6 @@
       };
       if (typeof module !== "undefined" && module.exports) {
         module.exports = { BunnySpriteGenerator };
-      }
-    }
-  });
-
-  // src/renderer/sprites/accessories.js
-  var require_accessories = __commonJS({
-    "src/renderer/sprites/accessories.js"(exports, module) {
-      var AccessoryRenderer = class {
-        /**
-         * Draws equipped accessories over the bunny canvas.
-         * @param {CanvasRenderingContext2D} ctx - Context of the target 32x32 canvas
-         * @param {Object} equipped - { head, face, neck, back, held }
-         * @param {Object} anchors - { head: {x,y}, face: {x,y}, neck: {x,y}, back: {x,y}, held: {x,y} }
-         * @param {number} direction - 1 for right, -1 for left
-         * @param {number} frame - animation frame
-         */
-        static renderAccessories(ctx, equipped = {}, anchors = {}, direction = 1, frame = 0) {
-          if (!anchors || !anchors.head) return;
-          const p = (x, y, color) => {
-            if (x >= 0 && x < 32 && y >= 0 && y < 32 && color) {
-              ctx.fillStyle = color;
-              ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
-            }
-          };
-          const rect = (x, y, w, h, color) => {
-            if (color) {
-              ctx.fillStyle = color;
-              ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
-            }
-          };
-          const dir = direction;
-          if (equipped.back && equipped.back !== "none") {
-            const bx = anchors.back.x;
-            const by = anchors.back.y;
-            switch (equipped.back) {
-              case "backpack":
-                rect(bx - 2 * dir, by - 2, 4, 6, "#8b5a2b");
-                rect(bx - 1 * dir, by - 1, 2, 2, "#a06a38");
-                p(bx - 1 * dir, by + 1, "#ffd700");
-                p(bx - 3 * dir, by - 1, "#4a2f18");
-                p(bx - 3 * dir, by + 4, "#4a2f18");
-                break;
-              case "cape":
-                const flutter = frame % 2 === 0 ? 0 : 1;
-                rect(bx - 4 * dir, by - 1, 3, 7 + flutter, "#e63946");
-                rect(bx - 5 * dir, by + 1, 2, 6 + flutter, "#ba181b");
-                p(bx - 1 * dir, by - 2, "#ffd700");
-                break;
-              case "angel_wings":
-                const flap = frame % 2 === 0 ? 0 : -1;
-                rect(bx - 4 * dir, by - 4 + flap, 3, 5, "#ffffff");
-                rect(bx - 6 * dir, by - 5 + flap, 3, 4, "#e0f2fe");
-                p(bx - 7 * dir, by - 6 + flap, "#bae6fd");
-                p(bx - 5 * dir, by + 1 + flap, "#7dd3fc");
-                break;
-            }
-          }
-          if (equipped.neck && equipped.neck !== "none") {
-            const nx = anchors.neck.x;
-            const ny = anchors.neck.y - 2;
-            switch (equipped.neck) {
-              case "red_scarf":
-                rect(nx - 4, ny, 8, 3, "#e63946");
-                rect(nx - 2, ny + 1, 4, 1, "#ff6b6b");
-                rect(nx - 5 * dir, ny + 1, 3, 5, "#ba181b");
-                rect(nx - 6 * dir, ny + 5, 2, 1, "#ffd166");
-                break;
-              case "bowtie":
-                rect(nx - 3, ny, 2, 3, "#e63946");
-                rect(nx + 1, ny, 2, 3, "#e63946");
-                rect(nx - 1, ny + 1, 2, 1, "#ffffff");
-                break;
-              case "bell_collar":
-                rect(nx - 4, ny, 8, 2, "#d90429");
-                rect(nx - 1, ny + 2, 3, 3, "#ffd700");
-                p(nx, ny + 3, "#78350f");
-                break;
-              case "flower_lei":
-                p(nx - 4, ny, "#ff6b6b");
-                p(nx - 2, ny + 1, "#ffd166");
-                p(nx, ny + 1, "#48bb78");
-                p(nx + 2, ny + 1, "#38bdf8");
-                p(nx + 4, ny, "#f472b6");
-                break;
-            }
-          }
-          if (equipped.face && equipped.face !== "none") {
-            const fx = anchors.face.x;
-            const fy = anchors.face.y;
-            switch (equipped.face) {
-              case "glasses":
-                rect(fx - 4 * dir, fy - 1, 3, 3, "#1f2937");
-                rect(fx + 2 * dir, fy - 1, 3, 3, "#1f2937");
-                p(fx - 3 * dir, fy, "#93c5fd");
-                p(fx + 3 * dir, fy, "#93c5fd");
-                rect(fx - 1 * dir, fy, 2, 1, "#1f2937");
-                break;
-              case "sunglasses":
-                rect(fx - 5 * dir, fy - 1, 10, 3, "#111827");
-                p(fx - 3 * dir, fy, "#6b7280");
-                p(fx + 2 * dir, fy, "#6b7280");
-                break;
-              case "monocle":
-                rect(fx + 2 * dir, fy - 1, 3, 3, "#d97706");
-                p(fx + 3 * dir, fy, "#bae6fd");
-                p(fx + 4 * dir, fy + 2, "#d97706");
-                p(fx + 3 * dir, fy + 3, "#d97706");
-                break;
-              case "mustache":
-                rect(fx - 3, fy + 3, 6, 2, "#451a03");
-                p(fx - 4 * dir, fy + 2, "#451a03");
-                p(fx + 4 * dir, fy + 2, "#451a03");
-                break;
-            }
-          }
-          if (equipped.head && equipped.head !== "none") {
-            const hx = anchors.head.x;
-            const hy = anchors.head.y;
-            switch (equipped.head) {
-              case "party_hat":
-                rect(hx - 1, hy - 8, 3, 2, "#fbbf24");
-                rect(hx - 2, hy - 6, 4, 3, "#ec4899");
-                rect(hx - 3, hy - 3, 6, 3, "#3b82f6");
-                rect(hx - 4, hy, 8, 2, "#10b981");
-                break;
-              case "beanie":
-                p(hx, hy - 6, "#ffffff");
-                rect(hx - 4, hy - 5, 8, 4, "#dc2626");
-                rect(hx - 5, hy - 1, 10, 2, "#ffffff");
-                break;
-              case "cowboy_hat":
-                rect(hx - 3, hy - 6, 6, 4, "#78350f");
-                rect(hx - 2, hy - 2, 5, 1, "#f59e0b");
-                rect(hx - 6, hy - 1, 13, 2, "#92400e");
-                break;
-              case "wizard_hat":
-                p(hx - 1 * dir, hy - 10, "#fde047");
-                rect(hx - 1, hy - 8, 3, 3, "#4338ca");
-                rect(hx - 2, hy - 5, 5, 3, "#3730a3");
-                p(hx, hy - 4, "#fde047");
-                rect(hx - 6, hy - 2, 12, 2, "#312e81");
-                break;
-              case "flower_crown":
-                p(hx - 5, hy - 1, "#f43f5e");
-                p(hx - 3, hy - 2, "#fbbf24");
-                p(hx - 1, hy - 2, "#38bdf8");
-                p(hx + 1, hy - 2, "#a855f7");
-                p(hx + 3, hy - 1, "#22c55e");
-                p(hx + 5, hy, "#f43f5e");
-                break;
-              case "headphones":
-                rect(hx - 5, hy - 4, 10, 2, "#1f2937");
-                rect(hx - 6 * dir, hy - 2, 3, 5, "#ec4899");
-                rect(hx + 4 * dir, hy - 2, 3, 5, "#ec4899");
-                p(hx - 5 * dir, hy, "#ffffff");
-                p(hx + 5 * dir, hy, "#ffffff");
-                break;
-              case "golden_crown":
-                rect(hx - 4, hy - 4, 9, 2, "#f59e0b");
-                p(hx - 4, hy - 6, "#fbbf24");
-                p(hx, hy - 7, "#fbbf24");
-                p(hx + 4, hy - 6, "#fbbf24");
-                p(hx - 2, hy - 3, "#ef4444");
-                p(hx + 2, hy - 3, "#3b82f6");
-                break;
-              case "bunny_ears_headband":
-                rect(hx - 4, hy - 1, 9, 1, "#111827");
-                rect(hx - 3, hy - 7, 2, 6, "#f472b6");
-                p(hx - 2, hy - 6, "#ffffff");
-                rect(hx + 2, hy - 7, 2, 6, "#f472b6");
-                p(hx + 3, hy - 6, "#ffffff");
-                break;
-            }
-          }
-          if (equipped.held && equipped.held !== "none") {
-            const hx = anchors.held.x;
-            const hy = anchors.held.y;
-            switch (equipped.held) {
-              case "balloon":
-                const sway = frame % 2 === 0 ? 0 : 1;
-                const bx = hx + 1 * dir + sway;
-                const by = hy - 15;
-                rect(bx - 3, by, 6, 5, "#ff4d6d");
-                p(bx - 2, by - 1, "#ff4d6d");
-                p(bx + 1, by - 1, "#ff4d6d");
-                p(bx - 2, by + 1, "#ffccd5");
-                p(bx, by + 5, "#c9184a");
-                p(bx, by + 6, "#94a3b8");
-                p(bx, by + 8, "#94a3b8");
-                p(hx, hy, "#94a3b8");
-                break;
-              case "flag":
-                rect(hx, hy - 10, 1, 12, "#92400e");
-                rect(hx + 1 * dir, hy - 10, 5, 4, "#3b82f6");
-                p(hx + 3 * dir, hy - 8, "#ffffff");
-                break;
-              case "lollipop":
-                rect(hx, hy - 2, 1, 5, "#ffffff");
-                rect(hx - 2, hy - 6, 5, 4, "#fb7185");
-                rect(hx - 1, hy - 5, 3, 2, "#fde047");
-                p(hx, hy - 4, "#38bdf8");
-                break;
-              case "wand":
-                rect(hx, hy - 4, 1, 7, "#d97706");
-                p(hx, hy - 7, "#fef08a");
-                rect(hx - 1, hy - 6, 3, 2, "#eab308");
-                p(hx, hy - 5, "#ffffff");
-                break;
-            }
-          }
-        }
-      };
-      if (typeof module !== "undefined" && module.exports) {
-        module.exports = { AccessoryRenderer };
       }
     }
   });
@@ -1053,7 +1058,8 @@
           happinessBonus: 10,
           cost: 10,
           color: "#ff8822",
-          description: "A bunny classic. Rich in beta-carotene!"
+          description: "A bunny classic. Rich in beta-carotene!",
+          acquire: "Grows free in your taskbar garden, or buy in the Shop."
         },
         lettuce: {
           id: "lettuce",
@@ -1062,7 +1068,8 @@
           happinessBonus: 5,
           cost: 5,
           color: "#76c442",
-          description: "Refreshing and light green leaves."
+          description: "Refreshing and light green leaves.",
+          acquire: "Buy in the Shop with coins earned from bunny care."
         },
         apple: {
           id: "apple",
@@ -1071,7 +1078,8 @@
           happinessBonus: 20,
           cost: 18,
           color: "#ee4444",
-          description: "A juicy, sweet midday treat."
+          description: "A juicy, sweet midday treat.",
+          acquire: "Buy in the Shop with coins earned from achievements."
         },
         clover: {
           id: "clover",
@@ -1080,7 +1088,8 @@
           happinessBonus: 35,
           cost: 25,
           color: "#28bb67",
-          description: "Guaranteed to bring bunny smiles."
+          description: "Guaranteed to bring bunny smiles.",
+          acquire: "Buy in the Shop with coins earned from daily care."
         },
         strawberry: {
           id: "strawberry",
@@ -1089,7 +1098,8 @@
           happinessBonus: 30,
           cost: 30,
           color: "#ff3366",
-          description: "Fragrant and delightfully sweet."
+          description: "Fragrant, juicy, and delightfully sweet.",
+          acquire: "Premium delicacy available in the Shop."
         }
       };
       var FUR_COLORS = {
@@ -1151,6 +1161,10 @@
           { id: "flag", name: "Cheering Flag", tier: "common", price: 40 },
           { id: "lollipop", name: "Rainbow Swirl", tier: "rare", price: 60 },
           { id: "wand", name: "Star Wand", tier: "epic", price: 120 }
+        ],
+        den: [
+          { id: "default", name: "Cozy Burrow", tier: "common", price: 0, description: "Warm wooden burrow with thatched moss roof." },
+          { id: "festive", name: "Festive Christmas Den", tier: "epic", price: 80, description: "Snowy gingerbread roof, twinkling holiday lights & wreath!", rewardFrom: "level_5" }
         ]
       };
       var ACHIEVEMENTS2 = [
@@ -1160,9 +1174,9 @@
         { id: "pet_50", name: "True Affection", description: "Pet your bunny 50 times.", rewardCoins: 40, rewardXp: 50 },
         { id: "pet_200", name: "Fluffy Bestie", description: "Pet your bunny 200 times.", rewardCoins: 100, rewardXp: 150 },
         { id: "first_harvest", name: "Green Thumb", description: "Harvest your first homegrown carrot.", rewardCoins: 30, rewardXp: 40 },
-        { id: "fashion_pioneer", name: "Fashion Pioneer", description: "Equip any accessory in the Wardrobe.", rewardCoins: 25, rewardXp: 35 },
+        { id: "fashion_pioneer", name: "Fashion Pioneer", description: "Equip any accessory in the Shop.", rewardCoins: 25, rewardXp: 35 },
         { id: "three_presets", name: "Stylist Guru", description: "Save all 3 outfit presets.", rewardCoins: 60, rewardXp: 75 },
-        { id: "level_5", name: "Growing Up", description: "Reach Bunny Level 5.", rewardCoins: 80, rewardXp: 100 },
+        { id: "level_5", name: "Growing Up", description: "Reach Bunny Level 5.", rewardCoins: 80, rewardXp: 100, rewardItem: { category: "den", id: "festive", name: "Festive Christmas Den \u{1F384}" } },
         { id: "level_10", name: "Legendary Bunny", description: "Reach Bunny Level 10.", rewardCoins: 200, rewardXp: 300 }
       ];
       var DEFAULT_STATE = {
@@ -1224,7 +1238,8 @@
           floorMode: "taskbar",
           menuPosition: null,
           startWithWindows: false,
-          doNotDisturb: false
+          doNotDisturb: false,
+          denSkin: "default"
         },
         achievements: {
           unlocked: []
@@ -1537,6 +1552,7 @@
           this.name = initialData.name || "Barnaby";
           this.nameTimer = 0;
           this.isHovered = false;
+          this.isSleepingInDen = false;
           this.needs = new BunnyNeeds(initialData, settings);
           this.baseSpriteSize = 32;
           this.width = this.baseSpriteSize * this.scale;
@@ -1704,6 +1720,7 @@
         }
         // --- Interactions ---
         startDrag(mouseX, mouseY) {
+          this.isSleepingInDen = false;
           this.isDragging = true;
           this.dragOffsetX = this.x - mouseX;
           this.dragOffsetY = this.y - mouseY;
@@ -1737,6 +1754,7 @@
           this.stateMachine.setState("falling");
         }
         pet(mouseX, mouseY) {
+          this.isSleepingInDen = false;
           this.totalPetCount++;
           this.nameTimer = 2500;
           this.needs.pet();
@@ -1816,24 +1834,19 @@
           return px >= left && px <= right && py >= top && py <= bottom;
         }
         draw(ctx) {
+          if (this.isSleepingInDen) {
+            return;
+          }
           ctx.save();
           ctx.imageSmoothingEnabled = false;
           const stateName = this.needs.isHungry() && this.stateMachine.currentState === "idle" ? "sad" : this.stateMachine.currentState;
-          const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
+          const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
             state: stateName,
             frameIndex: this.stateMachine.frameIndex,
             direction: this.direction,
-            appearance: this.appearance
+            appearance: this.appearance,
+            equipped: this.equipped
           });
-          const frameCtx = frameCanvas.getContext("2d");
-          frameCtx.imageSmoothingEnabled = false;
-          AccessoryRenderer.renderAccessories(
-            frameCtx,
-            this.equipped,
-            anchors,
-            this.direction,
-            this.stateMachine.frameIndex
-          );
           const drawX = Math.floor(this.x - this.width / 2);
           const drawY = Math.floor(this.y - this.height);
           ctx.drawImage(frameCanvas, drawX, drawY, this.width, this.height);
@@ -2139,7 +2152,7 @@
               const btnH = Math.round(22 * s);
               const btn1W = Math.round(52 * s);
               const btn2W = Math.round(52 * s);
-              const btn3W = Math.round(46 * s);
+              const btn3W = Math.round(62 * s);
               const gap = Math.round(4 * s);
               const wx = db.x + Math.round(8 * s);
               if (px >= wx && px <= wx + btn1W && py >= btnY && py <= btnY + btnH) {
@@ -2151,7 +2164,7 @@
               }
               const qx = sx + btn2W + gap;
               if (px >= qx && px <= qx + btn3W && py >= btnY && py <= btnY + btnH) {
-                return { type: "quit-app" };
+                return { type: "open-trophies" };
               }
               return { type: "drawer-bg" };
             }
@@ -2269,7 +2282,7 @@
             const btnH = Math.round(22 * s);
             const btn1W = Math.round(52 * s);
             const btn2W = Math.round(52 * s);
-            const btn3W = Math.round(46 * s);
+            const btn3W = Math.round(62 * s);
             const gap = Math.round(4 * s);
             const wx = db.x + Math.round(8 * s);
             const sx = wx + btn1W + gap;
@@ -2285,7 +2298,7 @@
             ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("\u{1F457} Closet", wx + Math.round(btn1W / 2), btnY + Math.round(btnH / 2));
+            ctx.fillText("\u{1F6CD}\uFE0F Shop", wx + Math.round(btn1W / 2), btnY + Math.round(btnH / 2));
             ctx.fillStyle = "#f1f5f9";
             ctx.strokeStyle = "#94a3b8";
             ctx.beginPath();
@@ -2294,14 +2307,14 @@
             ctx.stroke();
             ctx.fillStyle = "#334155";
             ctx.fillText("\u2699\uFE0F Setup", sx + Math.round(btn2W / 2), btnY + Math.round(btnH / 2));
-            ctx.fillStyle = "#fee2e2";
-            ctx.strokeStyle = "#fca5a5";
+            ctx.fillStyle = "#fef3c7";
+            ctx.strokeStyle = "#f59e0b";
             ctx.beginPath();
             ctx.roundRect(qx, btnY, btn3W, btnH, Math.round(4 * s));
             ctx.fill();
             ctx.stroke();
-            ctx.fillStyle = "#b91c1c";
-            ctx.fillText("\u2715 Exit", qx + Math.round(btn3W / 2), btnY + Math.round(btnH / 2));
+            ctx.fillStyle = "#b45309";
+            ctx.fillText("\u{1F3C6} Trophies", qx + Math.round(btn3W / 2), btnY + Math.round(btnH / 2));
             const coinY = btnY + Math.round(btnH / 2);
             const coinX = qx + btn3W + Math.round(12 * s);
             ctx.fillStyle = "#ffd700";
@@ -2424,6 +2437,7 @@
           if (this.isDragging) return true;
           if (this.findFoodAt(px, py)) return true;
           if (this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py)) return true;
+          if (this.app.den && this.app.den.isPointInside(px, py)) return true;
           if (this.app.hud && this.app.hud.isPointInside(px, py)) return true;
           if (this.app.garden && this.app.garden.isPointInside(px, py)) return true;
           if (this.app.hud && this.app.hud.selectedFoodToDrop) {
@@ -2443,12 +2457,25 @@
             }
           }
         }
+        wakeBunniesFromDen() {
+          if (!this.app.bunnies) return;
+          for (const b of this.app.bunnies) {
+            if (b.isSleepingInDen) {
+              b.isSleepingInDen = false;
+              b.x = this.app.den ? this.app.den.x + 34 : b.x + 30;
+              b.stateMachine.setState("idle", 1500);
+            }
+          }
+        }
         onMouseMove(e) {
           const px = e.clientX;
           const py = e.clientY;
           this.lastMouseX = px;
           this.lastMouseY = py;
           const isInteractive = this.checkInteractivity(px, py);
+          if (isInteractive) {
+            this.app.lastUserInteractionTime = Date.now();
+          }
           this.updateMouseIgnoreState(isInteractive);
           if (this.app.bunnies) {
             for (const b of this.app.bunnies) {
@@ -2535,6 +2562,7 @@
           }
         }
         onMouseDown(e) {
+          this.app.lastUserInteractionTime = Date.now();
           this.isMouseDown = true;
           this.mouseDownX = e.clientX;
           this.mouseDownY = e.clientY;
@@ -2544,6 +2572,7 @@
           const py = e.clientY;
           const food = this.findFoodAt(px, py);
           if (food) {
+            this.wakeBunniesFromDen();
             this.dragTarget = "food";
             this.draggedFood = food;
             this.dragFoodOffsetX = food.x - px;
@@ -2552,6 +2581,7 @@
           }
           const clickedBunny = this.app.getBunnyAt ? this.app.getBunnyAt(px, py) : this.app.bunny && this.app.bunny.isPointInside(px, py) ? this.app.bunny : null;
           if (clickedBunny) {
+            this.wakeBunniesFromDen();
             this.dragTarget = "bunny";
             this.draggedBunny = clickedBunny;
             return;
@@ -2681,6 +2711,7 @@
         }
         handleClick(px, py, now) {
           if (this.app.hud && this.app.hud.selectedFoodToDrop) {
+            this.wakeBunniesFromDen();
             const foodId = this.app.hud.selectedFoodToDrop;
             this.app.dropFood(foodId, px, -28);
             this.app.hud.selectedFoodToDrop = null;
@@ -2688,6 +2719,7 @@
           }
           const food = this.findFoodAt(px, py);
           if (food) {
+            this.wakeBunniesFromDen();
             let closestBunny = null;
             let minD = Infinity;
             for (const b of this.app.bunnies || [this.app.bunny]) {
@@ -2716,6 +2748,7 @@
                 return;
               } else if (btn.type === "food") {
                 if (this.app.inventory.foods[btn.foodId] > 0) {
+                  this.wakeBunniesFromDen();
                   const margin = 80;
                   const dropX = Math.floor(Math.random() * (this.app.canvas.width - margin * 2)) + margin;
                   this.app.dropFood(btn.foodId, dropX, -28);
@@ -2742,6 +2775,9 @@
               } else if (btn.type === "open-settings") {
                 if (window.api) window.api.openSettings();
                 return;
+              } else if (btn.type === "open-trophies") {
+                if (window.api && window.api.openTrophies) window.api.openTrophies();
+                return;
               } else if (btn.type === "quit-app") {
                 if (this.app) this.app.saveState();
                 if (window.api) window.api.quitApp();
@@ -2749,6 +2785,11 @@
               }
               return;
             }
+          }
+          if (this.app.den && this.app.den.isPointInside(px, py)) {
+            this.app.den.toggleStats();
+            soundEngine2.playHop();
+            return;
           }
           if (this.app.garden && this.app.garden.isPointInside(px, py)) {
             this.app.garden.harvest(1);
@@ -2847,6 +2888,396 @@
     }
   });
 
+  // src/renderer/world/den.js
+  var require_den = __commonJS({
+    "src/renderer/world/den.js"(exports, module) {
+      var BunnyDen2 = class {
+        constructor(app) {
+          this.app = app;
+          this.width = 56;
+          this.height = 44;
+          this.x = 110;
+          this.y = 0;
+          this.showStats = false;
+          this.statsTimer = 0;
+          this.zzzTimer = 0;
+          this.lightsFlickerTimer = 0;
+        }
+        get skin() {
+          return this.app?.state?.settings?.denSkin || "default";
+        }
+        get primaryBunny() {
+          return this.app?.bunnies && this.app.bunnies[0] || this.app?.bunny;
+        }
+        isPointInside(px, py) {
+          const halfW = this.width / 2;
+          const left = this.x - halfW;
+          const right = this.x + halfW;
+          const top = this.y - this.height;
+          const bottom = this.y + 4;
+          return px >= left && px <= right && py >= top && py <= bottom;
+        }
+        toggleStats() {
+          this.showStats = !this.showStats;
+          if (this.showStats) {
+            this.statsTimer = 9e3;
+          }
+        }
+        update(deltaTime) {
+          this.y = this.app.groundY;
+          if (this.app.hud && this.app.hud.bagBtn) {
+            const bag = this.app.hud.bagBtn;
+            this.x = Math.round(bag.x + bag.width / 2 + 38);
+          }
+          if (this.statsTimer > 0) {
+            this.statsTimer -= deltaTime;
+            if (this.statsTimer <= 0) {
+              this.showStats = false;
+            }
+          }
+          this.zzzTimer += deltaTime;
+          this.lightsFlickerTimer += deltaTime;
+        }
+        draw(ctx) {
+          const x = Math.round(this.x);
+          const y = Math.round(this.y);
+          const w = this.width;
+          const h = this.height;
+          const halfW = Math.round(w / 2);
+          ctx.save();
+          ctx.imageSmoothingEnabled = false;
+          const isSleeping = this.primaryBunny && this.primaryBunny.isSleepingInDen;
+          if (this.skin === "festive") {
+            this.drawFestiveDen(ctx, x, y, halfW, h, isSleeping);
+          } else {
+            this.drawDefaultDen(ctx, x, y, halfW, h, isSleeping);
+          }
+          if (isSleeping) {
+            const zOffset = this.zzzTimer * 0.03 % 24;
+            const alpha = Math.max(0, 1 - zOffset / 24);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = "#7dd3fc";
+            ctx.font = "bold 11px monospace";
+            ctx.fillText("z", x + 8, y - h - zOffset);
+            ctx.font = "bold 9px monospace";
+            ctx.fillText("z", x + 14, y - h - zOffset - 8);
+            ctx.restore();
+          }
+          if (this.showStats && this.primaryBunny) {
+            this.drawStatsBadge(ctx, x, y - h - 10);
+          }
+          ctx.restore();
+        }
+        drawDefaultDen(ctx, x, y, halfW, h, isSleeping) {
+          const w = this.width;
+          ctx.fillStyle = "#451a03";
+          ctx.beginPath();
+          ctx.roundRect(x - halfW - 2, y - 6, w + 4, 8, 4);
+          ctx.fill();
+          ctx.fillStyle = "#78350f";
+          ctx.beginPath();
+          ctx.roundRect(x - halfW, y - h + 12, w, h - 12, 6);
+          ctx.fill();
+          ctx.strokeStyle = "#5c2b09";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x - halfW, y - h + 22);
+          ctx.lineTo(x + halfW, y - h + 22);
+          ctx.moveTo(x - halfW, y - h + 32);
+          ctx.lineTo(x + halfW, y - h + 32);
+          ctx.stroke();
+          ctx.fillStyle = "#15803d";
+          ctx.beginPath();
+          ctx.moveTo(x - halfW - 6, y - h + 14);
+          ctx.lineTo(x, y - h - 2);
+          ctx.lineTo(x + halfW + 6, y - h + 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#22c55e";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x - halfW - 4, y - h + 12);
+          ctx.lineTo(x, y - h);
+          ctx.lineTo(x + halfW + 4, y - h + 12);
+          ctx.stroke();
+          const archW = 20;
+          const archH = 22;
+          ctx.fillStyle = "#1e1b4b";
+          ctx.beginPath();
+          ctx.arc(x, y - archH / 2, archW / 2, Math.PI, 0, false);
+          ctx.rect(x - archW / 2, y - archH / 2, archW, archH / 2);
+          ctx.fill();
+          ctx.fillStyle = "#fef08a";
+          ctx.fillRect(x - 8, y - 3, 16, 3);
+          if (isSleeping) {
+            ctx.fillStyle = "#fdfbf7";
+            ctx.beginPath();
+            ctx.arc(x, y - 8, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#831843";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - 4, y - 9);
+            ctx.lineTo(x - 2, y - 10);
+            ctx.lineTo(x, y - 9);
+            ctx.moveTo(x + 1, y - 9);
+            ctx.lineTo(x + 3, y - 10);
+            ctx.lineTo(x + 5, y - 9);
+            ctx.stroke();
+            ctx.fillStyle = "#f472b6";
+            ctx.fillRect(x - 1, y - 7, 2, 1);
+          }
+        }
+        drawFestiveDen(ctx, x, y, halfW, h, isSleeping) {
+          const w = this.width;
+          ctx.fillStyle = "#92400e";
+          ctx.beginPath();
+          ctx.roundRect(x - halfW, y - h + 12, w, h - 12, 6);
+          ctx.fill();
+          ctx.strokeStyle = "#f8fafc";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(x - halfW + 2, y - h + 14, w - 4, h - 16);
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.moveTo(x - halfW - 6, y - h + 14);
+          ctx.lineTo(x, y - h - 3);
+          ctx.lineTo(x + halfW + 6, y - h + 14);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#e0f2fe";
+          for (let ix = x - halfW - 2; ix <= x + halfW + 2; ix += 6) {
+            ctx.beginPath();
+            ctx.moveTo(ix - 2, y - h + 14);
+            ctx.lineTo(ix, y - h + 18);
+            ctx.lineTo(ix + 2, y - h + 14);
+            ctx.fill();
+          }
+          const colors = ["#ef4444", "#10b981", "#f59e0b", "#3b82f6"];
+          const flickerStep = Math.floor(this.lightsFlickerTimer / 350) % colors.length;
+          let colorIdx = 0;
+          for (let lx = x - halfW; lx <= x + halfW; lx += 8) {
+            const c = colors[(colorIdx + flickerStep) % colors.length];
+            colorIdx++;
+            ctx.fillStyle = c;
+            ctx.beginPath();
+            ctx.arc(lx, y - h + 12, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          const archW = 20;
+          const archH = 22;
+          ctx.fillStyle = "#1e1b4b";
+          ctx.beginPath();
+          ctx.arc(x, y - archH / 2, archW / 2, Math.PI, 0, false);
+          ctx.rect(x - archW / 2, y - archH / 2, archW, archH / 2);
+          ctx.fill();
+          ctx.strokeStyle = "#dc2626";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = "#15803d";
+          ctx.beginPath();
+          ctx.arc(x, y - archH - 3, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#1e1b4b";
+          ctx.beginPath();
+          ctx.arc(x, y - archH - 3, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#ef4444";
+          ctx.fillRect(x - 2, y - archH - 7, 4, 2);
+          if (isSleeping) {
+            ctx.fillStyle = "#fdfbf7";
+            ctx.beginPath();
+            ctx.arc(x, y - 8, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#831843";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - 4, y - 9);
+            ctx.lineTo(x - 2, y - 10);
+            ctx.lineTo(x, y - 9);
+            ctx.moveTo(x + 1, y - 9);
+            ctx.lineTo(x + 3, y - 10);
+            ctx.lineTo(x + 5, y - 9);
+            ctx.stroke();
+            ctx.fillStyle = "#f472b6";
+            ctx.fillRect(x - 1, y - 7, 2, 1);
+          }
+        }
+        drawStatsBadge(ctx, bx, by) {
+          const bunny = this.primaryBunny;
+          if (!bunny) return;
+          const hunger = Math.round(bunny.needs.hunger);
+          const happiness = Math.round(bunny.needs.happiness);
+          const name = bunny.name || "Barnaby";
+          const cardW = 120;
+          const cardH = 46;
+          const left = bx - Math.round(cardW / 2);
+          const top = by - cardH;
+          ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
+          ctx.strokeStyle = "#f472b6";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(left, top, cardW, cardH, 8);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#831843";
+          ctx.font = "bold 10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(`\u{1F430} ${name}'s Den Stats`, bx, top + 12);
+          const barW = 54;
+          const barH = 5;
+          const barX = left + 56;
+          ctx.font = "9px sans-serif";
+          ctx.textAlign = "left";
+          ctx.fillStyle = "#b45309";
+          ctx.fillText(`\u{1F955} ${hunger}%`, left + 8, top + 24);
+          ctx.fillStyle = "#e2e8f0";
+          ctx.beginPath();
+          ctx.roundRect(barX, top + 19, barW, barH, 2.5);
+          ctx.fill();
+          ctx.fillStyle = "#f97316";
+          ctx.beginPath();
+          ctx.roundRect(barX, top + 19, Math.round(barW * hunger / 100), barH, 2.5);
+          ctx.fill();
+          ctx.fillStyle = "#be185d";
+          ctx.fillText(`\u{1F496} ${happiness}%`, left + 8, top + 38);
+          ctx.fillStyle = "#e2e8f0";
+          ctx.beginPath();
+          ctx.roundRect(barX, top + 33, barW, barH, 2.5);
+          ctx.fill();
+          ctx.fillStyle = "#ec4899";
+          ctx.beginPath();
+          ctx.roundRect(barX, top + 33, Math.round(barW * happiness / 100), barH, 2.5);
+          ctx.fill();
+        }
+      };
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = { BunnyDen: BunnyDen2 };
+      }
+    }
+  });
+
+  // src/renderer/world/butterfly.js
+  var require_butterfly = __commonJS({
+    "src/renderer/world/butterfly.js"(exports, module) {
+      var Butterfly2 = class {
+        constructor(app) {
+          this.app = app;
+          this.active = false;
+          this.spawnTimer = 0;
+          this.spawnInterval = 5 * 60 * 1e3;
+          this.x = -30;
+          this.y = 200;
+          this.baseY = 200;
+          this.vx = 1.2;
+          this.wingAngle = 0;
+          this.flightTime = 0;
+          this.sparkles = [];
+        }
+        update(deltaTime) {
+          for (let i = this.sparkles.length - 1; i >= 0; i--) {
+            const s = this.sparkles[i];
+            s.life += deltaTime;
+            s.y -= 0.2;
+            s.alpha = Math.max(0, 1 - s.life / s.maxLife);
+            if (s.life >= s.maxLife) {
+              this.sparkles.splice(i, 1);
+            }
+          }
+          if (!this.active) {
+            this.spawnTimer += deltaTime;
+            if (this.spawnTimer >= this.spawnInterval) {
+              this.spawn();
+            }
+            return;
+          }
+          this.flightTime += deltaTime;
+          this.wingAngle = Math.sin(this.flightTime * 0.018);
+          this.x += this.vx * (deltaTime / 16.6);
+          this.y = this.baseY + Math.sin(this.flightTime * 35e-4) * 45;
+          if (Math.random() < 0.2) {
+            this.sparkles.push({
+              x: this.x + (Math.random() - 0.5) * 8,
+              y: this.y + (Math.random() - 0.5) * 8,
+              color: Math.random() > 0.5 ? "#fef08a" : "#7dd3fc",
+              life: 0,
+              maxLife: 600,
+              alpha: 1
+            });
+          }
+          const maxW = this.app?.canvas?.width || 1920;
+          if (this.vx > 0 && this.x > maxW + 50) {
+            this.despawn();
+          } else if (this.vx < 0 && this.x < -50) {
+            this.despawn();
+          }
+        }
+        spawn() {
+          this.active = true;
+          this.spawnTimer = 0;
+          this.flightTime = 0;
+          const maxW = this.app?.canvas?.width || 1920;
+          const fromLeft = Math.random() > 0.5;
+          this.vx = (fromLeft ? 1 : -1) * (1.1 + Math.random() * 0.5);
+          this.x = fromLeft ? -25 : maxW + 25;
+          const ground = this.app?.groundY || 900;
+          this.baseY = Math.max(120, ground - 130 - Math.random() * 120);
+          this.y = this.baseY;
+        }
+        despawn() {
+          this.active = false;
+          this.spawnTimer = 0;
+        }
+        draw(ctx) {
+          for (const s of this.sparkles) {
+            ctx.save();
+            ctx.globalAlpha = s.alpha;
+            ctx.fillStyle = s.color;
+            ctx.fillRect(Math.floor(s.x), Math.floor(s.y), 2, 2);
+            ctx.restore();
+          }
+          if (!this.active) return;
+          ctx.save();
+          ctx.imageSmoothingEnabled = false;
+          const px = Math.floor(this.x);
+          const py = Math.floor(this.y);
+          const wingSpan = Math.max(1, Math.round(Math.abs(this.wingAngle) * 7));
+          ctx.fillStyle = "#f97316";
+          ctx.beginPath();
+          ctx.ellipse(px - wingSpan / 2 - 1, py - 3, wingSpan / 2 + 1, 6, -0.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#18181b";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = "#f97316";
+          ctx.beginPath();
+          ctx.ellipse(px + wingSpan / 2 + 1, py - 3, wingSpan / 2 + 1, 6, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#18181b";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(px - wingSpan, py - 6, 1, 1);
+          ctx.fillRect(px + wingSpan - 1, py - 6, 1, 1);
+          ctx.fillStyle = "#18181b";
+          ctx.fillRect(px - 1, py - 5, 2, 8);
+          ctx.strokeStyle = "#27272a";
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(px - 1, py - 5);
+          ctx.lineTo(px - 3, py - 9);
+          ctx.moveTo(px + 1, py - 5);
+          ctx.lineTo(px + 3, py - 9);
+          ctx.stroke();
+          ctx.restore();
+        }
+      };
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = { Butterfly: Butterfly2 };
+      }
+    }
+  });
+
   // src/renderer/app.js
   var { Bunny } = require_bunny();
   var { CarrotGarden } = require_garden();
@@ -2856,6 +3287,8 @@
   var { soundEngine } = require_soundEngine();
   var { ItemSprites } = require_itemSprites();
   var { ACHIEVEMENTS, FOODS } = require_constants();
+  var { BunnyDen } = require_den();
+  var { Butterfly } = require_butterfly();
   var TaskbarBunnyApp = class {
     constructor() {
       this.canvas = document.getElementById("gameCanvas");
@@ -2864,8 +3297,11 @@
       this.bunnies = [];
       this.garden = null;
       this.hud = null;
+      this.den = null;
+      this.butterfly = null;
       this.input = null;
       this.loop = null;
+      this.lastUserInteractionTime = Date.now();
       this.worldFoods = [];
       this.taskbarOverlap = 0;
       this.butterfly = null;
@@ -3020,6 +3456,8 @@
         this.saveState();
       });
       this.hud = new HUD(this);
+      this.den = new BunnyDen(this);
+      this.butterfly = new Butterfly(this);
       this.input = new InputManager(this);
       this.applyLayout();
       if (offlineSummary) {
@@ -3061,6 +3499,9 @@
       }
       if (this.hud) {
         this.hud.layout(this.canvas.height, this.taskbarOverlap);
+      }
+      if (this.den) {
+        this.den.update(0);
       }
       for (const food of this.worldFoods) {
         food.groundY = this.groundY;
@@ -3154,6 +3595,14 @@
             soundEngine.playLevelUp();
             this.inventory.coins += ach.rewardCoins;
             this.bunny.needs.addXp(ach.rewardXp, (lv) => this.onLevelUp(lv));
+            if (ach.rewardItem) {
+              this.inventory.unlockedCosmetics = this.inventory.unlockedCosmetics || [];
+              const rewardKey = `${ach.rewardItem.category}:${ach.rewardItem.id}`;
+              if (!this.inventory.unlockedCosmetics.includes(rewardKey)) {
+                this.inventory.unlockedCosmetics.push(rewardKey);
+              }
+              this.hud.showNotification("\u{1F381} Special Reward Unlocked!", `${ach.rewardItem.name}`, 6e3, "\u2728");
+            }
             this.hud.showNotification(`\u{1F3C6} Achievement Unlocked!`, `${ach.name}: ${ach.description}`, 5e3, "\u{1F3C6}");
           }
         }
@@ -3197,6 +3646,49 @@
           }
         }
       }
+      if (this.den) {
+        this.den.update(deltaTime);
+      }
+      if (this.butterfly) {
+        this.butterfly.update(deltaTime);
+      }
+      const idleDuration = Date.now() - (this.lastUserInteractionTime || 0);
+      if (idleDuration >= 3e5 && this.den) {
+        const denX = this.den.x;
+        for (const bunny of this.bunnies) {
+          if (!bunny.isSleepingInDen && !bunny.isDragging && bunny.stateMachine.currentState !== "eat" && this.worldFoods.length === 0) {
+            const dist = Math.abs(bunny.x - denX);
+            if (dist > 12) {
+              bunny.targetX = denX;
+              bunny.direction = denX > bunny.x ? 1 : -1;
+              if (bunny.stateMachine.currentState !== "walk") {
+                bunny.stateMachine.setState("walk", 6e3);
+              }
+            } else {
+              bunny.x = denX;
+              bunny.isSleepingInDen = true;
+              bunny.stateMachine.setState("sleep");
+            }
+          }
+        }
+      }
+      if (this.butterfly && this.butterfly.active) {
+        for (const bunny of this.bunnies) {
+          if (bunny.isSleepingInDen) continue;
+          if (bunny.isDragging || bunny.stateMachine.currentState === "eat") continue;
+          bunny.targetX = Math.max(40, Math.min(this.canvas.width - 40, this.butterfly.x));
+          bunny.direction = this.butterfly.x > bunny.x ? 1 : -1;
+          if (bunny.stateMachine.currentState === "idle" || bunny.stateMachine.currentState === "sit") {
+            bunny.stateMachine.setState("walk", 2500);
+          }
+          if (Math.abs(bunny.x - this.butterfly.x) < 45 && bunny.y >= bunny.groundY - 2 && bunny.stateMachine.currentState !== "hop") {
+            if (Math.random() < 0.05) {
+              bunny.startHop();
+              bunny.stateMachine.setState("hop");
+            }
+          }
+        }
+      }
       if (this.garden) {
         this.garden.update(deltaTime);
       }
@@ -3214,9 +3706,9 @@
       this.updateRandomEvents(deltaTime);
       if (this.loop && this.bunny) {
         const allDormant = this.bunnies.every(
-          (b) => (b.stateMachine.currentState === "sleep" || b.stateMachine.currentState === "sit") && b.particles.length === 0
+          (b) => b.isSleepingInDen || (b.stateMachine.currentState === "sleep" || b.stateMachine.currentState === "sit") && b.particles.length === 0
         );
-        const isDormant = allDormant && this.worldFoods.length === 0 && !this.input.isMouseDown && !this.butterfly;
+        const isDormant = allDormant && this.worldFoods.length === 0 && !this.input.isMouseDown && (!this.butterfly || !this.butterfly.active);
         this.loop.setIdleMode(isDormant);
       }
       this.autoSaveTimer += deltaTime;
@@ -3227,20 +3719,11 @@
     }
     updateRandomEvents(deltaTime) {
       this.randomEventTimer += deltaTime;
-      if (this.randomEventTimer >= 35e3 && !this.butterfly) {
+      if (this.randomEventTimer >= 35e3) {
         this.randomEventTimer = 0;
         const roll = Math.random();
-        if (roll < 0.4) {
-          this.butterfly = {
-            x: Math.random() < 0.5 ? 20 : this.canvas.width - 20,
-            y: this.groundY - 48 - Math.random() * 50,
-            vx: Math.random() < 0.5 ? 1.2 : -1.2,
-            vy: -0.4,
-            life: 0,
-            color: ["#ffb7b2", "#b5ead7", "#e2f0cb", "#c7ceea"][Math.floor(Math.random() * 4)]
-          };
-        } else if (roll < 0.7) {
-          if (this.bunny && this.bunny.stateMachine.currentState === "idle") {
+        if (roll < 0.5) {
+          if (this.bunny && this.bunny.stateMachine.currentState === "idle" && !this.bunny.isSleepingInDen) {
             soundEngine.playSneeze();
             this.bunny.addParticle(this.bunny.x, this.bunny.y - 15, 0, -1, "star");
           }
@@ -3251,31 +3734,17 @@
           this.saveState();
         }
       }
-      if (this.butterfly) {
-        this.butterfly.life += deltaTime;
-        this.butterfly.x += this.butterfly.vx * (deltaTime / 16.6);
-        this.butterfly.y += Math.sin(this.butterfly.life / 200) * 0.8;
-        if (this.butterfly.x < -20 || this.butterfly.x > this.canvas.width + 20 || this.butterfly.life > 18e3) {
-          this.butterfly = null;
-        }
-      }
     }
     render() {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      if (this.den) {
+        this.den.draw(this.ctx);
+      }
       if (this.garden) {
         this.garden.draw(this.ctx);
       }
       if (this.butterfly) {
-        this.ctx.save();
-        this.ctx.fillStyle = this.butterfly.color;
-        const bx = Math.floor(this.butterfly.x);
-        const by = Math.floor(this.butterfly.y);
-        const flap = Math.floor(this.butterfly.life / 100) % 2 === 0 ? 0 : 2;
-        this.ctx.fillRect(bx - 3, by - 2 - flap, 3, 4);
-        this.ctx.fillRect(bx + 1, by - 2 - flap, 3, 4);
-        this.ctx.fillStyle = "#333333";
-        this.ctx.fillRect(bx, by - 1, 1, 3);
-        this.ctx.restore();
+        this.butterfly.draw(this.ctx);
       }
       for (const bunny of this.bunnies) {
         bunny.draw(this.ctx);

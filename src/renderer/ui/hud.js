@@ -178,7 +178,7 @@ class HUD {
         const btnH = Math.round(22 * s);
         const btn1W = Math.round(52 * s);
         const btn2W = Math.round(52 * s);
-        const btn3W = Math.round(46 * s);
+        const btn3W = Math.round(62 * s);
         const gap = Math.round(4 * s);
 
         const wx = db.x + Math.round(8 * s);
@@ -191,7 +191,7 @@ class HUD {
         }
         const qx = sx + btn2W + gap;
         if (px >= qx && px <= qx + btn3W && py >= btnY && py <= btnY + btnH) {
-          return { type: 'quit-app' };
+          return { type: 'open-trophies' };
         }
 
         return { type: 'drawer-bg' };
@@ -340,13 +340,13 @@ class HUD {
       const btnH = Math.round(22 * s);
       const btn1W = Math.round(52 * s);
       const btn2W = Math.round(52 * s);
-      const btn3W = Math.round(46 * s);
+      const btn3W = Math.round(62 * s);
       const gap = Math.round(4 * s);
       const wx = db.x + Math.round(8 * s);
       const sx = wx + btn1W + gap;
       const qx = sx + btn2W + gap;
 
-      // Wardrobe Button
+      // Shop Button (renamed from Closet)
       ctx.fillStyle = '#fce7f3';
       ctx.strokeStyle = '#f472b6';
       ctx.lineWidth = 1;
@@ -358,7 +358,7 @@ class HUD {
       ctx.font = `bold ${Math.max(9, Math.round(10 * s))}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('👗 Closet', wx + Math.round(btn1W / 2), btnY + Math.round(btnH / 2));
+      ctx.fillText('🛍️ Shop', wx + Math.round(btn1W / 2), btnY + Math.round(btnH / 2));
 
       // Settings Button
       ctx.fillStyle = '#f1f5f9';
@@ -370,15 +370,15 @@ class HUD {
       ctx.fillStyle = '#334155';
       ctx.fillText('⚙️ Setup', sx + Math.round(btn2W / 2), btnY + Math.round(btnH / 2));
 
-      // Exit Button
-      ctx.fillStyle = '#fee2e2';
-      ctx.strokeStyle = '#fca5a5';
+      // Trophies Button (moved to where Exit was)
+      ctx.fillStyle = '#fef3c7';
+      ctx.strokeStyle = '#f59e0b';
       ctx.beginPath();
       ctx.roundRect(qx, btnY, btn3W, btnH, Math.round(4 * s));
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#b91c1c';
-      ctx.fillText('✕ Exit', qx + Math.round(btn3W / 2), btnY + Math.round(btnH / 2));
+      ctx.fillStyle = '#b45309';
+      ctx.fillText('🏆 Trophies', qx + Math.round(btn3W / 2), btnY + Math.round(btnH / 2));
 
       // Coin counter badge
       const coinY = btnY + Math.round(btnH / 2);

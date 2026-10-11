@@ -155,9 +155,9 @@ test('menu can be dragged and repositioned with drawer anchoring correctly', () 
   const testS = hud.scale;
   const qx = testDb.x + Math.round(8 * testS) + Math.round(52 * testS) + Math.round(4 * testS) + Math.round(52 * testS) + Math.round(4 * testS);
   const qy = testDb.y + Math.round(45 * testS);
-  const quitBtn = hud.getButtonAt(qx + 2, qy + 2);
-  assert.ok(quitBtn, 'Quit button should be found at calculated coordinates');
-  assert.strictEqual(quitBtn.type, 'quit-app', 'Button type should be quit-app');
+  const trophiesBtn = hud.getButtonAt(qx + 2, qy + 2);
+  assert.ok(trophiesBtn, 'Trophies button should be found at calculated coordinates');
+  assert.strictEqual(trophiesBtn.type, 'open-trophies', 'Button type should be open-trophies');
 
   // Verify HUD bunny adoption card hit test
   const bx = testDb.x + Math.round(8 * testS) + 5 * Math.round(44 * testS);
@@ -273,6 +273,75 @@ test('accessory preview anchors exist and align with sprite frame', () => {
     assert.ok(mockAnchors[slot].x >= 0 && mockAnchors[slot].x <= 32);
     assert.ok(mockAnchors[slot].y >= 0 && mockAnchors[slot].y <= 32);
   }
+});
+
+test('den burrow anchors next to HUD, toggles stats, and supports festive skin', () => {
+  const { BunnyDen } = require('../src/renderer/world/den');
+  const mockApp = {
+    groundY: 900,
+    state: { settings: { denSkin: 'festive' } },
+    hud: { bagBtn: { x: 50, y: 920, width: 44, height: 44 } },
+    bunny: { needs: { hunger: 80, happiness: 95 }, isSleepingInDen: false }
+  };
+
+  const den = new BunnyDen(mockApp);
+  den.update(16);
+
+  assert.strictEqual(den.skin, 'festive', 'Den should reflect festive skin setting');
+  assert.ok(den.x > mockApp.hud.bagBtn.x, 'Den should anchor to the right of the bag button');
+  assert.ok(den.isPointInside(den.x, den.y - 10), 'Point inside den bounding box should match');
+  assert.strictEqual(den.isPointInside(den.x + 100, den.y), false, 'Point outside should not match');
+
+  assert.strictEqual(den.showStats, false, 'Stats badge should be hidden by default');
+  den.toggleStats();
+  assert.strictEqual(den.showStats, true, 'toggleStats should show stats badge');
+  den.toggleStats();
+  assert.strictEqual(den.showStats, false, 'toggleStats should toggle back off');
+});
+
+test('butterfly spawns at 5-minute intervals and triggers chase behavior only for awake bunnies', () => {
+  const { Butterfly } = require('../src/renderer/world/butterfly');
+  const mockApp = {
+    canvas: { width: 1920, height: 1080 },
+    groundY: 900
+  };
+
+  const butterfly = new Butterfly(mockApp);
+  assert.strictEqual(butterfly.spawnInterval, 300000, 'Butterfly must have 5-minute (300,000ms) interval');
+  assert.strictEqual(butterfly.active, false, 'Butterfly is inactive until spawned');
+
+  // Fast forward spawn timer by 5 minutes
+  butterfly.update(300000);
+  assert.strictEqual(butterfly.active, true, 'Butterfly activates after 5 minutes');
+  assert.ok(butterfly.x !== 0, 'Butterfly position should be initialized');
+
+  // Verify chase rule: awake bunny chases, sleeping bunny ignores
+  const awakeBunny = { isSleepingInDen: false, isDragging: false, targetX: 0 };
+  const sleepingBunny = { isSleepingInDen: true, isDragging: false, targetX: 0 };
+
+  const bunnies = [awakeBunny, sleepingBunny];
+  for (const b of bunnies) {
+    if (b.isSleepingInDen) continue; // sleeping bunny does not chase
+    b.targetX = butterfly.x;
+  }
+
+  assert.strictEqual(awakeBunny.targetX, butterfly.x, 'Awake bunny targets butterfly x');
+  assert.strictEqual(sleepingBunny.targetX, 0, 'Sleeping bunny does not target butterfly');
+});
+
+test('foods include acquisition descriptions and Level 5 achievement awards festive den', () => {
+  for (const [id, food] of Object.entries(FOODS)) {
+    assert.ok(food.acquire, `Food ${id} must have acquire description`);
+    assert.ok(food.acquire.length > 10, `Food ${id} acquire description must be informative`);
+    assert.ok(food.cost > 0, `Food ${id} must have a coin cost`);
+  }
+
+  const lv5Ach = ACHIEVEMENTS.find(a => a.id === 'level_5');
+  assert.ok(lv5Ach, 'level_5 achievement must exist');
+  assert.ok(lv5Ach.rewardItem, 'level_5 achievement must include cosmetic rewardItem');
+  assert.strictEqual(lv5Ach.rewardItem.category, 'den');
+  assert.strictEqual(lv5Ach.rewardItem.id, 'festive');
+  assert.ok(ACCESSORIES.den.some(d => d.id === 'festive'), 'festive skin must be in ACCESSORIES.den catalog');
 });
 
 

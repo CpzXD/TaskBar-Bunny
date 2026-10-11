@@ -1,7 +1,8 @@
-const { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS } = require('../../shared/constants');
+const { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS, FOODS } = require('../../shared/constants');
 const { BunnySpriteGenerator } = require('../sprites/bunnySprites');
 const { AccessoryRenderer } = require('../sprites/accessories');
 const { soundEngine } = require('../engine/soundEngine');
+const { ItemSprites } = require('../sprites/itemSprites');
 
 class WardrobeController {
   constructor() {
@@ -18,7 +19,7 @@ class WardrobeController {
     this.state = null;
     this.selectedBunnyIndex = 0;
     this.bunnySelectBound = false;
-    this.activeTab = 'base';
+    this.activeTab = 'food';
     this.previewFrame = 0;
     this.previewTimer = 0;
 
@@ -177,7 +178,7 @@ class WardrobeController {
     const currentBunny = this.getCurrentBunny();
     if (!currentBunny) return;
 
-    // Generate 32x32 frame
+    // Generate 32x32 frame with accessories
     const appearance = {
       furColor: currentBunny.furColor,
       earStyle: currentBunny.earStyle,
@@ -185,23 +186,13 @@ class WardrobeController {
       blush: currentBunny.blush
     };
 
-    const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
+    const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
       state: 'idle',
       frameIndex: this.previewFrame,
       direction: 1,
-      appearance
+      appearance,
+      equipped: currentBunny.equipped || {}
     });
-
-    // Draw accessories
-    const frameCtx = frameCanvas.getContext('2d');
-    frameCtx.imageSmoothingEnabled = false;
-    AccessoryRenderer.renderAccessories(
-      frameCtx,
-      currentBunny.equipped || {},
-      anchors,
-      1,
-      this.previewFrame
-    );
 
     // Scale up 3x to 96x96
     this.previewCtx.drawImage(frameCanvas, 0, 0, 96, 96);
@@ -211,12 +202,14 @@ class WardrobeController {
     if (!this.state) return;
     this.tabContent.innerHTML = '';
 
-    if (this.activeTab === 'base') {
+    if (this.activeTab === 'food') {
+      this.renderFoodShop();
+    } else if (this.activeTab === 'den') {
+      this.renderDenShop();
+    } else if (this.activeTab === 'base') {
       this.renderBaseCustomization();
     } else if (this.activeTab === 'presets') {
       this.renderPresets();
-    } else if (this.activeTab === 'achievements') {
-      this.renderAchievements();
     } else {
       this.renderAccessoriesCategory(this.activeTab);
     }
@@ -329,26 +322,14 @@ class WardrobeController {
       blush: currentBunny?.blush !== false
     };
 
-    // Render base bunny frame in idle pose
-    const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
+    // Render base bunny frame in idle pose with the item
+    const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
       state: 'idle',
       frameIndex: 0,
       direction: 1,
-      appearance
+      appearance,
+      equipped: itemId !== 'none' ? { [category]: itemId } : {}
     });
-
-    const frameCtx = frameCanvas.getContext('2d');
-    frameCtx.imageSmoothingEnabled = false;
-
-    if (itemId !== 'none') {
-      AccessoryRenderer.renderAccessories(
-        frameCtx,
-        { [category]: itemId },
-        anchors,
-        1,
-        0
-      );
-    }
 
     // Draw the 32x32 sprite scaled onto the canvas (64x64)
     ctx.drawImage(frameCanvas, 0, 0, canvas.width, canvas.height);
@@ -372,6 +353,150 @@ class WardrobeController {
     }
   }
 
+  renderFoodShop() {
+    const foods = Object.values(FOODS);
+    for (const f of foods) {
+      const owned = (this.state.inventory.foods && this.state.inventory.foods[f.id]) || 0;
+      const canAfford = (this.state.inventory.coins || 0) >= f.cost;
+
+      const card = document.createElement('div');
+      card.className = 'food-card';
+
+      card.innerHTML = `
+        <div class="food-header">
+          <div class="food-title">${f.name}</div>
+          <div class="food-owned-badge">Owned: ${owned}</div>
+        </div>
+        <div class="item-visual-wrap">
+          <canvas class="item-preview-canvas" width="64" height="64"></canvas>
+        </div>
+        <div class="food-bonuses">
+          <span>🥕 +${f.hungerBonus}% Hunger</span>
+          <span>💖 +${f.happinessBonus}% Happy</span>
+        </div>
+        <div class="food-acquire" title="${f.acquire || f.description}">
+          ${f.acquire || f.description}
+        </div>
+        <div>
+          <button class="item-btn btn-buy ${canAfford ? '' : 'insufficient-funds'}" ${canAfford ? '' : 'title="Not enough coins"'}>
+            Buy <span class="coin-icon"></span> ${f.cost}
+          </button>
+        </div>
+      `;
+
+      const canvas = card.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ItemSprites.drawFood(ctx, f.id, 32, 32, 28);
+
+      const btn = card.querySelector('.btn-buy');
+      btn.addEventListener('click', () => {
+        if ((this.state.inventory.coins || 0) < f.cost) return;
+        this.state.inventory.coins -= f.cost;
+        if (!this.state.inventory.foods) this.state.inventory.foods = {};
+        this.state.inventory.foods[f.id] = (this.state.inventory.foods[f.id] || 0) + 1;
+        soundEngine.playCoin();
+        this.saveState();
+        this.updateHeaderInfo();
+        this.renderTabContent();
+      });
+
+      this.tabContent.appendChild(card);
+    }
+  }
+
+  renderDenShop() {
+    const denItems = ACCESSORIES.den || [];
+    const currentSkin = this.state.settings?.denSkin || 'default';
+    const unlockedList = this.state.inventory.unlockedCosmetics || [];
+
+    for (const item of denItems) {
+      const isEquipped = currentSkin === item.id;
+      const isUnlocked = item.price === 0 ||
+        unlockedList.includes(`den:${item.id}`) ||
+        (item.rewardFrom && this.state.achievements?.unlocked?.includes(item.rewardFrom));
+      const canAfford = (this.state.inventory.coins || 0) >= item.price;
+
+      const card = document.createElement('div');
+      card.className = `food-card ${isEquipped ? 'equipped' : ''}`;
+
+      card.innerHTML = `
+        <div class="food-header">
+          <div class="food-title">${item.name}</div>
+          <span class="item-tier tier-${item.tier}">${item.tier}</span>
+        </div>
+        <div class="item-visual-wrap" style="height: 72px;">
+          <canvas class="item-preview-canvas" width="64" height="64"></canvas>
+        </div>
+        <div class="food-acquire" style="min-height: 28px;">
+          ${item.description || ''}
+        </div>
+        <div style="font-size: 11px; margin: 2px 0; text-align: center; min-height: 16px;">
+          ${isUnlocked ? `<span style="color: #059669; font-weight: 600;">${isEquipped ? 'Active Den 🏡' : 'Unlocked'}</span>` : (item.rewardFrom ? '<span style="color: #9333ea; font-size: 10px; font-weight: bold;">Unlock via Level 5 Trophy!</span>' : '')}
+        </div>
+        <div>
+          ${
+            isEquipped
+              ? `<button class="item-btn btn-unequip" disabled style="opacity: 0.8; cursor: default;">In Use</button>`
+              : (isUnlocked
+                  ? `<button class="item-btn btn-equip">Use Den</button>`
+                  : `<button class="item-btn btn-buy ${canAfford ? '' : 'insufficient-funds'}" ${canAfford ? '' : 'title="Not enough coins"'}>Buy <span class="coin-icon"></span> ${item.price}</button>`)
+          }
+        </div>
+      `;
+
+      // Mini burrow icon
+      const canvas = card.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      if (item.id === 'festive') {
+        ctx.fillStyle = '#92400e';
+        ctx.fillRect(16, 26, 32, 28);
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(12, 26); ctx.lineTo(32, 10); ctx.lineTo(52, 26); ctx.fill();
+        ctx.fillStyle = '#1e1b4b';
+        ctx.fillRect(26, 36, 12, 18);
+        const cArr = ['#ef4444', '#10b981', '#f59e0b', '#3b82f6'];
+        for (let li = 0; li < 4; li++) {
+          ctx.fillStyle = cArr[li];
+          ctx.fillRect(18 + li * 8, 24, 3, 3);
+        }
+      } else {
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(16, 26, 32, 28);
+        ctx.fillStyle = '#15803d';
+        ctx.beginPath();
+        ctx.moveTo(12, 26); ctx.lineTo(32, 10); ctx.lineTo(52, 26); ctx.fill();
+        ctx.fillStyle = '#1e1b4b';
+        ctx.fillRect(26, 36, 12, 18);
+      }
+
+      const btn = card.querySelector('.item-btn');
+      if (btn && !btn.disabled) {
+        btn.addEventListener('click', () => {
+          if (isUnlocked) {
+            if (!this.state.settings) this.state.settings = {};
+            this.state.settings.denSkin = item.id;
+            soundEngine.playHop();
+          } else {
+            if (!canAfford) return;
+            this.state.inventory.coins -= item.price;
+            this.state.inventory.unlockedCosmetics.push(`den:${item.id}`);
+            if (!this.state.settings) this.state.settings = {};
+            this.state.settings.denSkin = item.id;
+            soundEngine.playCoin();
+            this.updateHeaderInfo();
+          }
+          this.saveState();
+          this.renderTabContent();
+        });
+      }
+
+      this.tabContent.appendChild(card);
+    }
+  }
+
   renderAccessoriesCategory(category) {
     const currentBunny = this.getCurrentBunny();
     if (!currentBunny) return;
@@ -383,6 +508,7 @@ class WardrobeController {
     for (const item of items) {
       const isEquipped = equippedId === item.id;
       const isUnlocked = item.price === 0 || unlockedList.includes(`${category}:${item.id}`);
+      const canAfford = (this.state.inventory.coins || 0) >= item.price;
 
       const card = document.createElement('div');
       card.className = `item-card ${isEquipped ? 'equipped' : ''} ${item.tier}`;
@@ -395,8 +521,8 @@ class WardrobeController {
         <div class="item-visual-wrap">
           <canvas class="item-preview-canvas" width="64" height="64"></canvas>
         </div>
-        <div style="font-size: 11px; color: #64748b; margin: 2px 0; text-align: center;">
-          ${isUnlocked ? (isEquipped ? 'Currently Wearing' : 'Owned') : `Price: <span class="coin-icon"></span> ${item.price}`}
+        <div style="font-size: 11px; margin: 2px 0; text-align: center; min-height: 16px;">
+          ${isUnlocked ? `<span style="color: #059669; font-weight: 600;">${isEquipped ? 'Wearing ✨' : 'Owned'}</span>` : ''}
         </div>
         <div>
           ${
@@ -404,7 +530,7 @@ class WardrobeController {
               ? `<button class="item-btn btn-unequip">Unequip</button>`
               : (isUnlocked
                   ? `<button class="item-btn btn-equip">Equip</button>`
-                  : `<button class="item-btn btn-buy">Buy <span class="coin-icon"></span> ${item.price}</button>`)
+                  : `<button class="item-btn btn-buy ${canAfford ? '' : 'insufficient-funds'}" ${canAfford ? '' : 'title="Not enough coins"'}>Buy <span class="coin-icon"></span> ${item.price}</button>`)
           }
         </div>
       `;
@@ -424,16 +550,12 @@ class WardrobeController {
           soundEngine.playHop();
         } else {
           // Buy item
-          if (this.state.inventory.coins >= item.price) {
-            this.state.inventory.coins -= item.price;
-            this.state.inventory.unlockedCosmetics.push(`${category}:${item.id}`);
-            currentBunny.equipped[category] = item.id;
-            soundEngine.playCoin();
-            this.updateHeaderInfo();
-          } else {
-            alert('Not enough coins! Keep your bunny happy to earn more coins.');
-            return;
-          }
+          if (!canAfford) return;
+          this.state.inventory.coins -= item.price;
+          this.state.inventory.unlockedCosmetics.push(`${category}:${item.id}`);
+          currentBunny.equipped[category] = item.id;
+          soundEngine.playCoin();
+          this.updateHeaderInfo();
         }
         this.saveState();
         this.renderTabContent();

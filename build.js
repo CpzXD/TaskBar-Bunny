@@ -15,7 +15,8 @@ try {
     entryPoints: {
       app: path.join(__dirname, 'src/renderer/app.js'),
       wardrobe: path.join(__dirname, 'src/renderer/ui/wardrobe.js'),
-      settings: path.join(__dirname, 'src/renderer/ui/settings.js')
+      settings: path.join(__dirname, 'src/renderer/ui/settings.js'),
+      trophies: path.join(__dirname, 'src/renderer/ui/trophies.js')
     },
     bundle: true,
     outdir: distDir,

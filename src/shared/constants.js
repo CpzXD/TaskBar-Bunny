@@ -12,7 +12,8 @@ const FOODS = {
     happinessBonus: 10,
     cost: 10,
     color: '#ff8822',
-    description: 'A bunny classic. Rich in beta-carotene!'
+    description: 'A bunny classic. Rich in beta-carotene!',
+    acquire: 'Grows free in your taskbar garden, or buy in the Shop.'
   },
   lettuce: {
     id: 'lettuce',
@@ -21,7 +22,8 @@ const FOODS = {
     happinessBonus: 5,
     cost: 5,
     color: '#76c442',
-    description: 'Refreshing and light green leaves.'
+    description: 'Refreshing and light green leaves.',
+    acquire: 'Buy in the Shop with coins earned from bunny care.'
   },
   apple: {
     id: 'apple',
@@ -30,7 +32,8 @@ const FOODS = {
     happinessBonus: 20,
     cost: 18,
     color: '#ee4444',
-    description: 'A juicy, sweet midday treat.'
+    description: 'A juicy, sweet midday treat.',
+    acquire: 'Buy in the Shop with coins earned from achievements.'
   },
   clover: {
     id: 'clover',
@@ -39,7 +42,8 @@ const FOODS = {
     happinessBonus: 35,
     cost: 25,
     color: '#28bb67',
-    description: 'Guaranteed to bring bunny smiles.'
+    description: 'Guaranteed to bring bunny smiles.',
+    acquire: 'Buy in the Shop with coins earned from daily care.'
   },
   strawberry: {
     id: 'strawberry',
@@ -48,7 +52,8 @@ const FOODS = {
     happinessBonus: 30,
     cost: 30,
     color: '#ff3366',
-    description: 'Fragrant and delightfully sweet.'
+    description: 'Fragrant, juicy, and delightfully sweet.',
+    acquire: 'Premium delicacy available in the Shop.'
   }
 };
 
@@ -114,6 +119,10 @@ const ACCESSORIES = {
     { id: 'flag', name: 'Cheering Flag', tier: 'common', price: 40 },
     { id: 'lollipop', name: 'Rainbow Swirl', tier: 'rare', price: 60 },
     { id: 'wand', name: 'Star Wand', tier: 'epic', price: 120 }
+  ],
+  den: [
+    { id: 'default', name: 'Cozy Burrow', tier: 'common', price: 0, description: 'Warm wooden burrow with thatched moss roof.' },
+    { id: 'festive', name: 'Festive Christmas Den', tier: 'epic', price: 80, description: 'Snowy gingerbread roof, twinkling holiday lights & wreath!', rewardFrom: 'level_5' }
   ]
 };
 
@@ -124,9 +133,9 @@ const ACHIEVEMENTS = [
   { id: 'pet_50', name: 'True Affection', description: 'Pet your bunny 50 times.', rewardCoins: 40, rewardXp: 50 },
   { id: 'pet_200', name: 'Fluffy Bestie', description: 'Pet your bunny 200 times.', rewardCoins: 100, rewardXp: 150 },
   { id: 'first_harvest', name: 'Green Thumb', description: 'Harvest your first homegrown carrot.', rewardCoins: 30, rewardXp: 40 },
-  { id: 'fashion_pioneer', name: 'Fashion Pioneer', description: 'Equip any accessory in the Wardrobe.', rewardCoins: 25, rewardXp: 35 },
+  { id: 'fashion_pioneer', name: 'Fashion Pioneer', description: 'Equip any accessory in the Shop.', rewardCoins: 25, rewardXp: 35 },
   { id: 'three_presets', name: 'Stylist Guru', description: 'Save all 3 outfit presets.', rewardCoins: 60, rewardXp: 75 },
-  { id: 'level_5', name: 'Growing Up', description: 'Reach Bunny Level 5.', rewardCoins: 80, rewardXp: 100 },
+  { id: 'level_5', name: 'Growing Up', description: 'Reach Bunny Level 5.', rewardCoins: 80, rewardXp: 100, rewardItem: { category: 'den', id: 'festive', name: 'Festive Christmas Den 🎄' } },
   { id: 'level_10', name: 'Legendary Bunny', description: 'Reach Bunny Level 10.', rewardCoins: 200, rewardXp: 300 }
 ];
 
@@ -189,7 +198,8 @@ const DEFAULT_STATE = {
     floorMode: 'taskbar',
     menuPosition: null,
     startWithWindows: false,
-    doNotDisturb: false
+    doNotDisturb: false,
+    denSkin: 'default'
   },
   achievements: {
     unlocked: []

@@ -36,6 +36,7 @@ class Bunny {
     this.name = initialData.name || 'Barnaby';
     this.nameTimer = 0;
     this.isHovered = false;
+    this.isSleepingInDen = false;
 
     // Needs & stats
     this.needs = new BunnyNeeds(initialData, settings);
@@ -245,6 +246,7 @@ class Bunny {
   // --- Interactions ---
 
   startDrag(mouseX, mouseY) {
+    this.isSleepingInDen = false;
     this.isDragging = true;
     this.dragOffsetX = this.x - mouseX;
     this.dragOffsetY = this.y - mouseY;
@@ -283,6 +285,7 @@ class Bunny {
   }
 
   pet(mouseX, mouseY) {
+    this.isSleepingInDen = false;
     this.totalPetCount++;
     this.nameTimer = 2500;
     this.needs.pet();
@@ -369,6 +372,10 @@ class Bunny {
   }
 
   draw(ctx) {
+    if (this.isSleepingInDen) {
+      return;
+    }
+
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
@@ -376,22 +383,13 @@ class Bunny {
       ? 'sad'
       : this.stateMachine.currentState;
 
-    const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
+    const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
       state: stateName,
       frameIndex: this.stateMachine.frameIndex,
       direction: this.direction,
-      appearance: this.appearance
+      appearance: this.appearance,
+      equipped: this.equipped
     });
-
-    const frameCtx = frameCanvas.getContext('2d');
-    frameCtx.imageSmoothingEnabled = false;
-    AccessoryRenderer.renderAccessories(
-      frameCtx,
-      this.equipped,
-      anchors,
-      this.direction,
-      this.stateMachine.frameIndex
-    );
 
     const drawX = Math.floor(this.x - this.width / 2);
     const drawY = Math.floor(this.y - this.height);

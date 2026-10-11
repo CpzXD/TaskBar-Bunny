@@ -174,6 +174,7 @@ function sanitizeState(incoming, current) {
     if (['relaxed', 'normal', 'fast'].includes(s.hungerSpeed)) safe.settings.hungerSpeed = s.hungerSpeed;
     if (['taskbar', 'cozy', 'desk', 'full'].includes(s.roamingArea)) safe.settings.roamingArea = s.roamingArea;
     if (['taskbar', 'free'].includes(s.floorMode)) safe.settings.floorMode = s.floorMode;
+    if (['default', 'festive'].includes(s.denSkin)) safe.settings.denSkin = s.denSkin;
 
     if (s.menuPosition === null) {
       safe.settings.menuPosition = null;
@@ -247,11 +248,17 @@ function setupIpcHandlers() {
     windowManager.openSettings();
   });
 
+  ipcMain.on('open-trophies', () => {
+    windowManager.openTrophies();
+  });
+
   ipcMain.on('close-window', (event, winName) => {
     if (winName === 'wardrobe' && windowManager.wardrobeWindow) {
       windowManager.wardrobeWindow.close();
     } else if (winName === 'settings' && windowManager.settingsWindow) {
       windowManager.settingsWindow.close();
+    } else if (winName === 'trophies' && windowManager.trophiesWindow) {
+      windowManager.trophiesWindow.close();
     }
   });
 

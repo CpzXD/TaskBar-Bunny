@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+  <title>Bunny Trophies & Achievements</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background: rgba(254, 252, 232, 0.98);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #332722;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border: 3px solid #fde047;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #fef9c3, #fef08a);
+      border-bottom: 2px solid #fde047;
+      -webkit-app-region: drag;
+    }
+    .titlebar-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #854d0e;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      background: #f43f5e;
+      color: white;
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s;
+    }
+    .close-btn:hover {
+      transform: scale(1.1);
+      background: #e11d48;
+    }
+
+    .overview-card {
+      background: #ffffff;
+      margin: 10px 14px 4px 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 2px solid #fef08a;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    .overview-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: bold;
+      color: #713f12;
+    }
+    .overview-bar {
+      height: 10px;
+      background: #f1f5f9;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .overview-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b, #10b981);
+      border-radius: 5px;
+      transition: width 0.3s ease;
+    }
+
+    .trophies-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .coin-icon {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      background: radial-gradient(circle at 35% 35%, #fef08a, #eab308 60%, #ca8a04 100%);
+      border: 1.5px solid #a16207;
+      border-radius: 50%;
+      vertical-align: middle;
+      position: relative;
+    }
+
+    .achievement-card {
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .achievement-card.unlocked {
+      border-color: #f59e0b;
+      background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
+    }
+    .ach-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ach-icon {
+      font-size: 20px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .achievement-card.unlocked .ach-icon {
+      background: #fef08a;
+    }
+    .ach-info {
+      flex: 1;
+    }
+    .ach-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .ach-desc {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .ach-reward {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #b45309;
+      background: rgba(254, 243, 199, 0.8);
+      padding: 4px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .ach-xp {
+      color: #4f46e5;
+      margin-left: 4px;
+    }
+    .ach-cosmetic-reward {
+      background: #fdf2f8;
+      border: 1px solid #f472b6;
+      color: #9d174d;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: fit-content;
+    }
+    .ach-progress-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ach-progress-bar {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .ach-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .achievement-card.unlocked .ach-progress-fill {
+      background: linear-gradient(90deg, #f59e0b, #10b981);
+    }
+    .ach-progress-text {
+      font-size: 10px;
+      font-weight: 600;
+      color: #475569;
+      min-width: 60px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="titlebar-title">🏆 Bunny Trophies & Achievements</div>
+    <button class="close-btn" id="closeBtn">✕</button>
+  </div>
+
+  <div class="overview-card">
+    <div class="overview-top">
+      <span>Trophies Unlocked: <span id="unlockedCount">0</span> / <span id="totalCount">0</span></span>
+      <span id="overviewPct" style="color: #059669;">0%</span>
+    </div>
+    <div class="overview-bar">
+      <div class="overview-fill" id="overviewFill" style="width: 0%;"></div>
+    </div>
+  </div>
+
+  <div class="trophies-container" id="trophiesContainer">
+    <!-- Rendered dynamically by trophies.js -->
+  </div>
+
+  <script src="../dist/trophies.js"></script>
+</body>
+</html>

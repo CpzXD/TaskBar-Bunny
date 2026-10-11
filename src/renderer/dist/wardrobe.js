@@ -19,7 +19,7 @@
         fast: 2
         // ~15 min per carrot
       };
-      var FOODS = {
+      var FOODS2 = {
         carrot: {
           id: "carrot",
           name: "Crunchy Carrot",
@@ -27,7 +27,8 @@
           happinessBonus: 10,
           cost: 10,
           color: "#ff8822",
-          description: "A bunny classic. Rich in beta-carotene!"
+          description: "A bunny classic. Rich in beta-carotene!",
+          acquire: "Grows free in your taskbar garden, or buy in the Shop."
         },
         lettuce: {
           id: "lettuce",
@@ -36,7 +37,8 @@
           happinessBonus: 5,
           cost: 5,
           color: "#76c442",
-          description: "Refreshing and light green leaves."
+          description: "Refreshing and light green leaves.",
+          acquire: "Buy in the Shop with coins earned from bunny care."
         },
         apple: {
           id: "apple",
@@ -45,7 +47,8 @@
           happinessBonus: 20,
           cost: 18,
           color: "#ee4444",
-          description: "A juicy, sweet midday treat."
+          description: "A juicy, sweet midday treat.",
+          acquire: "Buy in the Shop with coins earned from achievements."
         },
         clover: {
           id: "clover",
@@ -54,7 +57,8 @@
           happinessBonus: 35,
           cost: 25,
           color: "#28bb67",
-          description: "Guaranteed to bring bunny smiles."
+          description: "Guaranteed to bring bunny smiles.",
+          acquire: "Buy in the Shop with coins earned from daily care."
         },
         strawberry: {
           id: "strawberry",
@@ -63,7 +67,8 @@
           happinessBonus: 30,
           cost: 30,
           color: "#ff3366",
-          description: "Fragrant and delightfully sweet."
+          description: "Fragrant, juicy, and delightfully sweet.",
+          acquire: "Premium delicacy available in the Shop."
         }
       };
       var FUR_COLORS2 = {
@@ -125,6 +130,10 @@
           { id: "flag", name: "Cheering Flag", tier: "common", price: 40 },
           { id: "lollipop", name: "Rainbow Swirl", tier: "rare", price: 60 },
           { id: "wand", name: "Star Wand", tier: "epic", price: 120 }
+        ],
+        den: [
+          { id: "default", name: "Cozy Burrow", tier: "common", price: 0, description: "Warm wooden burrow with thatched moss roof." },
+          { id: "festive", name: "Festive Christmas Den", tier: "epic", price: 80, description: "Snowy gingerbread roof, twinkling holiday lights & wreath!", rewardFrom: "level_5" }
         ]
       };
       var ACHIEVEMENTS2 = [
@@ -134,9 +143,9 @@
         { id: "pet_50", name: "True Affection", description: "Pet your bunny 50 times.", rewardCoins: 40, rewardXp: 50 },
         { id: "pet_200", name: "Fluffy Bestie", description: "Pet your bunny 200 times.", rewardCoins: 100, rewardXp: 150 },
         { id: "first_harvest", name: "Green Thumb", description: "Harvest your first homegrown carrot.", rewardCoins: 30, rewardXp: 40 },
-        { id: "fashion_pioneer", name: "Fashion Pioneer", description: "Equip any accessory in the Wardrobe.", rewardCoins: 25, rewardXp: 35 },
+        { id: "fashion_pioneer", name: "Fashion Pioneer", description: "Equip any accessory in the Shop.", rewardCoins: 25, rewardXp: 35 },
         { id: "three_presets", name: "Stylist Guru", description: "Save all 3 outfit presets.", rewardCoins: 60, rewardXp: 75 },
-        { id: "level_5", name: "Growing Up", description: "Reach Bunny Level 5.", rewardCoins: 80, rewardXp: 100 },
+        { id: "level_5", name: "Growing Up", description: "Reach Bunny Level 5.", rewardCoins: 80, rewardXp: 100, rewardItem: { category: "den", id: "festive", name: "Festive Christmas Den \u{1F384}" } },
         { id: "level_10", name: "Legendary Bunny", description: "Reach Bunny Level 10.", rewardCoins: 200, rewardXp: 300 }
       ];
       var DEFAULT_STATE = {
@@ -198,7 +207,8 @@
           floorMode: "taskbar",
           menuPosition: null,
           startWithWindows: false,
-          doNotDisturb: false
+          doNotDisturb: false,
+          denSkin: "default"
         },
         achievements: {
           unlocked: []
@@ -212,7 +222,7 @@
       if (typeof module !== "undefined" && module.exports) {
         module.exports = {
           HUNGER_SPEED_FACTORS,
-          FOODS,
+          FOODS: FOODS2,
           FUR_COLORS: FUR_COLORS2,
           EYE_COLORS: EYE_COLORS2,
           EAR_STYLES: EAR_STYLES2,
@@ -317,10 +327,225 @@
     }
   });
 
+  // src/renderer/sprites/accessories.js
+  var require_accessories = __commonJS({
+    "src/renderer/sprites/accessories.js"(exports, module) {
+      var AccessoryRenderer2 = class {
+        /**
+         * Draws equipped accessories over the bunny canvas.
+         * @param {CanvasRenderingContext2D} ctx - Context of the target 32x32 canvas
+         * @param {Object} equipped - { head, face, neck, back, held }
+         * @param {Object} anchors - { head: {x,y}, face: {x,y}, neck: {x,y}, back: {x,y}, held: {x,y} }
+         * @param {number} direction - 1 for right, -1 for left
+         * @param {number} frame - animation frame
+         */
+        static renderAccessories(ctx, equipped = {}, anchors = {}, direction = 1, frame = 0) {
+          if (!anchors || !anchors.head) return;
+          const p = (x, y, color) => {
+            if (x >= 0 && x < 32 && y >= 0 && y < 32 && color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+            }
+          };
+          const rect = (x, y, w, h, color) => {
+            if (color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
+            }
+          };
+          const dir = direction;
+          if (equipped.back && equipped.back !== "none") {
+            const bx = anchors.back.x;
+            const by = anchors.back.y;
+            switch (equipped.back) {
+              case "backpack":
+                rect(bx - 2 * dir, by - 2, 4, 6, "#8b5a2b");
+                rect(bx - 1 * dir, by - 1, 2, 2, "#a06a38");
+                p(bx - 1 * dir, by + 1, "#ffd700");
+                p(bx - 3 * dir, by - 1, "#4a2f18");
+                p(bx - 3 * dir, by + 4, "#4a2f18");
+                break;
+              case "cape":
+                const flutter = frame % 2 === 0 ? 0 : 1;
+                rect(bx - 4 * dir, by - 1, 3, 7 + flutter, "#e63946");
+                rect(bx - 5 * dir, by + 1, 2, 6 + flutter, "#ba181b");
+                p(bx - 1 * dir, by - 2, "#ffd700");
+                break;
+              case "angel_wings":
+                const flap = frame % 2 === 0 ? 0 : -1;
+                rect(bx - 4 * dir, by - 4 + flap, 3, 5, "#ffffff");
+                rect(bx - 6 * dir, by - 5 + flap, 3, 4, "#e0f2fe");
+                p(bx - 7 * dir, by - 6 + flap, "#bae6fd");
+                p(bx - 5 * dir, by + 1 + flap, "#7dd3fc");
+                break;
+            }
+          }
+          if (equipped.neck && equipped.neck !== "none") {
+            const nx = anchors.neck.x;
+            const ny = anchors.neck.y - 2;
+            switch (equipped.neck) {
+              case "red_scarf":
+                rect(nx - 4, ny, 8, 3, "#e63946");
+                rect(nx - 2, ny + 1, 4, 1, "#ff6b6b");
+                rect(nx - 5 * dir, ny + 1, 3, 5, "#ba181b");
+                rect(nx - 6 * dir, ny + 5, 2, 1, "#ffd166");
+                break;
+              case "bowtie":
+                rect(nx - 3, ny, 2, 3, "#e63946");
+                rect(nx + 1, ny, 2, 3, "#e63946");
+                rect(nx - 1, ny + 1, 2, 1, "#ffffff");
+                break;
+              case "bell_collar":
+                rect(nx - 4, ny, 8, 2, "#d90429");
+                rect(nx - 1, ny + 2, 3, 3, "#ffd700");
+                p(nx, ny + 3, "#78350f");
+                break;
+              case "flower_lei":
+                p(nx - 4, ny, "#ff6b6b");
+                p(nx - 2, ny + 1, "#ffd166");
+                p(nx, ny + 1, "#48bb78");
+                p(nx + 2, ny + 1, "#38bdf8");
+                p(nx + 4, ny, "#f472b6");
+                break;
+            }
+          }
+          if (equipped.face && equipped.face !== "none") {
+            const fx = anchors.face.x;
+            const fy = anchors.face.y;
+            switch (equipped.face) {
+              case "glasses":
+                rect(fx - 4 * dir, fy - 1, 3, 3, "#1f2937");
+                rect(fx + 2 * dir, fy - 1, 3, 3, "#1f2937");
+                p(fx - 3 * dir, fy, "#93c5fd");
+                p(fx + 3 * dir, fy, "#93c5fd");
+                rect(fx - 1 * dir, fy, 2, 1, "#1f2937");
+                break;
+              case "sunglasses":
+                rect(fx - 5 * dir, fy - 1, 10, 3, "#111827");
+                p(fx - 3 * dir, fy, "#6b7280");
+                p(fx + 2 * dir, fy, "#6b7280");
+                break;
+              case "monocle":
+                rect(fx + 2 * dir, fy - 1, 3, 3, "#d97706");
+                p(fx + 3 * dir, fy, "#bae6fd");
+                p(fx + 4 * dir, fy + 2, "#d97706");
+                p(fx + 3 * dir, fy + 3, "#d97706");
+                break;
+              case "mustache":
+                rect(fx - 3, fy + 3, 6, 2, "#451a03");
+                p(fx - 4 * dir, fy + 2, "#451a03");
+                p(fx + 4 * dir, fy + 2, "#451a03");
+                break;
+            }
+          }
+          if (equipped.head && equipped.head !== "none") {
+            const hx = anchors.head.x;
+            const hy = anchors.head.y;
+            switch (equipped.head) {
+              case "party_hat":
+                rect(hx - 1, hy - 8, 3, 2, "#fbbf24");
+                rect(hx - 2, hy - 6, 4, 3, "#ec4899");
+                rect(hx - 3, hy - 3, 6, 3, "#3b82f6");
+                rect(hx - 4, hy, 8, 2, "#10b981");
+                break;
+              case "beanie":
+                p(hx, hy - 6, "#ffffff");
+                rect(hx - 4, hy - 5, 8, 4, "#dc2626");
+                rect(hx - 5, hy - 1, 10, 2, "#ffffff");
+                break;
+              case "cowboy_hat":
+                rect(hx - 3, hy - 6, 6, 4, "#78350f");
+                rect(hx - 2, hy - 2, 5, 1, "#f59e0b");
+                rect(hx - 6, hy - 1, 13, 2, "#92400e");
+                break;
+              case "wizard_hat":
+                p(hx - 1 * dir, hy - 10, "#fde047");
+                rect(hx - 1, hy - 8, 3, 3, "#4338ca");
+                rect(hx - 2, hy - 5, 5, 3, "#3730a3");
+                p(hx, hy - 4, "#fde047");
+                rect(hx - 6, hy - 2, 12, 2, "#312e81");
+                break;
+              case "flower_crown":
+                p(hx - 5, hy - 1, "#f43f5e");
+                p(hx - 3, hy - 2, "#fbbf24");
+                p(hx - 1, hy - 2, "#38bdf8");
+                p(hx + 1, hy - 2, "#a855f7");
+                p(hx + 3, hy - 1, "#22c55e");
+                p(hx + 5, hy, "#f43f5e");
+                break;
+              case "headphones":
+                rect(hx - 5, hy - 4, 10, 2, "#1f2937");
+                rect(hx - 6 * dir, hy - 2, 3, 5, "#ec4899");
+                rect(hx + 4 * dir, hy - 2, 3, 5, "#ec4899");
+                p(hx - 5 * dir, hy, "#ffffff");
+                p(hx + 5 * dir, hy, "#ffffff");
+                break;
+              case "golden_crown":
+                rect(hx - 4, hy - 4, 9, 2, "#f59e0b");
+                p(hx - 4, hy - 6, "#fbbf24");
+                p(hx, hy - 7, "#fbbf24");
+                p(hx + 4, hy - 6, "#fbbf24");
+                p(hx - 2, hy - 3, "#ef4444");
+                p(hx + 2, hy - 3, "#3b82f6");
+                break;
+              case "bunny_ears_headband":
+                rect(hx - 4, hy - 1, 9, 1, "#111827");
+                rect(hx - 3, hy - 7, 2, 6, "#f472b6");
+                p(hx - 2, hy - 6, "#ffffff");
+                rect(hx + 2, hy - 7, 2, 6, "#f472b6");
+                p(hx + 3, hy - 6, "#ffffff");
+                break;
+            }
+          }
+          if (equipped.held && equipped.held !== "none") {
+            const hx = anchors.held.x;
+            const hy = anchors.held.y;
+            switch (equipped.held) {
+              case "balloon":
+                const sway = frame % 2 === 0 ? 0 : 1;
+                const bx = hx + 1 * dir + sway;
+                const by = hy - 15;
+                rect(bx - 3, by, 6, 5, "#ff4d6d");
+                p(bx - 2, by - 1, "#ff4d6d");
+                p(bx + 1, by - 1, "#ff4d6d");
+                p(bx - 2, by + 1, "#ffccd5");
+                p(bx, by + 5, "#c9184a");
+                p(bx, by + 6, "#94a3b8");
+                p(bx, by + 8, "#94a3b8");
+                p(hx, hy, "#94a3b8");
+                break;
+              case "flag":
+                rect(hx, hy - 10, 1, 12, "#92400e");
+                rect(hx + 1 * dir, hy - 10, 5, 4, "#3b82f6");
+                p(hx + 3 * dir, hy - 8, "#ffffff");
+                break;
+              case "lollipop":
+                rect(hx, hy - 2, 1, 5, "#ffffff");
+                rect(hx - 2, hy - 6, 5, 4, "#fb7185");
+                rect(hx - 1, hy - 5, 3, 2, "#fde047");
+                p(hx, hy - 4, "#38bdf8");
+                break;
+              case "wand":
+                rect(hx, hy - 4, 1, 7, "#d97706");
+                p(hx, hy - 7, "#fef08a");
+                rect(hx - 1, hy - 6, 3, 2, "#eab308");
+                p(hx, hy - 5, "#ffffff");
+                break;
+            }
+          }
+        }
+      };
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = { AccessoryRenderer: AccessoryRenderer2 };
+      }
+    }
+  });
+
   // src/renderer/sprites/bunnySprites.js
   var require_bunnySprites = __commonJS({
     "src/renderer/sprites/bunnySprites.js"(exports, module) {
       var { PALETTES } = require_palette();
+      var { AccessoryRenderer: AccessoryRenderer2 } = require_accessories();
       var BunnySpriteGenerator2 = class {
         /**
          * Generates a 32x32 canvas for a specific state, frame, direction, and appearance.
@@ -329,9 +554,10 @@
          * @param {number} options.frameIndex - current animation frame index
          * @param {number} options.direction - 1 for right, -1 for left
          * @param {Object} options.appearance - { furColor, earStyle, eyeColor, blush }
+         * @param {Object} options.equipped - { head, face, neck, back, held }
          * @returns {{ canvas: HTMLCanvasElement, anchors: Object }}
          */
-        static renderFrame({ state = "idle", frameIndex = 0, direction = 1, appearance = {} }) {
+        static renderFrame({ state = "idle", frameIndex = 0, direction = 1, appearance = {}, equipped = null }) {
           const canvas = document.createElement("canvas");
           canvas.width = 32;
           canvas.height = 32;
@@ -638,6 +864,9 @@
             back: { x: baseBodyX - 4, y: baseBodyY - 1 },
             held: { x: baseHeadX + 7, y: baseBodyY }
           };
+          if (equipped && typeof AccessoryRenderer2 !== "undefined") {
+            AccessoryRenderer2.renderAccessories(ctx, equipped, anchors, 1, frameIndex);
+          }
           if (direction === -1) {
             const flippedCanvas = document.createElement("canvas");
             flippedCanvas.width = 32;
@@ -659,220 +888,6 @@
       };
       if (typeof module !== "undefined" && module.exports) {
         module.exports = { BunnySpriteGenerator: BunnySpriteGenerator2 };
-      }
-    }
-  });
-
-  // src/renderer/sprites/accessories.js
-  var require_accessories = __commonJS({
-    "src/renderer/sprites/accessories.js"(exports, module) {
-      var AccessoryRenderer2 = class {
-        /**
-         * Draws equipped accessories over the bunny canvas.
-         * @param {CanvasRenderingContext2D} ctx - Context of the target 32x32 canvas
-         * @param {Object} equipped - { head, face, neck, back, held }
-         * @param {Object} anchors - { head: {x,y}, face: {x,y}, neck: {x,y}, back: {x,y}, held: {x,y} }
-         * @param {number} direction - 1 for right, -1 for left
-         * @param {number} frame - animation frame
-         */
-        static renderAccessories(ctx, equipped = {}, anchors = {}, direction = 1, frame = 0) {
-          if (!anchors || !anchors.head) return;
-          const p = (x, y, color) => {
-            if (x >= 0 && x < 32 && y >= 0 && y < 32 && color) {
-              ctx.fillStyle = color;
-              ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
-            }
-          };
-          const rect = (x, y, w, h, color) => {
-            if (color) {
-              ctx.fillStyle = color;
-              ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
-            }
-          };
-          const dir = direction;
-          if (equipped.back && equipped.back !== "none") {
-            const bx = anchors.back.x;
-            const by = anchors.back.y;
-            switch (equipped.back) {
-              case "backpack":
-                rect(bx - 2 * dir, by - 2, 4, 6, "#8b5a2b");
-                rect(bx - 1 * dir, by - 1, 2, 2, "#a06a38");
-                p(bx - 1 * dir, by + 1, "#ffd700");
-                p(bx - 3 * dir, by - 1, "#4a2f18");
-                p(bx - 3 * dir, by + 4, "#4a2f18");
-                break;
-              case "cape":
-                const flutter = frame % 2 === 0 ? 0 : 1;
-                rect(bx - 4 * dir, by - 1, 3, 7 + flutter, "#e63946");
-                rect(bx - 5 * dir, by + 1, 2, 6 + flutter, "#ba181b");
-                p(bx - 1 * dir, by - 2, "#ffd700");
-                break;
-              case "angel_wings":
-                const flap = frame % 2 === 0 ? 0 : -1;
-                rect(bx - 4 * dir, by - 4 + flap, 3, 5, "#ffffff");
-                rect(bx - 6 * dir, by - 5 + flap, 3, 4, "#e0f2fe");
-                p(bx - 7 * dir, by - 6 + flap, "#bae6fd");
-                p(bx - 5 * dir, by + 1 + flap, "#7dd3fc");
-                break;
-            }
-          }
-          if (equipped.neck && equipped.neck !== "none") {
-            const nx = anchors.neck.x;
-            const ny = anchors.neck.y - 2;
-            switch (equipped.neck) {
-              case "red_scarf":
-                rect(nx - 4, ny, 8, 3, "#e63946");
-                rect(nx - 2, ny + 1, 4, 1, "#ff6b6b");
-                rect(nx - 5 * dir, ny + 1, 3, 5, "#ba181b");
-                rect(nx - 6 * dir, ny + 5, 2, 1, "#ffd166");
-                break;
-              case "bowtie":
-                rect(nx - 3, ny, 2, 3, "#e63946");
-                rect(nx + 1, ny, 2, 3, "#e63946");
-                rect(nx - 1, ny + 1, 2, 1, "#ffffff");
-                break;
-              case "bell_collar":
-                rect(nx - 4, ny, 8, 2, "#d90429");
-                rect(nx - 1, ny + 2, 3, 3, "#ffd700");
-                p(nx, ny + 3, "#78350f");
-                break;
-              case "flower_lei":
-                p(nx - 4, ny, "#ff6b6b");
-                p(nx - 2, ny + 1, "#ffd166");
-                p(nx, ny + 1, "#48bb78");
-                p(nx + 2, ny + 1, "#38bdf8");
-                p(nx + 4, ny, "#f472b6");
-                break;
-            }
-          }
-          if (equipped.face && equipped.face !== "none") {
-            const fx = anchors.face.x;
-            const fy = anchors.face.y;
-            switch (equipped.face) {
-              case "glasses":
-                rect(fx - 4 * dir, fy - 1, 3, 3, "#1f2937");
-                rect(fx + 2 * dir, fy - 1, 3, 3, "#1f2937");
-                p(fx - 3 * dir, fy, "#93c5fd");
-                p(fx + 3 * dir, fy, "#93c5fd");
-                rect(fx - 1 * dir, fy, 2, 1, "#1f2937");
-                break;
-              case "sunglasses":
-                rect(fx - 5 * dir, fy - 1, 10, 3, "#111827");
-                p(fx - 3 * dir, fy, "#6b7280");
-                p(fx + 2 * dir, fy, "#6b7280");
-                break;
-              case "monocle":
-                rect(fx + 2 * dir, fy - 1, 3, 3, "#d97706");
-                p(fx + 3 * dir, fy, "#bae6fd");
-                p(fx + 4 * dir, fy + 2, "#d97706");
-                p(fx + 3 * dir, fy + 3, "#d97706");
-                break;
-              case "mustache":
-                rect(fx - 3, fy + 3, 6, 2, "#451a03");
-                p(fx - 4 * dir, fy + 2, "#451a03");
-                p(fx + 4 * dir, fy + 2, "#451a03");
-                break;
-            }
-          }
-          if (equipped.head && equipped.head !== "none") {
-            const hx = anchors.head.x;
-            const hy = anchors.head.y;
-            switch (equipped.head) {
-              case "party_hat":
-                rect(hx - 1, hy - 8, 3, 2, "#fbbf24");
-                rect(hx - 2, hy - 6, 4, 3, "#ec4899");
-                rect(hx - 3, hy - 3, 6, 3, "#3b82f6");
-                rect(hx - 4, hy, 8, 2, "#10b981");
-                break;
-              case "beanie":
-                p(hx, hy - 6, "#ffffff");
-                rect(hx - 4, hy - 5, 8, 4, "#dc2626");
-                rect(hx - 5, hy - 1, 10, 2, "#ffffff");
-                break;
-              case "cowboy_hat":
-                rect(hx - 3, hy - 6, 6, 4, "#78350f");
-                rect(hx - 2, hy - 2, 5, 1, "#f59e0b");
-                rect(hx - 6, hy - 1, 13, 2, "#92400e");
-                break;
-              case "wizard_hat":
-                p(hx - 1 * dir, hy - 10, "#fde047");
-                rect(hx - 1, hy - 8, 3, 3, "#4338ca");
-                rect(hx - 2, hy - 5, 5, 3, "#3730a3");
-                p(hx, hy - 4, "#fde047");
-                rect(hx - 6, hy - 2, 12, 2, "#312e81");
-                break;
-              case "flower_crown":
-                p(hx - 5, hy - 1, "#f43f5e");
-                p(hx - 3, hy - 2, "#fbbf24");
-                p(hx - 1, hy - 2, "#38bdf8");
-                p(hx + 1, hy - 2, "#a855f7");
-                p(hx + 3, hy - 1, "#22c55e");
-                p(hx + 5, hy, "#f43f5e");
-                break;
-              case "headphones":
-                rect(hx - 5, hy - 4, 10, 2, "#1f2937");
-                rect(hx - 6 * dir, hy - 2, 3, 5, "#ec4899");
-                rect(hx + 4 * dir, hy - 2, 3, 5, "#ec4899");
-                p(hx - 5 * dir, hy, "#ffffff");
-                p(hx + 5 * dir, hy, "#ffffff");
-                break;
-              case "golden_crown":
-                rect(hx - 4, hy - 4, 9, 2, "#f59e0b");
-                p(hx - 4, hy - 6, "#fbbf24");
-                p(hx, hy - 7, "#fbbf24");
-                p(hx + 4, hy - 6, "#fbbf24");
-                p(hx - 2, hy - 3, "#ef4444");
-                p(hx + 2, hy - 3, "#3b82f6");
-                break;
-              case "bunny_ears_headband":
-                rect(hx - 4, hy - 1, 9, 1, "#111827");
-                rect(hx - 3, hy - 7, 2, 6, "#f472b6");
-                p(hx - 2, hy - 6, "#ffffff");
-                rect(hx + 2, hy - 7, 2, 6, "#f472b6");
-                p(hx + 3, hy - 6, "#ffffff");
-                break;
-            }
-          }
-          if (equipped.held && equipped.held !== "none") {
-            const hx = anchors.held.x;
-            const hy = anchors.held.y;
-            switch (equipped.held) {
-              case "balloon":
-                const sway = frame % 2 === 0 ? 0 : 1;
-                const bx = hx + 1 * dir + sway;
-                const by = hy - 15;
-                rect(bx - 3, by, 6, 5, "#ff4d6d");
-                p(bx - 2, by - 1, "#ff4d6d");
-                p(bx + 1, by - 1, "#ff4d6d");
-                p(bx - 2, by + 1, "#ffccd5");
-                p(bx, by + 5, "#c9184a");
-                p(bx, by + 6, "#94a3b8");
-                p(bx, by + 8, "#94a3b8");
-                p(hx, hy, "#94a3b8");
-                break;
-              case "flag":
-                rect(hx, hy - 10, 1, 12, "#92400e");
-                rect(hx + 1 * dir, hy - 10, 5, 4, "#3b82f6");
-                p(hx + 3 * dir, hy - 8, "#ffffff");
-                break;
-              case "lollipop":
-                rect(hx, hy - 2, 1, 5, "#ffffff");
-                rect(hx - 2, hy - 6, 5, 4, "#fb7185");
-                rect(hx - 1, hy - 5, 3, 2, "#fde047");
-                p(hx, hy - 4, "#38bdf8");
-                break;
-              case "wand":
-                rect(hx, hy - 4, 1, 7, "#d97706");
-                p(hx, hy - 7, "#fef08a");
-                rect(hx - 1, hy - 6, 3, 2, "#eab308");
-                p(hx, hy - 5, "#ffffff");
-                break;
-            }
-          }
-        }
-      };
-      if (typeof module !== "undefined" && module.exports) {
-        module.exports = { AccessoryRenderer: AccessoryRenderer2 };
       }
     }
   });
@@ -1058,11 +1073,222 @@
     }
   });
 
+  // src/renderer/sprites/itemSprites.js
+  var require_itemSprites = __commonJS({
+    "src/renderer/sprites/itemSprites.js"(exports, module) {
+      var ItemSprites2 = class {
+        /**
+         * Draw a food item centered at (x, y)
+         * @param {CanvasRenderingContext2D} ctx
+         * @param {string} foodId - 'carrot', 'lettuce', 'apple', 'clover', 'strawberry'
+         * @param {number} x - center x
+         * @param {number} y - center y
+         * @param {number} size - 16 or 24 px
+         */
+        static drawFood(ctx, foodId, x, y, size = 16) {
+          ctx.save();
+          ctx.imageSmoothingEnabled = false;
+          const ox = Math.floor(x - size / 2);
+          const oy = Math.floor(y - size / 2);
+          const p = (dx, dy, color) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(ox + dx, oy + dy, 1, 1);
+          };
+          const rect = (dx, dy, w, h, color) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(ox + dx, oy + dy, w, h);
+          };
+          switch (foodId) {
+            case "carrot":
+              p(7, 2, "#48bb78");
+              p(8, 1, "#38a169");
+              p(9, 2, "#48bb78");
+              p(6, 3, "#2f855a");
+              p(8, 3, "#38a169");
+              p(10, 3, "#2f855a");
+              rect(7, 4, 3, 2, "#ed8936");
+              rect(6, 6, 4, 2, "#dd6b20");
+              rect(6, 8, 3, 2, "#c05621");
+              rect(7, 10, 2, 2, "#dd6b20");
+              rect(7, 12, 1, 2, "#c05621");
+              p(7, 5, "#f6ad55");
+              p(7, 7, "#f6ad55");
+              p(8, 9, "#7b341e");
+              break;
+            case "lettuce":
+              rect(5, 5, 6, 6, "#48bb78");
+              rect(4, 6, 8, 4, "#68d391");
+              rect(6, 4, 4, 8, "#9ae6b4");
+              p(7, 7, "#ffffff");
+              p(7, 8, "#ffffff");
+              p(7, 9, "#ffffff");
+              p(4, 5, "#2f855a");
+              p(11, 5, "#2f855a");
+              p(4, 10, "#2f855a");
+              p(11, 10, "#2f855a");
+              break;
+            case "apple":
+              rect(5, 5, 6, 6, "#e53e3e");
+              rect(6, 4, 4, 1, "#c53030");
+              p(7, 2, "#744210");
+              p(8, 2, "#48bb78");
+              rect(6, 6, 4, 4, "#fff5f5");
+              p(7, 8, "#744210");
+              break;
+            case "clover":
+              rect(4, 4, 3, 3, "#38a169");
+              rect(9, 4, 3, 3, "#38a169");
+              rect(4, 9, 3, 3, "#38a169");
+              rect(9, 9, 3, 3, "#38a169");
+              p(5, 5, "#9ae6b4");
+              p(10, 5, "#9ae6b4");
+              p(5, 10, "#9ae6b4");
+              p(10, 10, "#9ae6b4");
+              p(8, 8, "#276749");
+              p(7, 11, "#276749");
+              p(6, 13, "#276749");
+              break;
+            case "strawberry":
+              p(6, 3, "#48bb78");
+              p(8, 2, "#38a169");
+              p(10, 3, "#48bb78");
+              rect(5, 4, 6, 2, "#2f855a");
+              rect(5, 6, 6, 4, "#e53e3e");
+              rect(6, 10, 4, 3, "#c53030");
+              rect(7, 13, 2, 1, "#9b2c2c");
+              p(6, 7, "#fef08a");
+              p(9, 7, "#fef08a");
+              p(7, 9, "#fef08a");
+              p(8, 11, "#fef08a");
+              break;
+            default:
+              rect(6, 6, 4, 4, "#ffd166");
+          }
+          ctx.restore();
+        }
+        /**
+         * Draw carrot garden growth plot (24x20)
+         * @param {CanvasRenderingContext2D} ctx
+         * @param {number} x - center x
+         * @param {number} y - bottom y (sits on taskbar)
+         * @param {number} stage - 0: seed, 1: sprout, 2: growing, 3: harvest-ready
+         * @param {number} frame - animation frame
+         */
+        static drawGardenPlot(ctx, x, y, stage = 0, frame = 0) {
+          ctx.save();
+          ctx.imageSmoothingEnabled = false;
+          const ox = Math.floor(x - 12);
+          const oy = Math.floor(y - 14);
+          const rect = (dx, dy, w, h, color) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(ox + dx, oy + dy, w, h);
+          };
+          const p = (dx, dy, color) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(ox + dx, oy + dy, 1, 1);
+          };
+          rect(2, 10, 20, 4, "#5c3d2e");
+          rect(1, 12, 22, 2, "#42281d");
+          rect(4, 9, 16, 1, "#785340");
+          p(5, 11, "#8f6750");
+          p(14, 11, "#8f6750");
+          p(18, 12, "#331f17");
+          if (stage === 0) {
+            rect(11, 8, 2, 2, "#38a169");
+            p(11, 7, "#48bb78");
+          } else if (stage === 1) {
+            p(11, 7, "#38a169");
+            rect(10, 6, 3, 1, "#48bb78");
+            p(9, 5, "#68d391");
+            p(13, 5, "#68d391");
+          } else if (stage === 2) {
+            rect(11, 4, 2, 5, "#2f855a");
+            rect(9, 3, 2, 3, "#38a169");
+            rect(13, 3, 2, 3, "#38a169");
+            p(8, 2, "#68d391");
+            p(15, 2, "#68d391");
+          } else if (stage >= 3) {
+            rect(10, 6, 4, 3, "#ed8936");
+            rect(11, 9, 2, 1, "#dd6b20");
+            rect(11, 2, 2, 4, "#2f855a");
+            rect(9, 1, 2, 3, "#38a169");
+            rect(13, 1, 2, 3, "#38a169");
+            p(8, 0, "#68d391");
+            p(15, 0, "#68d391");
+            const sp = frame % 4 < 2 ? 0 : 1;
+            p(6, 4 + sp, "#ffd700");
+            p(17, 3 - sp, "#ffd700");
+          }
+          ctx.restore();
+        }
+        /**
+         * Draw cute thought bubble above bunny
+         * @param {CanvasRenderingContext2D} ctx
+         * @param {number} x - center x
+         * @param {number} y - bottom tip y
+         * @param {string} type - 'carrot', 'sleep', 'heart'
+         */
+        static drawThoughtBubble(ctx, x, y, type = "carrot") {
+          ctx.save();
+          ctx.imageSmoothingEnabled = false;
+          const ox = Math.floor(x - 12);
+          const oy = Math.floor(y - 20);
+          const rect = (dx, dy, w, h, color) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(ox + dx, oy + dy, w, h);
+          };
+          const p = (dx, dy, color) => {
+            ctx.fillStyle = color;
+            ctx.fillRect(ox + dx, oy + dy, 1, 1);
+          };
+          rect(3, 1, 18, 12, "#ffffff");
+          rect(1, 3, 22, 8, "#ffffff");
+          rect(3, 0, 18, 1, "#4a5568");
+          rect(3, 13, 18, 1, "#4a5568");
+          rect(0, 3, 1, 8, "#4a5568");
+          rect(23, 3, 1, 8, "#4a5568");
+          p(1, 1, "#4a5568");
+          p(2, 2, "#4a5568");
+          p(22, 1, "#4a5568");
+          p(21, 2, "#4a5568");
+          p(1, 12, "#4a5568");
+          p(2, 11, "#4a5568");
+          p(22, 12, "#4a5568");
+          p(21, 11, "#4a5568");
+          p(12, 15, "#4a5568");
+          p(11, 17, "#4a5568");
+          if (type === "carrot") {
+            p(11, 3, "#38a169");
+            p(13, 3, "#38a169");
+            rect(11, 4, 3, 2, "#ed8936");
+            rect(12, 6, 2, 2, "#dd6b20");
+            p(12, 8, "#c05621");
+          } else if (type === "sleep") {
+            ctx.fillStyle = "#4299e1";
+            ctx.font = "bold 9px monospace";
+            ctx.fillText("zZ", ox + 7, oy + 10);
+          } else if (type === "heart") {
+            rect(10, 5, 2, 2, "#e53e3e");
+            rect(13, 5, 2, 2, "#e53e3e");
+            rect(9, 7, 7, 2, "#e53e3e");
+            rect(10, 9, 5, 1, "#e53e3e");
+            p(12, 10, "#e53e3e");
+          }
+          ctx.restore();
+        }
+      };
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = { ItemSprites: ItemSprites2 };
+      }
+    }
+  });
+
   // src/renderer/ui/wardrobe.js
-  var { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS } = require_constants();
+  var { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS, FOODS } = require_constants();
   var { BunnySpriteGenerator } = require_bunnySprites();
   var { AccessoryRenderer } = require_accessories();
   var { soundEngine } = require_soundEngine();
+  var { ItemSprites } = require_itemSprites();
   var WardrobeController = class {
     constructor() {
       this.previewCanvas = document.getElementById("previewCanvas");
@@ -1077,7 +1303,7 @@
       this.state = null;
       this.selectedBunnyIndex = 0;
       this.bunnySelectBound = false;
-      this.activeTab = "base";
+      this.activeTab = "food";
       this.previewFrame = 0;
       this.previewTimer = 0;
       this.init();
@@ -1216,32 +1442,26 @@
         eyeColor: currentBunny.eyeColor,
         blush: currentBunny.blush
       };
-      const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
+      const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
         state: "idle",
         frameIndex: this.previewFrame,
         direction: 1,
-        appearance
+        appearance,
+        equipped: currentBunny.equipped || {}
       });
-      const frameCtx = frameCanvas.getContext("2d");
-      frameCtx.imageSmoothingEnabled = false;
-      AccessoryRenderer.renderAccessories(
-        frameCtx,
-        currentBunny.equipped || {},
-        anchors,
-        1,
-        this.previewFrame
-      );
       this.previewCtx.drawImage(frameCanvas, 0, 0, 96, 96);
     }
     renderTabContent() {
       if (!this.state) return;
       this.tabContent.innerHTML = "";
-      if (this.activeTab === "base") {
+      if (this.activeTab === "food") {
+        this.renderFoodShop();
+      } else if (this.activeTab === "den") {
+        this.renderDenShop();
+      } else if (this.activeTab === "base") {
         this.renderBaseCustomization();
       } else if (this.activeTab === "presets") {
         this.renderPresets();
-      } else if (this.activeTab === "achievements") {
-        this.renderAchievements();
       } else {
         this.renderAccessoriesCategory(this.activeTab);
       }
@@ -1339,23 +1559,13 @@
         eyeColor: currentBunny?.eyeColor || "ruby",
         blush: currentBunny?.blush !== false
       };
-      const { canvas: frameCanvas, anchors } = BunnySpriteGenerator.renderFrame({
+      const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
         state: "idle",
         frameIndex: 0,
         direction: 1,
-        appearance
+        appearance,
+        equipped: itemId !== "none" ? { [category]: itemId } : {}
       });
-      const frameCtx = frameCanvas.getContext("2d");
-      frameCtx.imageSmoothingEnabled = false;
-      if (itemId !== "none") {
-        AccessoryRenderer.renderAccessories(
-          frameCtx,
-          { [category]: itemId },
-          anchors,
-          1,
-          0
-        );
-      }
       ctx.drawImage(frameCanvas, 0, 0, canvas.width, canvas.height);
       if (itemId === "none") {
         ctx.strokeStyle = "#ef4444";
@@ -1374,6 +1584,134 @@
         ctx.stroke();
       }
     }
+    renderFoodShop() {
+      const foods = Object.values(FOODS);
+      for (const f of foods) {
+        const owned = this.state.inventory.foods && this.state.inventory.foods[f.id] || 0;
+        const canAfford = (this.state.inventory.coins || 0) >= f.cost;
+        const card = document.createElement("div");
+        card.className = "food-card";
+        card.innerHTML = `
+        <div class="food-header">
+          <div class="food-title">${f.name}</div>
+          <div class="food-owned-badge">Owned: ${owned}</div>
+        </div>
+        <div class="item-visual-wrap">
+          <canvas class="item-preview-canvas" width="64" height="64"></canvas>
+        </div>
+        <div class="food-bonuses">
+          <span>\u{1F955} +${f.hungerBonus}% Hunger</span>
+          <span>\u{1F496} +${f.happinessBonus}% Happy</span>
+        </div>
+        <div class="food-acquire" title="${f.acquire || f.description}">
+          ${f.acquire || f.description}
+        </div>
+        <div>
+          <button class="item-btn btn-buy ${canAfford ? "" : "insufficient-funds"}" ${canAfford ? "" : 'title="Not enough coins"'}>
+            Buy <span class="coin-icon"></span> ${f.cost}
+          </button>
+        </div>
+      `;
+        const canvas = card.querySelector("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ItemSprites.drawFood(ctx, f.id, 32, 32, 28);
+        const btn = card.querySelector(".btn-buy");
+        btn.addEventListener("click", () => {
+          if ((this.state.inventory.coins || 0) < f.cost) return;
+          this.state.inventory.coins -= f.cost;
+          if (!this.state.inventory.foods) this.state.inventory.foods = {};
+          this.state.inventory.foods[f.id] = (this.state.inventory.foods[f.id] || 0) + 1;
+          soundEngine.playCoin();
+          this.saveState();
+          this.updateHeaderInfo();
+          this.renderTabContent();
+        });
+        this.tabContent.appendChild(card);
+      }
+    }
+    renderDenShop() {
+      const denItems = ACCESSORIES.den || [];
+      const currentSkin = this.state.settings?.denSkin || "default";
+      const unlockedList = this.state.inventory.unlockedCosmetics || [];
+      for (const item of denItems) {
+        const isEquipped = currentSkin === item.id;
+        const isUnlocked = item.price === 0 || unlockedList.includes(`den:${item.id}`) || item.rewardFrom && this.state.achievements?.unlocked?.includes(item.rewardFrom);
+        const canAfford = (this.state.inventory.coins || 0) >= item.price;
+        const card = document.createElement("div");
+        card.className = `food-card ${isEquipped ? "equipped" : ""}`;
+        card.innerHTML = `
+        <div class="food-header">
+          <div class="food-title">${item.name}</div>
+          <span class="item-tier tier-${item.tier}">${item.tier}</span>
+        </div>
+        <div class="item-visual-wrap" style="height: 72px;">
+          <canvas class="item-preview-canvas" width="64" height="64"></canvas>
+        </div>
+        <div class="food-acquire" style="min-height: 28px;">
+          ${item.description || ""}
+        </div>
+        <div style="font-size: 11px; margin: 2px 0; text-align: center; min-height: 16px;">
+          ${isUnlocked ? `<span style="color: #059669; font-weight: 600;">${isEquipped ? "Active Den \u{1F3E1}" : "Unlocked"}</span>` : item.rewardFrom ? '<span style="color: #9333ea; font-size: 10px; font-weight: bold;">Unlock via Level 5 Trophy!</span>' : ""}
+        </div>
+        <div>
+          ${isEquipped ? `<button class="item-btn btn-unequip" disabled style="opacity: 0.8; cursor: default;">In Use</button>` : isUnlocked ? `<button class="item-btn btn-equip">Use Den</button>` : `<button class="item-btn btn-buy ${canAfford ? "" : "insufficient-funds"}" ${canAfford ? "" : 'title="Not enough coins"'}>Buy <span class="coin-icon"></span> ${item.price}</button>`}
+        </div>
+      `;
+        const canvas = card.querySelector("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        if (item.id === "festive") {
+          ctx.fillStyle = "#92400e";
+          ctx.fillRect(16, 26, 32, 28);
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.moveTo(12, 26);
+          ctx.lineTo(32, 10);
+          ctx.lineTo(52, 26);
+          ctx.fill();
+          ctx.fillStyle = "#1e1b4b";
+          ctx.fillRect(26, 36, 12, 18);
+          const cArr = ["#ef4444", "#10b981", "#f59e0b", "#3b82f6"];
+          for (let li = 0; li < 4; li++) {
+            ctx.fillStyle = cArr[li];
+            ctx.fillRect(18 + li * 8, 24, 3, 3);
+          }
+        } else {
+          ctx.fillStyle = "#78350f";
+          ctx.fillRect(16, 26, 32, 28);
+          ctx.fillStyle = "#15803d";
+          ctx.beginPath();
+          ctx.moveTo(12, 26);
+          ctx.lineTo(32, 10);
+          ctx.lineTo(52, 26);
+          ctx.fill();
+          ctx.fillStyle = "#1e1b4b";
+          ctx.fillRect(26, 36, 12, 18);
+        }
+        const btn = card.querySelector(".item-btn");
+        if (btn && !btn.disabled) {
+          btn.addEventListener("click", () => {
+            if (isUnlocked) {
+              if (!this.state.settings) this.state.settings = {};
+              this.state.settings.denSkin = item.id;
+              soundEngine.playHop();
+            } else {
+              if (!canAfford) return;
+              this.state.inventory.coins -= item.price;
+              this.state.inventory.unlockedCosmetics.push(`den:${item.id}`);
+              if (!this.state.settings) this.state.settings = {};
+              this.state.settings.denSkin = item.id;
+              soundEngine.playCoin();
+              this.updateHeaderInfo();
+            }
+            this.saveState();
+            this.renderTabContent();
+          });
+        }
+        this.tabContent.appendChild(card);
+      }
+    }
     renderAccessoriesCategory(category) {
       const currentBunny = this.getCurrentBunny();
       if (!currentBunny) return;
@@ -1384,6 +1722,7 @@
       for (const item of items) {
         const isEquipped = equippedId === item.id;
         const isUnlocked = item.price === 0 || unlockedList.includes(`${category}:${item.id}`);
+        const canAfford = (this.state.inventory.coins || 0) >= item.price;
         const card = document.createElement("div");
         card.className = `item-card ${isEquipped ? "equipped" : ""} ${item.tier}`;
         card.innerHTML = `
@@ -1394,11 +1733,11 @@
         <div class="item-visual-wrap">
           <canvas class="item-preview-canvas" width="64" height="64"></canvas>
         </div>
-        <div style="font-size: 11px; color: #64748b; margin: 2px 0; text-align: center;">
-          ${isUnlocked ? isEquipped ? "Currently Wearing" : "Owned" : `Price: <span class="coin-icon"></span> ${item.price}`}
+        <div style="font-size: 11px; margin: 2px 0; text-align: center; min-height: 16px;">
+          ${isUnlocked ? `<span style="color: #059669; font-weight: 600;">${isEquipped ? "Wearing \u2728" : "Owned"}</span>` : ""}
         </div>
         <div>
-          ${isEquipped ? `<button class="item-btn btn-unequip">Unequip</button>` : isUnlocked ? `<button class="item-btn btn-equip">Equip</button>` : `<button class="item-btn btn-buy">Buy <span class="coin-icon"></span> ${item.price}</button>`}
+          ${isEquipped ? `<button class="item-btn btn-unequip">Unequip</button>` : isUnlocked ? `<button class="item-btn btn-equip">Equip</button>` : `<button class="item-btn btn-buy ${canAfford ? "" : "insufficient-funds"}" ${canAfford ? "" : 'title="Not enough coins"'}>Buy <span class="coin-icon"></span> ${item.price}</button>`}
         </div>
       `;
         card.querySelector(".item-title").textContent = item.name;
@@ -1413,16 +1752,12 @@
             currentBunny.equipped[category] = item.id;
             soundEngine.playHop();
           } else {
-            if (this.state.inventory.coins >= item.price) {
-              this.state.inventory.coins -= item.price;
-              this.state.inventory.unlockedCosmetics.push(`${category}:${item.id}`);
-              currentBunny.equipped[category] = item.id;
-              soundEngine.playCoin();
-              this.updateHeaderInfo();
-            } else {
-              alert("Not enough coins! Keep your bunny happy to earn more coins.");
-              return;
-            }
+            if (!canAfford) return;
+            this.state.inventory.coins -= item.price;
+            this.state.inventory.unlockedCosmetics.push(`${category}:${item.id}`);
+            currentBunny.equipped[category] = item.id;
+            soundEngine.playCoin();
+            this.updateHeaderInfo();
           }
           this.saveState();
           this.renderTabContent();

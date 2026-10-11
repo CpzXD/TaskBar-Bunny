@@ -6,6 +6,7 @@ class WindowManager {
     this.overlayWindow = null;
     this.wardrobeWindow = null;
     this.settingsWindow = null;
+    this.trophiesWindow = null;
     this.currentMonitorIndex = 0;
     this.overlayHeight = 180;
   }
@@ -183,6 +184,37 @@ class WindowManager {
     });
   }
 
+  // --- Trophies Window ---
+  openTrophies() {
+    if (this.trophiesWindow && !this.trophiesWindow.isDestroyed()) {
+      this.trophiesWindow.show();
+      this.trophiesWindow.focus();
+      return;
+    }
+
+    this.trophiesWindow = new BrowserWindow({
+      width: 480,
+      height: 560,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      alwaysOnTop: true,
+      skipTaskbar: false,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true
+      }
+    });
+
+    this.applySecurityHandlers(this.trophiesWindow);
+    this.trophiesWindow.loadFile(path.join(__dirname, '../renderer/ui/trophies.html'));
+    this.trophiesWindow.on('closed', () => {
+      this.trophiesWindow = null;
+    });
+  }
+
   applySecurityHandlers(win) {
     if (!win || !win.webContents) return;
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -200,6 +232,9 @@ class WindowManager {
     }
     if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
       this.settingsWindow.webContents.send('state-updated', state);
+    }
+    if (this.trophiesWindow && !this.trophiesWindow.isDestroyed()) {
+      this.trophiesWindow.webContents.send('state-updated', state);
     }
   }
 }

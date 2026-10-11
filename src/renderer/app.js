@@ -6,6 +6,8 @@ const { GameLoop } = require('./engine/gameLoop');
 const { soundEngine } = require('./engine/soundEngine');
 const { ItemSprites } = require('./sprites/itemSprites');
 const { ACHIEVEMENTS, FOODS } = require('../shared/constants');
+const { BunnyDen } = require('./world/den');
+const { Butterfly } = require('./world/butterfly');
 
 class TaskbarBunnyApp {
   constructor() {
@@ -15,8 +17,11 @@ class TaskbarBunnyApp {
     this.bunnies = [];
     this.garden = null;
     this.hud = null;
+    this.den = null;
+    this.butterfly = null;
     this.input = null;
     this.loop = null;
+    this.lastUserInteractionTime = Date.now();
 
     // Dropped food items in world
     this.worldFoods = [];
@@ -205,6 +210,8 @@ class TaskbarBunnyApp {
     });
 
     this.hud = new HUD(this);
+    this.den = new BunnyDen(this);
+    this.butterfly = new Butterfly(this);
     this.input = new InputManager(this);
     this.applyLayout();
 
@@ -253,6 +260,9 @@ class TaskbarBunnyApp {
     }
     if (this.hud) {
       this.hud.layout(this.canvas.height, this.taskbarOverlap);
+    }
+    if (this.den) {
+      this.den.update(0);
     }
     // Resting food follows the floor
     for (const food of this.worldFoods) {
@@ -368,6 +378,14 @@ class TaskbarBunnyApp {
           soundEngine.playLevelUp();
           this.inventory.coins += ach.rewardCoins;
           this.bunny.needs.addXp(ach.rewardXp, (lv) => this.onLevelUp(lv));
+          if (ach.rewardItem) {
+            this.inventory.unlockedCosmetics = this.inventory.unlockedCosmetics || [];
+            const rewardKey = `${ach.rewardItem.category}:${ach.rewardItem.id}`;
+            if (!this.inventory.unlockedCosmetics.includes(rewardKey)) {
+              this.inventory.unlockedCosmetics.push(rewardKey);
+            }
+            this.hud.showNotification('🎁 Special Reward Unlocked!', `${ach.rewardItem.name}`, 6000, '✨');
+          }
           this.hud.showNotification(`🏆 Achievement Unlocked!`, `${ach.name}: ${ach.description}`, 5000, '🏆');
         }
       }
@@ -417,6 +435,56 @@ class TaskbarBunnyApp {
       }
     }
 
+    if (this.den) {
+      this.den.update(deltaTime);
+    }
+
+    if (this.butterfly) {
+      this.butterfly.update(deltaTime);
+    }
+
+    // 5-minute idle check: bunny walks to den and goes to sleep
+    const idleDuration = Date.now() - (this.lastUserInteractionTime || 0);
+    if (idleDuration >= 300000 && this.den) {
+      const denX = this.den.x;
+      for (const bunny of this.bunnies) {
+        if (!bunny.isSleepingInDen && !bunny.isDragging && bunny.stateMachine.currentState !== 'eat' && this.worldFoods.length === 0) {
+          const dist = Math.abs(bunny.x - denX);
+          if (dist > 12) {
+            bunny.targetX = denX;
+            bunny.direction = (denX > bunny.x) ? 1 : -1;
+            if (bunny.stateMachine.currentState !== 'walk') {
+              bunny.stateMachine.setState('walk', 6000);
+            }
+          } else {
+            bunny.x = denX;
+            bunny.isSleepingInDen = true;
+            bunny.stateMachine.setState('sleep');
+          }
+        }
+      }
+    }
+
+    // Butterfly chasing: awake bunnies chase butterfly across screen; sleeping bunnies stay asleep
+    if (this.butterfly && this.butterfly.active) {
+      for (const bunny of this.bunnies) {
+        if (bunny.isSleepingInDen) continue;
+        if (bunny.isDragging || bunny.stateMachine.currentState === 'eat') continue;
+
+        bunny.targetX = Math.max(40, Math.min(this.canvas.width - 40, this.butterfly.x));
+        bunny.direction = (this.butterfly.x > bunny.x) ? 1 : -1;
+        if (bunny.stateMachine.currentState === 'idle' || bunny.stateMachine.currentState === 'sit') {
+          bunny.stateMachine.setState('walk', 2500);
+        }
+        if (Math.abs(bunny.x - this.butterfly.x) < 45 && bunny.y >= bunny.groundY - 2 && bunny.stateMachine.currentState !== 'hop') {
+          if (Math.random() < 0.05) {
+            bunny.startHop();
+            bunny.stateMachine.setState('hop');
+          }
+        }
+      }
+    }
+
     if (this.garden) {
       this.garden.update(deltaTime);
     }
@@ -438,14 +506,15 @@ class TaskbarBunnyApp {
 
     if (this.loop && this.bunny) {
       const allDormant = this.bunnies.every(b =>
-        (b.stateMachine.currentState === 'sleep' || b.stateMachine.currentState === 'sit') &&
-        b.particles.length === 0
+        b.isSleepingInDen ||
+        ((b.stateMachine.currentState === 'sleep' || b.stateMachine.currentState === 'sit') &&
+        b.particles.length === 0)
       );
       const isDormant = (
         allDormant &&
         this.worldFoods.length === 0 &&
         !this.input.isMouseDown &&
-        !this.butterfly
+        (!this.butterfly || !this.butterfly.active)
       );
       this.loop.setIdleMode(isDormant);
     }
@@ -459,22 +528,12 @@ class TaskbarBunnyApp {
 
   updateRandomEvents(deltaTime) {
     this.randomEventTimer += deltaTime;
-    if (this.randomEventTimer >= 35000 && !this.butterfly) {
+    if (this.randomEventTimer >= 35000) {
       this.randomEventTimer = 0;
       const roll = Math.random();
-      if (roll < 0.4) {
-        // Spawn fluttering butterfly!
-        this.butterfly = {
-          x: Math.random() < 0.5 ? 20 : this.canvas.width - 20,
-          y: this.groundY - 48 - Math.random() * 50,
-          vx: Math.random() < 0.5 ? 1.2 : -1.2,
-          vy: -0.4,
-          life: 0,
-          color: ['#ffb7b2', '#b5ead7', '#e2f0cb', '#c7ceea'][Math.floor(Math.random() * 4)]
-        };
-      } else if (roll < 0.7) {
+      if (roll < 0.5) {
         // Bunny sneezes!
-        if (this.bunny && this.bunny.stateMachine.currentState === 'idle') {
+        if (this.bunny && this.bunny.stateMachine.currentState === 'idle' && !this.bunny.isSleepingInDen) {
           soundEngine.playSneeze();
           this.bunny.addParticle(this.bunny.x, this.bunny.y - 15, 0, -1, 'star');
         }
@@ -486,37 +545,21 @@ class TaskbarBunnyApp {
         this.saveState();
       }
     }
-
-    // Animate butterfly
-    if (this.butterfly) {
-      this.butterfly.life += deltaTime;
-      this.butterfly.x += this.butterfly.vx * (deltaTime / 16.6);
-      this.butterfly.y += Math.sin(this.butterfly.life / 200) * 0.8;
-
-      if (this.butterfly.x < -20 || this.butterfly.x > this.canvas.width + 20 || this.butterfly.life > 18000) {
-        this.butterfly = null;
-      }
-    }
   }
 
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    if (this.den) {
+      this.den.draw(this.ctx);
+    }
 
     if (this.garden) {
       this.garden.draw(this.ctx);
     }
 
     if (this.butterfly) {
-      this.ctx.save();
-      this.ctx.fillStyle = this.butterfly.color;
-      const bx = Math.floor(this.butterfly.x);
-      const by = Math.floor(this.butterfly.y);
-      const flap = (Math.floor(this.butterfly.life / 100) % 2 === 0) ? 0 : 2;
-      this.ctx.fillRect(bx - 3, by - 2 - flap, 3, 4);
-      this.ctx.fillRect(bx + 1, by - 2 - flap, 3, 4);
-      this.ctx.fillStyle = '#333333';
-      this.ctx.fillRect(bx, by - 1, 1, 3);
-      this.ctx.restore();
+      this.butterfly.draw(this.ctx);
     }
 
     for (const bunny of this.bunnies) {
