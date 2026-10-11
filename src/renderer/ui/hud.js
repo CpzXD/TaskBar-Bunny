@@ -12,16 +12,25 @@ class HUD {
     this.selectedFoodToDrop = null;
     this.notifications = []; // { text, subtext, icon, timer, duration }
 
-    // Docked Bag Button bounds (bottom left of overlay)
+    // Docked Bag Button bounds (bottom left, just above the taskbar)
     this.bagBtn = {
       x: 36,
       y: 154,
       width: 44,
       height: 24
     };
+    // Top of the food drawer; both y values are recomputed in layout()
+    this.drawerY = 78;
 
     // Food items for quick tray
     this.foodKeys = ['carrot', 'lettuce', 'apple', 'clover', 'strawberry'];
+  }
+
+  // Anchor the bottom-left controls to the visible bottom edge (the top of the taskbar)
+  layout(canvasHeight, taskbarOverlap = 0) {
+    const bottom = canvasHeight - taskbarOverlap;
+    this.bagBtn.y = bottom - 26;
+    this.drawerY = bottom - 102;
   }
 
   toggleDrawer() {
@@ -56,7 +65,7 @@ class HUD {
     if (!this.isDrawerOpen) return null;
     return {
       x: 16,
-      y: 78,
+      y: this.drawerY,
       width: 250,
       height: 68
     };

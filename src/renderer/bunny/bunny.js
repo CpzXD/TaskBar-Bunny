@@ -41,7 +41,8 @@ class Bunny {
     this.baseSpriteSize = 32;
     this.width = this.baseSpriteSize * this.scale;
     this.height = this.baseSpriteSize * this.scale;
-    this.groundY = this.screenHeight - 12; // sits just above bottom edge
+    this.taskbarOverlap = 0; // px of the canvas hidden under the taskbar
+    this.groundY = this.screenHeight - this.taskbarOverlap - 12; // sits just above the taskbar
 
     this.x = Math.max(100, Math.min(screenWidth - 100, screenWidth / 2));
     this.y = this.groundY;
@@ -71,10 +72,11 @@ class Bunny {
     this.totalCarrotsFed = initialData.totalCarrotsFed || 0;
   }
 
-  resize(newWidth, newHeight) {
+  resize(newWidth, newHeight, taskbarOverlap = 0) {
     this.screenWidth = newWidth;
     this.screenHeight = newHeight;
-    this.groundY = this.screenHeight - 12;
+    this.taskbarOverlap = taskbarOverlap;
+    this.groundY = this.screenHeight - this.taskbarOverlap - 12;
     if (!this.isDragging && this.y >= this.groundY - 10) {
       this.y = this.groundY;
     }

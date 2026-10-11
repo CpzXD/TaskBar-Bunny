@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   saveState: (state) => ipcRenderer.send('save-state', state),
   resetState: () => ipcRenderer.invoke('reset-state'),
   getDisplays: () => ipcRenderer.invoke('get-displays'),
+  getLayout: () => ipcRenderer.invoke('get-layout'),
   setMonitor: (index) => ipcRenderer.send('set-monitor', index),
   setStartWithWindows: (enable) => ipcRenderer.send('set-start-with-windows', enable),
   openWardrobe: () => ipcRenderer.send('open-wardrobe'),
@@ -20,6 +21,9 @@ contextBridge.exposeInMainWorld('api', {
 
   onStateUpdate: (callback) => {
     ipcRenderer.on('state-updated', (_event, state) => callback(state));
+  },
+  onLayoutUpdate: (callback) => {
+    ipcRenderer.on('layout-updated', (_event, layout) => callback(layout));
   },
   onOfflineSummary: (callback) => {
     ipcRenderer.on('offline-summary', (_event, summary) => callback(summary));
