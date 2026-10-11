@@ -160,7 +160,6 @@ function sanitizeState(incoming, current) {
     }
     if (typeof incoming.settings.startWithWindows === 'boolean') safe.settings.startWithWindows = incoming.settings.startWithWindows;
     if (typeof incoming.settings.doNotDisturb === 'boolean') safe.settings.doNotDisturb = incoming.settings.doNotDisturb;
-    if (typeof incoming.settings.hideWhenFullscreen === 'boolean') safe.settings.hideWhenFullscreen = incoming.settings.hideWhenFullscreen;
   }
 
   // 5. Achievements

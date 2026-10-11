@@ -1217,8 +1217,7 @@
           floorMode: "taskbar",
           menuPosition: null,
           startWithWindows: false,
-          doNotDisturb: false,
-          hideWhenFullscreen: false
+          doNotDisturb: false
         },
         achievements: {
           unlocked: []

@@ -82,7 +82,24 @@ Because **Taskbar Bunny** is a free indie open-source project and not code-signe
 1. Click **"More info"** on the popup.
 2. Click **"Run anyway"**.
 
-> **Note**: Taskbar Bunny is open-source, runs locally, makes no network calls (see `src/`), contains zero telemetry, and saves game data strictly on your local computer in `%APPDATA%\taskbar-bunny`.
+> **Note**: Taskbar Bunny is open-source, runs locally, makes no network calls (see `src/`), contains zero telemetry, and saves game data strictly on your local computer.
+
+---
+
+### 📂 File Locations & Where It Is Installed
+
+| Component | Location on Windows | Description |
+| :--- | :--- | :--- |
+| **Portable Executable** | Wherever you download or place `Taskbar-Bunny-Portable.exe` (e.g. `Downloads`, `Desktop`, or your tools folder) | **No installation required**. Runs directly as a standalone binary with zero registry clutter. |
+| **Windows Installer** | `%LOCALAPPDATA%\Programs\taskbar-bunny` (`C:\Users\<YourUsername>\AppData\Local\Programs\taskbar-bunny`) | If using the setup installer (`.exe`), this is the default user-level install directory (can be customized during setup). |
+| **Save Data & Settings** | `%APPDATA%\taskbar-bunny\taskbar-bunny-save.json` (`C:\Users\<YourUsername>\AppData\Roaming\taskbar-bunny\taskbar-bunny-save.json`) | All game progress (coins, wardrobe, hunger, garden, achievements, and settings) is stored locally in plain JSON. |
+
+#### 🔄 Backups & Uninstallation
+- **Backing up saves**: Copy `%APPDATA%\taskbar-bunny\taskbar-bunny-save.json` to keep a backup of your bunny's wardrobe, coins, and levels.
+- **Resetting save data**: Click **"Reset Save Data"** in Setup ⚙️ or delete the `taskbar-bunny-save.json` file.
+- **Uninstalling**:
+  - *Portable*: Simply delete `Taskbar-Bunny-Portable.exe` (and optionally `%APPDATA%\taskbar-bunny`).
+  - *Installer*: Uninstall through Windows **Settings > Apps > Installed apps**, or run `Uninstall Taskbar Bunny.exe` in `%LOCALAPPDATA%\Programs\taskbar-bunny`.
 
 ---
 
