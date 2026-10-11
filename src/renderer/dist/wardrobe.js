@@ -1268,7 +1268,7 @@
         card.className = `item-card ${isEquipped ? "equipped" : ""} ${item.tier}`;
         card.innerHTML = `
         <div class="item-header">
-          <div class="item-title">${item.name}</div>
+          <div class="item-title"></div>
           <span class="item-tier tier-${item.tier}">${item.tier}</span>
         </div>
         <div class="item-visual-wrap">
@@ -1281,6 +1281,7 @@
           ${isEquipped ? `<button class="item-btn btn-unequip">Unequip</button>` : isUnlocked ? `<button class="item-btn btn-equip">Equip</button>` : `<button class="item-btn btn-buy">Buy <span class="coin-icon"></span> ${item.price}</button>`}
         </div>
       `;
+        card.querySelector(".item-title").textContent = item.name;
         const previewCanvas = card.querySelector(".item-preview-canvas");
         this.renderItemIcon(previewCanvas, category, item.id);
         const btn = card.querySelector(".item-btn");
@@ -1318,8 +1319,8 @@
         <div class="ach-header">
           <div class="ach-icon">${isUnlocked ? "\u{1F3C6}" : "\u{1F512}"}</div>
           <div class="ach-info">
-            <div class="ach-title">${ach.name}</div>
-            <div class="ach-desc">${ach.description}</div>
+            <div class="ach-title"></div>
+            <div class="ach-desc"></div>
           </div>
           <div class="ach-reward">
             +<span class="coin-icon"></span> ${ach.rewardCoins}
@@ -1333,6 +1334,8 @@
           <div class="ach-progress-text">${isUnlocked ? "Completed! \u2728" : `${current} / ${max} (${pct}%)`}</div>
         </div>
       `;
+        card.querySelector(".ach-title").textContent = ach.name;
+        card.querySelector(".ach-desc").textContent = ach.description;
         this.tabContent.appendChild(card);
       }
     }
@@ -1404,14 +1407,16 @@
         const itemsDesc = Object.entries(p).filter(([k, v]) => k !== "name" && v !== "none").map(([k, v]) => v).join(", ") || "Default Look";
         card.innerHTML = `
         <div>
-          <div class="preset-title">${p.name || `Preset ${idx + 1}`}</div>
-          <div style="font-size: 11px; color: #64748b;">${itemsDesc}</div>
+          <div class="preset-title"></div>
+          <div class="preset-desc" style="font-size: 11px; color: #64748b;"></div>
         </div>
         <div class="preset-actions">
           <button class="btn-preset btn-save-preset">Save Current</button>
           <button class="btn-preset btn-load-preset">Load</button>
         </div>
       `;
+        card.querySelector(".preset-title").textContent = p.name || `Preset ${idx + 1}`;
+        card.querySelector(".preset-desc").textContent = itemsDesc;
         card.querySelector(".btn-save-preset").addEventListener("click", () => {
           this.state.bunny.outfitPresets[idx] = {
             name: `Preset ${idx + 1}`,

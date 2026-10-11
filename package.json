@@ -4,6 +4,7 @@
   "description": "Taskbar Bunny",
   "main": "src/main/main.js",
   "scripts": {
+    "test": "node --test tests/test_game_systems.js",
     "build:renderer": "node build.js",
     "start": "node build.js && electron .",
     "build": "node build.js && electron-builder --win",
@@ -18,8 +19,8 @@
   "homepage": "https://github.com/CpzXD/TaskBar-Bunny#readme",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2"
   },
   "build": {

@@ -259,7 +259,7 @@ class WardrobeController {
 
       card.innerHTML = `
         <div class="item-header">
-          <div class="item-title">${item.name}</div>
+          <div class="item-title"></div>
           <span class="item-tier tier-${item.tier}">${item.tier}</span>
         </div>
         <div class="item-visual-wrap">
@@ -278,6 +278,8 @@ class WardrobeController {
           }
         </div>
       `;
+
+      card.querySelector('.item-title').textContent = item.name;
 
       const previewCanvas = card.querySelector('.item-preview-canvas');
       this.renderItemIcon(previewCanvas, category, item.id);
@@ -322,8 +324,8 @@ class WardrobeController {
         <div class="ach-header">
           <div class="ach-icon">${isUnlocked ? '🏆' : '🔒'}</div>
           <div class="ach-info">
-            <div class="ach-title">${ach.name}</div>
-            <div class="ach-desc">${ach.description}</div>
+            <div class="ach-title"></div>
+            <div class="ach-desc"></div>
           </div>
           <div class="ach-reward">
             +<span class="coin-icon"></span> ${ach.rewardCoins}
@@ -337,6 +339,9 @@ class WardrobeController {
           <div class="ach-progress-text">${isUnlocked ? 'Completed! ✨' : `${current} / ${max} (${pct}%)`}</div>
         </div>
       `;
+
+      card.querySelector('.ach-title').textContent = ach.name;
+      card.querySelector('.ach-desc').textContent = ach.description;
 
       this.tabContent.appendChild(card);
     }
@@ -419,14 +424,17 @@ class WardrobeController {
 
       card.innerHTML = `
         <div>
-          <div class="preset-title">${p.name || `Preset ${idx + 1}`}</div>
-          <div style="font-size: 11px; color: #64748b;">${itemsDesc}</div>
+          <div class="preset-title"></div>
+          <div class="preset-desc" style="font-size: 11px; color: #64748b;"></div>
         </div>
         <div class="preset-actions">
           <button class="btn-preset btn-save-preset">Save Current</button>
           <button class="btn-preset btn-load-preset">Load</button>
         </div>
       `;
+
+      card.querySelector('.preset-title').textContent = p.name || `Preset ${idx + 1}`;
+      card.querySelector('.preset-desc').textContent = itemsDesc;
 
       card.querySelector('.btn-save-preset').addEventListener('click', () => {
         this.state.bunny.outfitPresets[idx] = {

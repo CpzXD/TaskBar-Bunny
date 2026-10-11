@@ -1,5 +1,5 @@
 // build.js
-// Lightning-fast bundle script using esbuild
+// Fast bundle script using esbuild
 
 const esbuild = require('esbuild');
 const path = require('path');

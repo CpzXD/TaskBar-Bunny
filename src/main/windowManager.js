@@ -33,16 +33,14 @@ class WindowManager {
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
-        contextIsolation: true
+        contextIsolation: true,
+        sandbox: true
       }
     });
 
+    this.applySecurityHandlers(this.overlayWindow);
     this.overlayWindow.setAlwaysOnTop(true, 'screen-saver');
     this.overlayWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-
-    this.overlayWindow.webContents.on('console-message', (event, level, message) => {
-      console.log(`[Renderer] ${message}`);
-    });
 
     this.overlayWindow.once('ready-to-show', () => {
       this.overlayWindow.show();
@@ -145,10 +143,12 @@ class WindowManager {
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
-        contextIsolation: true
+        contextIsolation: true,
+        sandbox: true
       }
     });
 
+    this.applySecurityHandlers(this.wardrobeWindow);
     this.wardrobeWindow.loadFile(path.join(__dirname, '../renderer/ui/wardrobe.html'));
     this.wardrobeWindow.on('closed', () => {
       this.wardrobeWindow = null;
@@ -174,13 +174,23 @@ class WindowManager {
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
-        contextIsolation: true
+        contextIsolation: true,
+        sandbox: true
       }
     });
 
+    this.applySecurityHandlers(this.settingsWindow);
     this.settingsWindow.loadFile(path.join(__dirname, '../renderer/ui/settings.html'));
     this.settingsWindow.on('closed', () => {
       this.settingsWindow = null;
+    });
+  }
+
+  applySecurityHandlers(win) {
+    if (!win || !win.webContents) return;
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    win.webContents.on('will-navigate', (event) => {
+      event.preventDefault();
     });
   }
 

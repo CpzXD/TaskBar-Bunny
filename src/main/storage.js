@@ -8,7 +8,9 @@ const { DEFAULT_STATE, HUNGER_SPEED_FACTORS } = require('../shared/constants');
 
 class StorageManager {
   constructor() {
-    this.userDataPath = app.getPath('userData');
+    this.userDataPath = (app && typeof app.getPath === 'function')
+      ? app.getPath('userData')
+      : path.join(__dirname, '../../userData');
     this.saveFilePath = path.join(this.userDataPath, 'taskbar-bunny-save.json');
     this.state = null;
     this.offlineSummary = null;
@@ -86,7 +88,7 @@ class StorageManager {
         this.state.meta.loginStreak = 1;
       }
       this.state.meta.lastLoginDate = todayDate;
-      // Streak reward: 5 carrots + (streak * 10) coins
+      // Streak reward: 3 carrots + (streak * 10) coins
       streakBonus = this.state.meta.loginStreak * 10;
       this.state.inventory.coins += streakBonus;
       this.state.inventory.foods.carrot = (this.state.inventory.foods.carrot || 0) + 3;
@@ -126,12 +128,25 @@ class StorageManager {
   }
 
   deepMerge(target, source) {
+    if (!source || typeof source !== 'object') return target;
+    const forbidden = ['__proto__', 'constructor', 'prototype'];
+
     for (const key of Object.keys(source)) {
-      if (source[key] instanceof Object && !Array.isArray(source[key]) && key in target) {
-        Object.assign(source[key], this.deepMerge(target[key], source[key]));
+      if (forbidden.includes(key)) continue;
+
+      if (
+        source[key] &&
+        typeof source[key] === 'object' &&
+        !Array.isArray(source[key]) &&
+        target &&
+        typeof target[key] === 'object' &&
+        !Array.isArray(target[key])
+      ) {
+        this.deepMerge(target[key], source[key]);
+      } else {
+        target[key] = source[key];
       }
     }
-    Object.assign(target || {}, source);
     return target;
   }
 }

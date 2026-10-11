@@ -58,7 +58,7 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
   - "Do Not Disturb" mode to keep the bunny still and quiet.
 - **Lightweight & Zero-Asset Web Audio**:
   - Pure vanilla JavaScript and HTML Canvas.
-  - Ultra-low RAM (<100MB) and near 0% CPU with adaptive idle frame throttling.
+  - Minimal resource footprint with adaptive idle frame throttling.
   - Procedural sound effects generated on-the-fly via the Web Audio API (crunch, hop, pet, fanfare, chime).
 
 ---
@@ -78,7 +78,7 @@ Because **Taskbar Bunny** is a free indie open-source project and not code-signe
 1. Click **"More info"** on the popup.
 2. Click **"Run anyway"**.
 
-> **Note**: Taskbar Bunny is **100% open-source, offline, and safe**. It makes zero network calls, contains zero telemetry, and saves game data strictly on your local computer in `%APPDATA%\taskbar-bunny`.
+> **Note**: Taskbar Bunny is open-source, runs locally, makes no network calls (see `src/`), contains zero telemetry, and saves game data strictly on your local computer in `%APPDATA%\taskbar-bunny`.
 
 ---
 

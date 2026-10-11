@@ -12,13 +12,14 @@ class TrayManager {
   }
 
   init(storage) {
+    this.storage = storage;
     const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
     const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
 
     this.tray = new Tray(trayIcon);
     this.tray.setToolTip('Taskbar Bunny');
 
-    this.buildContextMenu(storage);
+    this.buildContextMenu(this.storage);
 
     this.tray.on('click', () => {
       this.toggleBunnyVisibility();
@@ -26,6 +27,7 @@ class TrayManager {
   }
 
   buildContextMenu(storage) {
+    if (storage) this.storage = storage;
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'Taskbar Bunny',
@@ -63,8 +65,8 @@ class TrayManager {
     this.tray.setContextMenu(contextMenu);
   }
 
-  toggleBunnyVisibility() {
-    this.isBunnyVisible = !this.isBunnyVisible;
+  setBunnyVisibility(visible) {
+    this.isBunnyVisible = Boolean(visible);
     if (windowManager.overlayWindow && !windowManager.overlayWindow.isDestroyed()) {
       if (this.isBunnyVisible) {
         windowManager.overlayWindow.show();
@@ -72,6 +74,11 @@ class TrayManager {
         windowManager.overlayWindow.hide();
       }
     }
+    this.buildContextMenu(this.storage);
+  }
+
+  toggleBunnyVisibility() {
+    this.setBunnyVisibility(!this.isBunnyVisible);
   }
 
   updateToolTip(text) {
