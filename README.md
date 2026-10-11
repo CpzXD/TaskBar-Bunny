@@ -13,12 +13,35 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="assets/wardrobe-headwear.png" alt="Bunny Wardrobe & Customizer" width="370" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="assets/settings-preview.png" alt="Taskbar Bunny Settings" width="350" />
+  <img src="assets/taskbar-gameplay.png" alt="Taskbar Bunny Gameplay Preview (Lush Meadow)" width="900" />
 </p>
 <p align="center">
-  <em>Left: Live Animated Wardrobe & Customizer &bull; Right: Companion Settings & Multi-Monitor Controls</em>
+  <em>🌾 Lush Meadow: Barnaby & companion wandering on the taskbar with independent burrow den, harvestable garden, and floating HUD drawer</em>
+</p>
+
+<p align="center">
+  <img src="assets/ice-gameplay.png" alt="Frosty Ice Rink Gameplay" width="900" />
+</p>
+<p align="center">
+  <em>❄️ Frosty Ice Rink: Frictionless ice skating, falling treats, and butterfly chasing</em>
+</p>
+
+<p align="center">
+  <img src="assets/wardrobe-headwear.png" alt="Bunny Wardrobe & Customizer" width="280" />
+  &nbsp;&nbsp;
+  <img src="assets/shop-terrain.png" alt="Terrain Shop & Unlocks" width="280" />
+  &nbsp;&nbsp;
+  <img src="assets/trophies-preview.png" alt="Trophies & Achievements" width="280" />
+</p>
+<p align="center">
+  <em>Left: Bunny Shop & Customizer &bull; Center: Terrain Shop (500g) &bull; Right: Progressive Trophies & Milestones</em>
+</p>
+
+<p align="center">
+  <img src="assets/settings-preview.png" alt="Taskbar Bunny Settings" width="400" />
+</p>
+<p align="center">
+  <em>Companion Settings, Monitor Selection & Roaming Controls</em>
 </p>
 
 ---
@@ -30,30 +53,48 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
   - **Click-Through Overlay**: You can click desktop icons and apps underneath freely. Mouse events are only captured when interacting with the bunny or the floating bag.
   - Never appears in the taskbar app list or Alt+Tab (`skipTaskbar: true`).
   - Does not steal focus from your active apps (`focusable: false`).
+- **🏞️ Terrain System (Lush Meadow & Frosty Ice Rink)**:
+  - **Lush Meadow (Free)**: Fresh green meadow with grass tufts and tiny daisies. Homegrown plots harvest crisp carrots, sweet strawberries, and cabbage!
+  - **Frosty Ice Rink (500 Coins in Shop)**: Glistening frozen lake! Bunnies frictionless-glide and ice-skate with speed boosts, occasionally slipping and falling over (every 30–40s) with comical sneeze SFX and star bursts. Forages sweet apples & lucky clovers!
+- **🚀 Throw Velocity & Wall-Bouncing Physics**:
+  - Click and fling your bunny across the screen! Realistic momentum release (clamped to safe max speed of 20).
+  - Bunny bounces off left and right screen borders with reverse momentum, hop sound effects, star bursts, and floor bounce dampening.
+- **🏡 Cozy Detached Den Burrow & Sleep Mechanics**:
+  - Warm wooden burrow with thatched moss roof sits independently at its own peaceful spot along the taskbar.
+  - If unattended for 5 minutes, your bunny hops over to the den to curl up and sleep.
+  - Click the den anytime to toggle a live floating **Hunger & Happiness status badge**!
+  - Unlock festive den cosmetics like the **Festive Christmas Den** (gingerbread roof, holiday lights, and wreath).
+- **🦋 Butterfly Spawning & Chasing**:
+  - A colorful animated butterfly spawns every 5 minutes and flutters gently across your desktop.
+  - Awake bunnies notice the butterfly and enthusiastically chase after it! Sleeping bunnies remain undisturbed.
+- **🏆 Non-Ending Progressive Trophies & Milestones**:
+  - Trophies scale progressively up to **10,000 pets** (*Mythical Cuddler*), **5,000 feedings** (*Infinite Feeder*), and **Level 100** (*Eternal Fluff Legend*).
+  - Unlock bonus coins, XP, and exclusive cosmetics like the Festive Christmas Den.
+- **👕 Wardrobe & Clothes Grant XP**:
+  - Purchasing accessories and cosmetics in the Shop awards bonus XP directly to your companion to speed up leveling.
+  - Save and load up to 3 outfit presets with the Stylist Guru milestone.
 - **Cozy Bunny AI & State Machine**:
   - Natural behavioral cycle: idle, walk, sit, groom face, hop, eat treats, and curl into a loaf to sleep.
   - Real-time hunger decay (relaxed ~60m, normal ~30m, fast ~15m).
   - Sleeps automatically during late night hours (system clock) or when ignored for long periods.
   - No permadeath or penalties: a hungry bunny simply walks slower, looks sad, and shows a thought bubble until fed.
-- **Interactive Physics**:
-  - **Pet**: Click to pet (spawns hearts, boosts happiness, plays chime).
-  - **Drag & Drop**: Click and drag to pick up the bunny (dangling legs animation) and release to let it bounce back down onto the taskbar.
+- **Interactive Affection & Feeding**:
+  - **Pet**: Click to pet (spawns hearts, boosts happiness, awards XP, plays chime).
+  - **Drag & Drop**: Click and drag to pick up the bunny (dangling legs animation) or fling them across your screen.
   - **Double Click**: Double click to make the bunny perform an excited high hop!
 - **Multi-Bunny Family (Unlock Every 10 Levels)**:
-  - Reach Level 10, 20, 30, and beyond to unlock additional companion bunnies for your desktop!
-  - Adopt new bunny friends directly from the food drawer menu with distinct names, fur coats, ear shapes, and eye colors.
-  - Each bunny independently wanders, hops, naps, and eats treats, and can be dressed up separately in the Closet.
-- **Feeding & Sky Food Drops**:
+  - Reach Level 10, 20, 30, and beyond to adopt companion bunnies for your desktop!
+  - Adopt new bunny friends directly from the food drawer menu with custom names, distinct fur coats, ear shapes, and eye colors.
+  - Each bunny independently wanders, hops, naps, and eats treats, and can be customized separately in the Closet.
+- **Sky Food Drops & Multi-Crop Harvesting**:
   - Drop carrots, lettuce, apple slices, four-leaf clovers, and strawberries from the food drawer or tray.
   - Treats tumble gracefully from above the screen down to the taskbar with gravity physics, bounce effects, and crumb landing puffs.
-  - Whichever bunny is nearest notices the falling treat, hops over, and crunches it down with crumb particles and sound effects.
-  - Mini garden plot on the taskbar: carrots grow in real time and can be harvested for bonus carrots, coins, and XP!
+  - Homegrown patch on the taskbar grows different crops depending on active terrain (carrots, strawberries, cabbage, apples, clovers) for bonus coins, crops, and XP!
   - Passive income: earn free carrots periodically just by keeping the app open.
 - **Deep Wardrobe & Layered Cosmetics**:
   - Live animated 32x32 wardrobe preview with 4x scaling.
-  - Customize fur coat (Snow White, Chestnut Brown, Cloud Gray, Midnight Charcoal, Pastel Sakura, Caramel Honey, Dutch Patch), ear styles (Upright, Floppy, Derpy), eye colors, and blush.
-  - Layered accessory slots: **Headwear** (Party Hat, Beanie, Cowboy Stetson, Wizard Hat, Floral Crown, Gamer Headset, Royal Crown, Bunny Ears Headband), **Face** (Glasses, Sunglasses, Monocle, Mustache), **Neck** (Red Scarf, Bow Tie, Bell Collar, Flower Lei), **Back** (Backpack, Hero Cape, Angel Wings), and **Held Items** (Heart Balloon, Cheering Flag, Lollipop, Star Wand).
-  - Save and load up to 3 outfit presets.
+  - Customize fur coat, ear styles (Upright, Floppy, Derpy), eye colors, and cheek blush.
+  - Layered accessory slots: **Headwear**, **Face**, **Neck**, **Back**, and **Held Items** with live icon preview of your bunny wearing each item.
 - **Offline Progress**:
   - Accurately tracks elapsed time while closed. Crops finish growing, hunger is gently adjusted (with a safety cap so it's never punitive), and daily login streak rewards are granted.
 - **Multi-Monitor & System Tray**:
