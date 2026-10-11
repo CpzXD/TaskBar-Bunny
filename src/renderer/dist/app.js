@@ -681,15 +681,16 @@
         static drawFood(ctx, foodId, x, y, size = 16) {
           ctx.save();
           ctx.imageSmoothingEnabled = false;
-          const ox = Math.floor(x - size / 2);
-          const oy = Math.floor(y - size / 2);
+          const scale = size / 16;
+          ctx.translate(Math.floor(x - size / 2), Math.floor(y - size / 2));
+          ctx.scale(scale, scale);
           const p = (dx, dy, color) => {
             ctx.fillStyle = color;
-            ctx.fillRect(ox + dx, oy + dy, 1, 1);
+            ctx.fillRect(dx, dy, 1, 1);
           };
           const rect = (dx, dy, w, h, color) => {
             ctx.fillStyle = color;
-            ctx.fillRect(ox + dx, oy + dy, w, h);
+            ctx.fillRect(dx, dy, w, h);
           };
           switch (foodId) {
             case "carrot":
@@ -1055,6 +1056,7 @@
           id: "carrot",
           name: "Crunchy Carrot",
           hungerRestore: 35,
+          hungerBonus: 35,
           happinessBonus: 10,
           cost: 10,
           color: "#ff8822",
@@ -1065,6 +1067,7 @@
           id: "lettuce",
           name: "Crisp Lettuce",
           hungerRestore: 20,
+          hungerBonus: 20,
           happinessBonus: 5,
           cost: 5,
           color: "#76c442",
@@ -1075,6 +1078,7 @@
           id: "apple",
           name: "Sweet Apple Slice",
           hungerRestore: 40,
+          hungerBonus: 40,
           happinessBonus: 20,
           cost: 18,
           color: "#ee4444",
@@ -1085,6 +1089,7 @@
           id: "clover",
           name: "Lucky Four-Leaf Clover",
           hungerRestore: 15,
+          hungerBonus: 15,
           happinessBonus: 35,
           cost: 25,
           color: "#28bb67",
@@ -1095,6 +1100,7 @@
           id: "strawberry",
           name: "Ripe Strawberry",
           hungerRestore: 45,
+          hungerBonus: 45,
           happinessBonus: 30,
           cost: 30,
           color: "#ff3366",
@@ -1168,16 +1174,36 @@
         ]
       };
       var ACHIEVEMENTS2 = [
+        // Treat feeding tiers
         { id: "first_carrot", name: "First Crunch", description: "Feed your bunny for the first time.", rewardCoins: 20, rewardXp: 30 },
         { id: "fed_25", name: "Carrot Connoisseur", description: "Feed 25 treats to your bunny.", rewardCoins: 50, rewardXp: 60 },
         { id: "fed_100", name: "Feast Master", description: "Feed 100 treats to your bunny.", rewardCoins: 150, rewardXp: 200 },
+        { id: "fed_250", name: "Banquet Host", description: "Feed 250 treats to your bunny.", rewardCoins: 250, rewardXp: 300 },
+        { id: "fed_500", name: "The Bunny Gourmet", description: "Feed 500 treats to your bunny.", rewardCoins: 400, rewardXp: 500 },
+        { id: "fed_1000", name: "Endless Harvest", description: "Feed 1,000 treats to your bunny.", rewardCoins: 750, rewardXp: 1e3 },
+        { id: "fed_2500", name: "Carrot Legend", description: "Feed 2,500 treats to your bunny.", rewardCoins: 1500, rewardXp: 2e3 },
+        { id: "fed_5000", name: "Infinite Feeder", description: "Feed 5,000 treats to your bunny.", rewardCoins: 3e3, rewardXp: 4e3 },
+        // Petting affection tiers
         { id: "pet_50", name: "True Affection", description: "Pet your bunny 50 times.", rewardCoins: 40, rewardXp: 50 },
         { id: "pet_200", name: "Fluffy Bestie", description: "Pet your bunny 200 times.", rewardCoins: 100, rewardXp: 150 },
-        { id: "first_harvest", name: "Green Thumb", description: "Harvest your first homegrown carrot.", rewardCoins: 30, rewardXp: 40 },
-        { id: "fashion_pioneer", name: "Fashion Pioneer", description: "Equip any accessory in the Shop.", rewardCoins: 25, rewardXp: 35 },
-        { id: "three_presets", name: "Stylist Guru", description: "Save all 3 outfit presets.", rewardCoins: 60, rewardXp: 75 },
+        { id: "pet_500", name: "Gentle Companion", description: "Pet your bunny 500 times.", rewardCoins: 200, rewardXp: 250 },
+        { id: "pet_1000", name: "Soul Bond", description: "Pet your bunny 1,000 times.", rewardCoins: 400, rewardXp: 500 },
+        { id: "pet_2500", name: "Endless Affection", description: "Pet your bunny 2,500 times.", rewardCoins: 800, rewardXp: 1e3 },
+        { id: "pet_5000", name: "Fluff Master", description: "Pet your bunny 5,000 times.", rewardCoins: 1500, rewardXp: 2e3 },
+        { id: "pet_10000", name: "Mythical Cuddler", description: "Pet your bunny 10,000 times.", rewardCoins: 3e3, rewardXp: 5e3 },
+        // Level milestones
         { id: "level_5", name: "Growing Up", description: "Reach Bunny Level 5.", rewardCoins: 80, rewardXp: 100, rewardItem: { category: "den", id: "festive", name: "Festive Christmas Den \u{1F384}" } },
-        { id: "level_10", name: "Legendary Bunny", description: "Reach Bunny Level 10.", rewardCoins: 200, rewardXp: 300 }
+        { id: "level_10", name: "Legendary Bunny", description: "Reach Bunny Level 10.", rewardCoins: 200, rewardXp: 300 },
+        { id: "level_20", name: "Grand Rabbit", description: "Reach Bunny Level 20.", rewardCoins: 400, rewardXp: 600 },
+        { id: "level_30", name: "Elder Bunny", description: "Reach Bunny Level 30.", rewardCoins: 600, rewardXp: 900 },
+        { id: "level_50", name: "Celestial Bunny", description: "Reach Bunny Level 50.", rewardCoins: 1e3, rewardXp: 1500 },
+        { id: "level_100", name: "Eternal Fluff Legend", description: "Reach Bunny Level 100.", rewardCoins: 2500, rewardXp: 4e3 },
+        // Styling & Garden
+        { id: "first_harvest", name: "Green Thumb", description: "Harvest your first homegrown crop.", rewardCoins: 30, rewardXp: 40 },
+        { id: "fashion_pioneer", name: "Fashion Pioneer", description: "Equip any accessory in the Shop.", rewardCoins: 35, rewardXp: 45 },
+        { id: "three_presets", name: "Stylist Guru", description: "Save all 3 outfit presets in the Shop.", rewardCoins: 75, rewardXp: 90 },
+        { id: "cosmetics_5", name: "Trendsetter", description: "Unlock 5 accessories in the Shop.", rewardCoins: 120, rewardXp: 150 },
+        { id: "cosmetics_12", name: "Wardrobe Royalty", description: "Unlock 12 accessories in the Shop.", rewardCoins: 300, rewardXp: 400 }
       ];
       var DEFAULT_STATE = {
         version: 1,
@@ -1220,7 +1246,8 @@
             "head:party_hat",
             "face:glasses",
             "neck:red_scarf"
-          ]
+          ],
+          unlockedTerrains: ["grassy"]
         },
         garden: {
           plots: [
@@ -1239,7 +1266,8 @@
           menuPosition: null,
           startWithWindows: false,
           doNotDisturb: false,
-          denSkin: "default"
+          denSkin: "default",
+          activeTerrain: "grassy"
         },
         achievements: {
           unlocked: []
@@ -1250,6 +1278,24 @@
           loginStreak: 1
         }
       };
+      var TERRAINS = {
+        grassy: {
+          id: "grassy",
+          name: "Lush Meadow",
+          tier: "common",
+          price: 0,
+          crops: ["carrot", "strawberry", "lettuce"],
+          description: "Fresh green meadow with tiny daisies. Grows carrots, strawberries, and crisp cabbage!"
+        },
+        icy: {
+          id: "icy",
+          name: "Frosty Ice Rink",
+          tier: "epic",
+          price: 500,
+          crops: ["apple", "clover"],
+          description: "Glistening frozen lake! Barnaby ice skates and glides, occasionally slipping over (30-40s). Collect sweet apples & clovers!"
+        }
+      };
       if (typeof module !== "undefined" && module.exports) {
         module.exports = {
           HUNGER_SPEED_FACTORS,
@@ -1258,6 +1304,7 @@
           EYE_COLORS,
           EAR_STYLES,
           ACCESSORIES,
+          TERRAINS,
           ACHIEVEMENTS: ACHIEVEMENTS2,
           DEFAULT_STATE
         };
@@ -1568,6 +1615,9 @@
           this.targetX = this.x;
           this.targetY = this.y;
           this.direction = 1;
+          this.isThrown = false;
+          this.iceSlipTimer = 0;
+          this.nextIceSlipInterval = 3e4 + Math.random() * 1e4;
           this.isDragging = false;
           this.dragOffsetX = 0;
           this.dragOffsetY = 0;
@@ -1609,10 +1659,45 @@
               return 220;
           }
         }
+        throw(vx, vy) {
+          this.isSleepingInDen = false;
+          this.isDragging = false;
+          const maxSpeed = 20;
+          this.vx = Math.max(-maxSpeed, Math.min(maxSpeed, vx));
+          this.vy = Math.max(-maxSpeed, Math.min(maxSpeed, vy));
+          this.isThrown = true;
+          this.stateMachine.setState("falling", 8e3);
+          soundEngine2.playHop();
+          this.addParticle(this.x, this.y - 15, 0, -1, "star");
+        }
+        slipOnIce() {
+          if (this.isSleepingInDen || this.isDragging || this.isThrown) return;
+          soundEngine2.playSneeze();
+          this.stateMachine.setState("sit", 2200);
+          for (let i = 0; i < 4; i++) {
+            const pvx = (Math.random() - 0.5) * 2;
+            const pvy = -0.8 - Math.random() * 1.5;
+            this.addParticle(this.x + pvx * 8, this.y - 18, pvx, pvy, "star");
+          }
+        }
         update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
           if (this.nameTimer > 0) this.nameTimer -= deltaTime;
           this.worldFoods = worldFoods;
           this.needs.update(onLevelUp, onPassiveCarrot);
+          const activeTerrain = this.settings?.activeTerrain || "grassy";
+          if (activeTerrain === "icy" && !this.isSleepingInDen && !this.isDragging) {
+            if (this.stateMachine.currentState === "walk" && Math.random() < 0.15) {
+              this.addParticle(this.x, this.y, (Math.random() - 0.5) * 1.2, -0.3, "star");
+            }
+            this.iceSlipTimer += deltaTime;
+            if (this.iceSlipTimer >= this.nextIceSlipInterval) {
+              this.iceSlipTimer = 0;
+              this.nextIceSlipInterval = 3e4 + Math.random() * 1e4;
+              if (this.stateMachine.currentState === "walk") {
+                this.slipOnIce();
+              }
+            }
+          }
           this.stateMachine.update(deltaTime);
           this.updateParticles(deltaTime);
         }
@@ -1625,7 +1710,9 @@
             return;
           }
           const isHungry = this.needs.isHungry();
-          const speed = (isHungry ? 22 : 45) * (deltaTime / 1e3);
+          const isIce = this.settings?.activeTerrain === "icy";
+          const baseSpeed = isIce ? isHungry ? 36 : 64 : isHungry ? 22 : 45;
+          const speed = baseSpeed * (deltaTime / 1e3);
           if (Math.abs(distX) > 1) {
             this.direction = distX > 0 ? 1 : -1;
           }
@@ -1654,18 +1741,51 @@
           }
         }
         updateFalling(deltaTime) {
-          const gravity = 0.018 * deltaTime;
+          const gravity = 0.016 * deltaTime;
           this.vy += gravity;
+          this.vx *= 0.99;
           this.y += this.vy * (deltaTime / 16.6);
+          this.x += this.vx * (deltaTime / 16.6);
+          const halfW = this.width / 2;
+          if (this.x <= halfW) {
+            this.x = halfW;
+            if (Math.abs(this.vx) > 1.2) {
+              this.vx = -this.vx * 0.75;
+              soundEngine2.playHop();
+              this.addParticle(this.x + 4, this.y - 15, 1.2, -0.5, "star");
+            } else {
+              this.vx = 0;
+            }
+          } else if (this.x >= this.screenWidth - halfW) {
+            this.x = this.screenWidth - halfW;
+            if (Math.abs(this.vx) > 1.2) {
+              this.vx = -this.vx * 0.75;
+              soundEngine2.playHop();
+              this.addParticle(this.x - 4, this.y - 15, -1.2, -0.5, "star");
+            } else {
+              this.vx = 0;
+            }
+          }
+          if (this.y <= 35) {
+            this.y = 35;
+            if (this.vy < -1.5) {
+              this.vy = -this.vy * 0.6;
+              soundEngine2.playHop();
+            }
+          }
           if (this.y >= this.groundY) {
             this.y = this.groundY;
-            if (Math.abs(this.vy) > 1.8) {
-              this.vy = -this.vy * 0.35;
+            if (Math.abs(this.vy) > 2.2) {
+              this.vy = -this.vy * 0.42;
+              this.vx *= 0.72;
               soundEngine2.playHop();
+              this.addParticle(this.x, this.y, (Math.random() - 0.5) * 1.5, -0.8, "crumb");
             } else {
               this.vy = 0;
+              this.vx = 0;
+              this.isThrown = false;
               soundEngine2.playHop();
-              this.stateMachine.setState("idle", 1500);
+              this.stateMachine.setState("idle", 1200);
             }
           }
         }
@@ -1895,9 +2015,10 @@
       var { ItemSprites: ItemSprites2 } = require_itemSprites();
       var { soundEngine: soundEngine2 } = require_soundEngine();
       var CarrotGarden2 = class {
-        constructor(gardenData = {}, onHarvestCallback) {
+        constructor(gardenData = {}, onHarvestCallback, app = null) {
+          this.app = app;
           this.plots = gardenData.plots || [
-            { id: 1, planted: true, plantedAt: Date.now() - 3e4, growDurationMs: 9e4, ready: false }
+            { id: 1, planted: true, plantedAt: Date.now() - 3e4, growDurationMs: 9e4, ready: false, crop: "carrot" }
           ];
           this.onHarvest = onHarvestCallback;
           this.x = gardenData.x || 360;
@@ -1956,17 +2077,33 @@
             plot.planted = false;
             plot.ready = false;
             soundEngine2.playCoin();
+            const terrain = this.app?.state?.settings?.activeTerrain || "grassy";
+            let foodType = plot.crop || "carrot";
+            if (!foodType || terrain === "icy" && !["apple", "clover"].includes(foodType)) {
+              foodType = Math.random() < 0.5 ? "apple" : "clover";
+            }
             setTimeout(() => {
               plot.planted = true;
               plot.plantedAt = Date.now();
               plot.ready = false;
+              const currentTerrain = this.app?.state?.settings?.activeTerrain || "grassy";
+              if (currentTerrain === "icy") {
+                plot.crop = Math.random() < 0.5 ? "apple" : "clover";
+              } else {
+                const roll = Math.random();
+                if (roll < 0.45) plot.crop = "carrot";
+                else if (roll < 0.75) plot.crop = "strawberry";
+                else plot.crop = "lettuce";
+              }
               this.randomizePosition(this.lastCanvasWidth);
             }, 1500);
+            const count = 2 + Math.floor(Math.random() * 2);
             const reward = {
-              carrots: 2 + Math.floor(Math.random() * 2),
-              // 2-3 carrots
-              coins: 15,
-              xp: 25
+              foodType,
+              carrots: foodType === "carrot" ? count : 0,
+              count,
+              coins: 18,
+              xp: 28
             };
             if (this.onHarvest) {
               this.onHarvest(reward);
@@ -1988,6 +2125,10 @@
           ItemSprites2.drawGardenPlot(ctx, this.x, this.y, Math.max(0, stage), this.animationFrame);
           if (plot.ready) {
             ctx.save();
+            const currentCrop = plot.crop || "carrot";
+            if (currentCrop !== "carrot") {
+              ItemSprites2.drawFood(ctx, currentCrop, this.x, this.y - 12, 18);
+            }
             ctx.font = "bold 9px sans-serif";
             ctx.fillStyle = "#ffcc00";
             ctx.textAlign = "center";
@@ -2196,12 +2337,12 @@
           ctx.arc(gx, gy, Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
           ctx.arc(gx, gy + Math.round(4 * s), Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
           ctx.fill();
-          ItemSprites2.drawFood(ctx, "carrot", bx + Math.round(16 * s), by + Math.round(14 * s), Math.round(16 * s));
+          ItemSprites2.drawFood(ctx, "carrot", bx + Math.round(18 * s), by + Math.round(this.bagBtn.height / 2), Math.round(18 * s));
           ctx.fillStyle = "#4a2810";
-          ctx.font = `bold ${Math.max(10, Math.round(11 * s))}px sans-serif`;
+          ctx.font = `bold ${Math.max(10, Math.round(12 * s))}px sans-serif`;
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(27 * s), by + Math.round(14 * s));
+          ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(31 * s), by + Math.round(this.bagBtn.height / 2));
           if (this.isDrawerOpen) {
             const db = this.getDrawerBounds();
             ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
@@ -2234,7 +2375,7 @@
               ctx.roundRect(fx, startY, slotW, slotH, Math.round(6 * s));
               ctx.fill();
               ctx.stroke();
-              ItemSprites2.drawFood(ctx, key, fx + Math.round(slotW / 2), startY + Math.round(15 * s), Math.round(16 * s));
+              ItemSprites2.drawFood(ctx, key, fx + Math.round(slotW / 2), startY + Math.round(16 * s), Math.round(22 * s));
               ctx.fillStyle = count > 0 ? "#1e293b" : "#94a3b8";
               ctx.font = `bold ${Math.max(8, Math.round(9 * s))}px sans-serif`;
               ctx.textAlign = "center";
@@ -2408,6 +2549,7 @@
           this.dragMenuOffsetY = 0;
           this.menuDragStartX = 0;
           this.menuDragStartY = 0;
+          this.mouseHistory = [];
           this.bindEvents();
         }
         bindEvents() {
@@ -2472,9 +2614,14 @@
           const py = e.clientY;
           this.lastMouseX = px;
           this.lastMouseY = py;
+          const now = Date.now();
+          this.mouseHistory.push({ x: px, y: py, t: now });
+          while (this.mouseHistory.length > 1 && now - this.mouseHistory[0].t > 120) {
+            this.mouseHistory.shift();
+          }
           const isInteractive = this.checkInteractivity(px, py);
           if (isInteractive) {
-            this.app.lastUserInteractionTime = Date.now();
+            this.app.lastUserInteractionTime = now;
           }
           this.updateMouseIgnoreState(isInteractive);
           if (this.app.bunnies) {
@@ -2689,12 +2836,26 @@
           }
           if (this.dragTarget === "bunny" && this.draggedBunny) {
             if (this.isDragging) {
-              this.draggedBunny.endDrag();
+              const b = this.draggedBunny;
+              this.draggedBunny = null;
               this.isDragging = false;
               this.isMouseDown = false;
               this.dragTarget = null;
-              const b = this.draggedBunny;
-              this.draggedBunny = null;
+              let throwVx = 0;
+              let throwVy = 0;
+              if (this.mouseHistory && this.mouseHistory.length >= 2) {
+                const first = this.mouseHistory[0];
+                const last = this.mouseHistory[this.mouseHistory.length - 1];
+                const dt = Math.max(16, last.t - first.t);
+                throwVx = (last.x - first.x) / dt * 16.6;
+                throwVy = (last.y - first.y) / dt * 16.6;
+              }
+              const speed = Math.hypot(throwVx, throwVy);
+              if (speed > 3) {
+                b.throw(throwVx * 0.9, throwVy * 0.9);
+              } else {
+                b.endDrag();
+              }
               if (b.floorMode === "free") {
                 this.app.saveState();
               }
@@ -2925,9 +3086,8 @@
         }
         update(deltaTime) {
           this.y = this.app.groundY;
-          if (this.app.hud && this.app.hud.bagBtn) {
-            const bag = this.app.hud.bagBtn;
-            this.x = Math.round(bag.x + bag.width / 2 + 38);
+          if (!this.x || this.x < 140) {
+            this.x = 240;
           }
           if (this.statsTimer > 0) {
             this.statsTimer -= deltaTime;
@@ -3278,6 +3438,86 @@
     }
   });
 
+  // src/renderer/world/terrain.js
+  var require_terrain = __commonJS({
+    "src/renderer/world/terrain.js"(exports, module) {
+      var WorldTerrain2 = class {
+        constructor(app) {
+          this.app = app;
+          this.animationTimer = 0;
+        }
+        get active() {
+          return this.app?.state?.settings?.activeTerrain || "grassy";
+        }
+        update(deltaTime) {
+          this.animationTimer += deltaTime;
+        }
+        draw(ctx, groundY, screenWidth) {
+          const y = Math.round(groundY);
+          const w = screenWidth || 1920;
+          ctx.save();
+          ctx.imageSmoothingEnabled = false;
+          if (this.active === "icy") {
+            this.drawIcyTerrain(ctx, y, w);
+          } else {
+            this.drawGrassyTerrain(ctx, y, w);
+          }
+          ctx.restore();
+        }
+        drawGrassyTerrain(ctx, y, w) {
+          ctx.fillStyle = "#451a03";
+          ctx.fillRect(0, y - 1, w, 14);
+          ctx.fillStyle = "#166534";
+          ctx.fillRect(0, y - 3, w, 3);
+          ctx.fillStyle = "#22c55e";
+          ctx.fillRect(0, y - 4, w, 2);
+          ctx.fillStyle = "#4ade80";
+          for (let x = 12; x < w; x += 32) {
+            ctx.fillRect(x, y - 6, 2, 3);
+            ctx.fillRect(x + 2, y - 5, 1, 2);
+          }
+          for (let x = 45; x < w; x += 110) {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(x - 2, y - 7, 5, 3);
+            ctx.fillRect(x - 1, y - 8, 3, 5);
+            ctx.fillStyle = "#facc15";
+            ctx.fillRect(x, y - 6, 1, 1);
+          }
+        }
+        drawIcyTerrain(ctx, y, w) {
+          ctx.fillStyle = "#0369a1";
+          ctx.fillRect(0, y - 1, w, 14);
+          ctx.fillStyle = "#38bdf8";
+          ctx.fillRect(0, y - 4, w, 4);
+          ctx.fillStyle = "#bae6fd";
+          ctx.fillRect(0, y - 5, w, 2);
+          ctx.strokeStyle = "#e0f2fe";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let x = 30; x < w; x += 95) {
+            ctx.moveTo(x, y - 4);
+            ctx.lineTo(x + 18, y - 2);
+            ctx.moveTo(x + 40, y - 3);
+            ctx.lineTo(x + 55, y - 5);
+          }
+          ctx.stroke();
+          const twinkle = Math.floor(this.animationTimer / 300);
+          const glintColors = ["#ffffff", "#7dd3fc", "#e0f2fe"];
+          for (let i = 0; i < 18; i++) {
+            const gx = (i * 107 + twinkle * 13) % w;
+            const c = glintColors[(i + twinkle) % glintColors.length];
+            ctx.fillStyle = c;
+            ctx.fillRect(gx, y - 6, 2, 2);
+            ctx.fillRect(gx - 1, y - 5, 4, 1);
+          }
+        }
+      };
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = { WorldTerrain: WorldTerrain2 };
+      }
+    }
+  });
+
   // src/renderer/app.js
   var { Bunny } = require_bunny();
   var { CarrotGarden } = require_garden();
@@ -3289,6 +3529,7 @@
   var { ACHIEVEMENTS, FOODS } = require_constants();
   var { BunnyDen } = require_den();
   var { Butterfly } = require_butterfly();
+  var { WorldTerrain } = require_terrain();
   var TaskbarBunnyApp = class {
     constructor() {
       this.canvas = document.getElementById("gameCanvas");
@@ -3299,6 +3540,7 @@
       this.hud = null;
       this.den = null;
       this.butterfly = null;
+      this.terrain = null;
       this.input = null;
       this.loop = null;
       this.lastUserInteractionTime = Date.now();
@@ -3447,14 +3689,19 @@
           this.bunnies.push(companion);
         }
       }
+      this.terrain = new WorldTerrain(this);
       this.garden = new CarrotGarden(this.state.garden, (reward) => {
-        this.inventory.foods.carrot = (this.inventory.foods.carrot || 0) + reward.carrots;
+        const foodId = reward.foodType || "carrot";
+        const count = reward.count || reward.carrots || 1;
+        if (!this.inventory.foods) this.inventory.foods = {};
+        this.inventory.foods[foodId] = (this.inventory.foods[foodId] || 0) + count;
         this.inventory.coins = (this.inventory.coins || 0) + reward.coins;
         this.bunny.needs.addXp(reward.xp, (newLv) => this.onLevelUp(newLv));
-        this.hud.showNotification(`+${reward.carrots} Carrots harvested!`, `+${reward.coins} Coins`, 3500, "\u{1F955}");
+        const foodInfo = FOODS[foodId] || FOODS.carrot;
+        this.hud.showNotification(`+${count} ${foodInfo.name} harvested!`, `+${reward.coins} Coins`, 3500, foodInfo.icon || "\u{1F955}");
         this.checkAchievements();
         this.saveState();
-      });
+      }, this);
       this.hud = new HUD(this);
       this.den = new BunnyDen(this);
       this.butterfly = new Butterfly(this);
@@ -3607,14 +3854,40 @@
           }
         }
       };
-      check("first_carrot", this.bunny.totalCarrotsFed >= 1);
-      check("fed_25", this.bunny.totalCarrotsFed >= 25);
-      check("fed_100", this.bunny.totalCarrotsFed >= 100);
-      check("pet_50", this.bunny.totalPetCount >= 50);
-      check("pet_200", this.bunny.totalPetCount >= 200);
+      const totalFed = this.bunnies.reduce((sum, b) => sum + (b.totalCarrotsFed || 0), 0);
+      const totalPet = this.bunnies.reduce((sum, b) => sum + (b.totalPetCount || 0), 0);
+      const maxLevel = Math.max(1, ...this.bunnies.map((b) => b.needs?.level || 1));
+      check("first_carrot", totalFed >= 1);
+      check("fed_25", totalFed >= 25);
+      check("fed_100", totalFed >= 100);
+      check("fed_250", totalFed >= 250);
+      check("fed_500", totalFed >= 500);
+      check("fed_1000", totalFed >= 1e3);
+      check("fed_2500", totalFed >= 2500);
+      check("fed_5000", totalFed >= 5e3);
+      check("pet_50", totalPet >= 50);
+      check("pet_200", totalPet >= 200);
+      check("pet_500", totalPet >= 500);
+      check("pet_1000", totalPet >= 1e3);
+      check("pet_2500", totalPet >= 2500);
+      check("pet_5000", totalPet >= 5e3);
+      check("pet_10000", totalPet >= 1e4);
+      check("level_5", maxLevel >= 5);
+      check("level_10", maxLevel >= 10);
+      check("level_20", maxLevel >= 20);
+      check("level_30", maxLevel >= 30);
+      check("level_50", maxLevel >= 50);
+      check("level_100", maxLevel >= 100);
       check("first_harvest", this.state.garden?.plots?.some((p) => p.ready || p.plantedAt));
-      check("level_5", this.bunny.needs.level >= 5);
-      check("level_10", this.bunny.needs.level >= 10);
+      const hasEquippedAccessory = this.bunnies.some((b) => Object.values(b.equipped || {}).some((v) => v && v !== "none"));
+      check("fashion_pioneer", hasEquippedAccessory);
+      const savedPresetsCount = (this.state.bunny?.outfitPresets || []).filter(
+        (p) => p.saved || Object.entries(p).some(([k, v]) => k !== "name" && v && v !== "none")
+      ).length;
+      check("three_presets", savedPresetsCount >= 3);
+      const cosmeticsCount = (this.inventory.unlockedCosmetics || []).length;
+      check("cosmetics_5", cosmeticsCount >= 5);
+      check("cosmetics_12", cosmeticsCount >= 12);
     }
     update(deltaTime) {
       for (const food of this.worldFoods) {
@@ -3689,6 +3962,9 @@
           }
         }
       }
+      if (this.terrain) {
+        this.terrain.update(deltaTime);
+      }
       if (this.garden) {
         this.garden.update(deltaTime);
       }
@@ -3737,6 +4013,9 @@
     }
     render() {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      if (this.terrain) {
+        this.terrain.draw(this.ctx, this.groundY, this.canvas.width);
+      }
       if (this.den) {
         this.den.draw(this.ctx);
       }
@@ -3822,6 +4101,7 @@
       }
       if (this.state.settings && this.bunnies) {
         for (const b of this.bunnies) {
+          b.settings = this.state.settings;
           b.scale = this.state.settings.bunnyScale || 2.5;
           b.width = b.baseSpriteSize * b.scale;
           b.height = b.baseSpriteSize * b.scale;
@@ -3839,6 +4119,7 @@
       if (this.hud) {
         this.hud.layout(this.canvas.height, this.taskbarOverlap);
       }
+      this.checkAchievements();
     }
     saveState() {
       if (!this.state || !this.bunny) return;

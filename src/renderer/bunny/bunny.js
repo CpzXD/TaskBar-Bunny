@@ -62,6 +62,11 @@ class Bunny {
     this.targetY = this.y;
     this.direction = 1; // 1: right, -1: left
 
+    // Throw & Velocity physics
+    this.isThrown = false;
+    this.iceSlipTimer = 0;
+    this.nextIceSlipInterval = 30000 + Math.random() * 10000; // 30-40 seconds
+
     // Dragging & Interaction
     this.isDragging = false;
     this.dragOffsetX = 0;
@@ -110,10 +115,51 @@ class Bunny {
     }
   }
 
+  throw(vx, vy) {
+    this.isSleepingInDen = false;
+    this.isDragging = false;
+    const maxSpeed = 20;
+    this.vx = Math.max(-maxSpeed, Math.min(maxSpeed, vx));
+    this.vy = Math.max(-maxSpeed, Math.min(maxSpeed, vy));
+    this.isThrown = true;
+    this.stateMachine.setState('falling', 8000);
+    soundEngine.playHop();
+    this.addParticle(this.x, this.y - 15, 0, -1, 'star');
+  }
+
+  slipOnIce() {
+    if (this.isSleepingInDen || this.isDragging || this.isThrown) return;
+    soundEngine.playSneeze();
+    this.stateMachine.setState('sit', 2200);
+    for (let i = 0; i < 4; i++) {
+      const pvx = (Math.random() - 0.5) * 2;
+      const pvy = -0.8 - Math.random() * 1.5;
+      this.addParticle(this.x + pvx * 8, this.y - 18, pvx, pvy, 'star');
+    }
+  }
+
   update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
     if (this.nameTimer > 0) this.nameTimer -= deltaTime;
     this.worldFoods = worldFoods;
     this.needs.update(onLevelUp, onPassiveCarrot);
+
+    // Ice terrain check: skating glints and random slip (every 30-40s)
+    const activeTerrain = this.settings?.activeTerrain || 'grassy';
+    if (activeTerrain === 'icy' && !this.isSleepingInDen && !this.isDragging) {
+      if (this.stateMachine.currentState === 'walk' && Math.random() < 0.15) {
+        this.addParticle(this.x, this.y, (Math.random() - 0.5) * 1.2, -0.3, 'star');
+      }
+
+      this.iceSlipTimer += deltaTime;
+      if (this.iceSlipTimer >= this.nextIceSlipInterval) {
+        this.iceSlipTimer = 0;
+        this.nextIceSlipInterval = 30000 + Math.random() * 10000;
+        if (this.stateMachine.currentState === 'walk') {
+          this.slipOnIce();
+        }
+      }
+    }
+
     this.stateMachine.update(deltaTime);
     this.updateParticles(deltaTime);
   }
@@ -128,7 +174,11 @@ class Bunny {
     }
 
     const isHungry = this.needs.isHungry();
-    const speed = (isHungry ? 22 : 45) * (deltaTime / 1000);
+    const isIce = (this.settings?.activeTerrain === 'icy');
+    // On ice: skates faster and glides smoothly
+    const baseSpeed = isIce ? (isHungry ? 36 : 64) : (isHungry ? 22 : 45);
+    const speed = baseSpeed * (deltaTime / 1000);
+
     if (Math.abs(distX) > 1) {
       this.direction = distX > 0 ? 1 : -1;
     }
@@ -164,20 +214,61 @@ class Bunny {
   }
 
   updateFalling(deltaTime) {
-    const gravity = 0.018 * deltaTime;
+    const gravity = 0.016 * deltaTime;
     this.vy += gravity;
-    this.y += this.vy * (deltaTime / 16.6);
+    this.vx *= 0.99; // slight air resistance
 
+    this.y += this.vy * (deltaTime / 16.6);
+    this.x += this.vx * (deltaTime / 16.6);
+
+    const halfW = this.width / 2;
+
+    // Bounce off left screen wall
+    if (this.x <= halfW) {
+      this.x = halfW;
+      if (Math.abs(this.vx) > 1.2) {
+        this.vx = -this.vx * 0.75;
+        soundEngine.playHop();
+        this.addParticle(this.x + 4, this.y - 15, 1.2, -0.5, 'star');
+      } else {
+        this.vx = 0;
+      }
+    }
+    // Bounce off right screen wall
+    else if (this.x >= this.screenWidth - halfW) {
+      this.x = this.screenWidth - halfW;
+      if (Math.abs(this.vx) > 1.2) {
+        this.vx = -this.vx * 0.75;
+        soundEngine.playHop();
+        this.addParticle(this.x - 4, this.y - 15, -1.2, -0.5, 'star');
+      } else {
+        this.vx = 0;
+      }
+    }
+
+    // Bounce off top of screen
+    if (this.y <= 35) {
+      this.y = 35;
+      if (this.vy < -1.5) {
+        this.vy = -this.vy * 0.6;
+        soundEngine.playHop();
+      }
+    }
+
+    // Ground bounce & landing
     if (this.y >= this.groundY) {
       this.y = this.groundY;
-      if (Math.abs(this.vy) > 1.8) {
-        // Bounce!
-        this.vy = -this.vy * 0.35;
+      if (Math.abs(this.vy) > 2.2) {
+        this.vy = -this.vy * 0.42;
+        this.vx *= 0.72;
         soundEngine.playHop();
+        this.addParticle(this.x, this.y, (Math.random() - 0.5) * 1.5, -0.8, 'crumb');
       } else {
         this.vy = 0;
+        this.vx = 0;
+        this.isThrown = false;
         soundEngine.playHop();
-        this.stateMachine.setState('idle', 1500);
+        this.stateMachine.setState('idle', 1200);
       }
     }
   }

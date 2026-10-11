@@ -21,6 +21,7 @@ class InputManager {
     this.dragMenuOffsetY = 0;
     this.menuDragStartX = 0;
     this.menuDragStartY = 0;
+    this.mouseHistory = [];
 
     this.bindEvents();
   }
@@ -96,9 +97,15 @@ class InputManager {
     this.lastMouseX = px;
     this.lastMouseY = py;
 
+    const now = Date.now();
+    this.mouseHistory.push({ x: px, y: py, t: now });
+    while (this.mouseHistory.length > 1 && now - this.mouseHistory[0].t > 120) {
+      this.mouseHistory.shift();
+    }
+
     const isInteractive = this.checkInteractivity(px, py);
     if (isInteractive) {
-      this.app.lastUserInteractionTime = Date.now();
+      this.app.lastUserInteractionTime = now;
     }
     this.updateMouseIgnoreState(isInteractive);
 
@@ -341,15 +348,33 @@ class InputManager {
       }
     }
 
-    // Handle dragged bunny drop
+    // Handle dragged bunny drop / throw
     if (this.dragTarget === 'bunny' && this.draggedBunny) {
       if (this.isDragging) {
-        this.draggedBunny.endDrag();
+        const b = this.draggedBunny;
+        this.draggedBunny = null;
         this.isDragging = false;
         this.isMouseDown = false;
         this.dragTarget = null;
-        const b = this.draggedBunny;
-        this.draggedBunny = null;
+
+        // Calculate release throw velocity
+        let throwVx = 0;
+        let throwVy = 0;
+        if (this.mouseHistory && this.mouseHistory.length >= 2) {
+          const first = this.mouseHistory[0];
+          const last = this.mouseHistory[this.mouseHistory.length - 1];
+          const dt = Math.max(16, last.t - first.t);
+          throwVx = ((last.x - first.x) / dt) * 16.6;
+          throwVy = ((last.y - first.y) / dt) * 16.6;
+        }
+
+        const speed = Math.hypot(throwVx, throwVy);
+        if (speed > 3.0) {
+          b.throw(throwVx * 0.9, throwVy * 0.9);
+        } else {
+          b.endDrag();
+        }
+
         if (b.floorMode === 'free') {
           this.app.saveState();
         }

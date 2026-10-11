@@ -249,8 +249,9 @@ To reset your data at any time, open Settings and click **Reset All**, or delete
 
 ---
 
-## 👤 Author
-Created with ❤️ by **[CpzXD](https://github.com/CpzXD)**.
+## 👤 Credits & Authors
+- **Lead Developer**: **[CpzXD](https://github.com/CpzXD)**
+- **Game Designer / Tester**: **Qnoxs**
 
 ---
 

@@ -41,57 +41,51 @@ class TrophiesController {
   getAchievementProgress(ach) {
     const isUnlocked = Boolean(this.state?.achievements?.unlocked?.includes(ach.id));
     const bunny = this.state?.bunny || {};
+    const extra = this.state?.extraBunnies || [];
+    const allBunnies = [bunny, ...extra];
+    const totalFed = allBunnies.reduce((sum, b) => sum + (b.totalCarrotsFed || 0), 0);
+    const totalPet = allBunnies.reduce((sum, b) => sum + (b.totalPetCount || 0), 0);
+    const maxLevel = Math.max(1, ...allBunnies.map(b => b.level || 1));
+    const unlockedCosmeticsCount = (this.state?.inventory?.unlockedCosmetics || []).length;
+
     let current = 0;
     let max = 1;
 
-    switch (ach.id) {
-      case 'first_carrot':
-        current = (bunny.totalCarrotsFed || 0) >= 1 ? 1 : 0;
-        max = 1;
-        break;
-      case 'fed_25':
-        current = Math.min(25, bunny.totalCarrotsFed || 0);
-        max = 25;
-        break;
-      case 'fed_100':
-        current = Math.min(100, bunny.totalCarrotsFed || 0);
-        max = 100;
-        break;
-      case 'pet_50':
-        current = Math.min(50, bunny.totalPetCount || 0);
-        max = 50;
-        break;
-      case 'pet_200':
-        current = Math.min(200, bunny.totalPetCount || 0);
-        max = 200;
-        break;
-      case 'first_harvest':
-        current = this.state?.garden?.plots?.some(p => p.ready || p.plantedAt) ? 1 : 0;
-        max = 1;
-        break;
-      case 'fashion_pioneer':
-        current = Object.values(bunny.equipped || {}).some(v => v && v !== 'none') ? 1 : 0;
-        max = 1;
-        break;
-      case 'three_presets':
-        current = (bunny.outfitPresets && bunny.outfitPresets.length >= 3) ? 1 : 0;
-        max = 1;
-        break;
-      case 'level_5':
-        current = Math.min(5, bunny.level || 1);
-        max = 5;
-        break;
-      case 'level_10':
-        current = Math.min(10, bunny.level || 1);
-        max = 10;
-        break;
-      default:
-        current = isUnlocked ? 1 : 0;
-        max = 1;
+    if (ach.id.startsWith('fed_')) {
+      max = parseInt(ach.id.replace('fed_', ''), 10) || 25;
+      current = Math.min(max, totalFed);
+    } else if (ach.id === 'first_carrot') {
+      max = 1;
+      current = Math.min(1, totalFed);
+    } else if (ach.id.startsWith('pet_')) {
+      max = parseInt(ach.id.replace('pet_', ''), 10) || 50;
+      current = Math.min(max, totalPet);
+    } else if (ach.id.startsWith('level_')) {
+      max = parseInt(ach.id.replace('level_', ''), 10) || 5;
+      current = Math.min(max, maxLevel);
+    } else if (ach.id.startsWith('cosmetics_')) {
+      max = parseInt(ach.id.replace('cosmetics_', ''), 10) || 5;
+      current = Math.min(max, unlockedCosmeticsCount);
+    } else if (ach.id === 'first_harvest') {
+      max = 1;
+      current = this.state?.garden?.plots?.some(p => p.ready || p.plantedAt) ? 1 : 0;
+    } else if (ach.id === 'fashion_pioneer') {
+      max = 1;
+      const hasEquipped = allBunnies.some(b => Object.values(b.equipped || {}).some(v => v && v !== 'none'));
+      current = hasEquipped ? 1 : 0;
+    } else if (ach.id === 'three_presets') {
+      max = 3;
+      const savedCount = (bunny.outfitPresets || []).filter(p =>
+        p.saved || Object.entries(p).some(([k, v]) => k !== 'name' && v && v !== 'none')
+      ).length;
+      current = Math.min(max, savedCount);
+    } else {
+      max = 1;
+      current = isUnlocked ? 1 : 0;
     }
 
     if (isUnlocked) current = max;
-    const pct = Math.min(100, Math.round((current / max) * 100));
+    const pct = isUnlocked ? 100 : Math.min(100, Math.round((current / max) * 100));
     return { isUnlocked, current, max, pct };
   }
 

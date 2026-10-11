@@ -232,12 +232,12 @@ class HUD {
     ctx.arc(gx, gy + Math.round(4 * s), Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
     ctx.fill();
 
-    ItemSprites.drawFood(ctx, 'carrot', bx + Math.round(16 * s), by + Math.round(14 * s), Math.round(16 * s));
+    ItemSprites.drawFood(ctx, 'carrot', bx + Math.round(18 * s), by + Math.round(this.bagBtn.height / 2), Math.round(18 * s));
     ctx.fillStyle = '#4a2810';
-    ctx.font = `bold ${Math.max(10, Math.round(11 * s))}px sans-serif`;
+    ctx.font = `bold ${Math.max(10, Math.round(12 * s))}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(27 * s), by + Math.round(14 * s));
+    ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(31 * s), by + Math.round(this.bagBtn.height / 2));
 
     if (this.isDrawerOpen) {
       const db = this.getDrawerBounds();
@@ -280,8 +280,8 @@ class HUD {
         ctx.fill();
         ctx.stroke();
 
-        // Food sprite
-        ItemSprites.drawFood(ctx, key, fx + Math.round(slotW / 2), startY + Math.round(15 * s), Math.round(16 * s));
+        // Food sprite scaled to slot
+        ItemSprites.drawFood(ctx, key, fx + Math.round(slotW / 2), startY + Math.round(16 * s), Math.round(22 * s));
 
         // Count badge
         ctx.fillStyle = count > 0 ? '#1e293b' : '#94a3b8';

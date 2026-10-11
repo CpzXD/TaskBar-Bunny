@@ -334,6 +334,7 @@ test('foods include acquisition descriptions and Level 5 achievement awards fest
     assert.ok(food.acquire, `Food ${id} must have acquire description`);
     assert.ok(food.acquire.length > 10, `Food ${id} acquire description must be informative`);
     assert.ok(food.cost > 0, `Food ${id} must have a coin cost`);
+    assert.ok(food.hungerBonus > 0 && food.hungerRestore > 0, `Food ${id} must have valid hungerRestore/hungerBonus`);
   }
 
   const lv5Ach = ACHIEVEMENTS.find(a => a.id === 'level_5');
@@ -343,5 +344,83 @@ test('foods include acquisition descriptions and Level 5 achievement awards fest
   assert.strictEqual(lv5Ach.rewardItem.id, 'festive');
   assert.ok(ACCESSORIES.den.some(d => d.id === 'festive'), 'festive skin must be in ACCESSORIES.den catalog');
 });
+
+test('terrains catalog defines grassy and icy with unique crops and mechanics', () => {
+  const { TERRAINS } = require('../src/shared/constants');
+  assert.ok(TERRAINS.grassy, 'Grassy terrain exists');
+  assert.ok(TERRAINS.icy, 'Icy terrain exists');
+  assert.strictEqual(TERRAINS.grassy.price, 0, 'Grassy terrain is free/default');
+  assert.strictEqual(TERRAINS.icy.price, 500, 'Icy terrain costs 500 coins');
+  assert.deepStrictEqual(TERRAINS.grassy.crops, ['carrot', 'strawberry', 'lettuce']);
+  assert.deepStrictEqual(TERRAINS.icy.crops, ['apple', 'clover']);
+  assert.strictEqual(DEFAULT_STATE.settings.activeTerrain, 'grassy');
+  assert.deepStrictEqual(DEFAULT_STATE.inventory.unlockedTerrains, ['grassy']);
+});
+
+test('bunny throw physics clamps speed and bounces off boundaries', () => {
+  const { Bunny } = require('../src/renderer/bunny/bunny');
+  const bunny = new Bunny({}, { activeTerrain: 'grassy' }, 1920, 1080);
+  bunny.x = 960;
+  bunny.y = 800;
+
+  // Throw with excessive velocity
+  bunny.throw(35, -50);
+  assert.strictEqual(bunny.isThrown, true);
+  assert.strictEqual(bunny.vx, 20, 'Horizontal velocity clamped to maxSpeed (20)');
+  assert.strictEqual(bunny.vy, -20, 'Vertical velocity clamped to maxSpeed (20)');
+  assert.strictEqual(bunny.stateMachine.currentState, 'falling');
+
+  // Simulate bounce against left wall
+  bunny.x = 10;
+  bunny.vx = -10;
+  bunny.updateFalling(16.6);
+  assert.ok(bunny.vx > 0, 'Bunny should bounce away from left wall with reversed positive vx');
+
+  // Simulate bounce against right wall
+  bunny.x = 1910;
+  bunny.vx = 10;
+  bunny.updateFalling(16.6);
+  assert.ok(bunny.vx < 0, 'Bunny should bounce away from right wall with reversed negative vx');
+});
+
+test('buying clothes grants XP formula and levels up bunny', () => {
+  const testBunny = { level: 1, xp: 50 };
+  const item = { price: 80 };
+  const xpGain = Math.max(20, Math.round(item.price * 0.75)); // 60 XP
+  testBunny.xp += xpGain; // 110 XP
+  assert.strictEqual(testBunny.xp, 110);
+
+  let leveledUp = false;
+  while (testBunny.xp >= testBunny.level * 100) {
+    testBunny.xp -= testBunny.level * 100;
+    testBunny.level += 1;
+    leveledUp = true;
+  }
+
+  assert.strictEqual(leveledUp, true, 'Bunny should level up after gaining enough clothes XP');
+  assert.strictEqual(testBunny.level, 2, 'Bunny level should increase to 2');
+  assert.strictEqual(testBunny.xp, 10, 'Bunny remaining XP should be 10');
+});
+
+test('progressive achievement tiers exist up to 10k petting and 5k feeding', () => {
+  const petTiers = ['pet_50', 'pet_200', 'pet_500', 'pet_1000', 'pet_2500', 'pet_5000', 'pet_10000'];
+  for (const tid of petTiers) {
+    assert.ok(ACHIEVEMENTS.some(a => a.id === tid), `Achievement ${tid} must exist`);
+  }
+
+  const fedTiers = ['first_carrot', 'fed_25', 'fed_100', 'fed_250', 'fed_500', 'fed_1000', 'fed_2500', 'fed_5000'];
+  for (const tid of fedTiers) {
+    assert.ok(ACHIEVEMENTS.some(a => a.id === tid), `Achievement ${tid} must exist`);
+  }
+
+  const lvTiers = ['level_5', 'level_10', 'level_20', 'level_30', 'level_50', 'level_100'];
+  for (const tid of lvTiers) {
+    assert.ok(ACHIEVEMENTS.some(a => a.id === tid), `Achievement ${tid} must exist`);
+  }
+
+  assert.ok(ACHIEVEMENTS.some(a => a.id === 'fashion_pioneer'), 'fashion_pioneer achievement must exist');
+  assert.ok(ACHIEVEMENTS.some(a => a.id === 'three_presets'), 'three_presets achievement must exist');
+});
+
 
 

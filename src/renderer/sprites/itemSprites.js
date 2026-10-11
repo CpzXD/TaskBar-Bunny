@@ -10,17 +10,18 @@ class ItemSprites {
   static drawFood(ctx, foodId, x, y, size = 16) {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
-    const ox = Math.floor(x - size / 2);
-    const oy = Math.floor(y - size / 2);
+    const scale = size / 16;
+    ctx.translate(Math.floor(x - size / 2), Math.floor(y - size / 2));
+    ctx.scale(scale, scale);
 
     const p = (dx, dy, color) => {
       ctx.fillStyle = color;
-      ctx.fillRect(ox + dx, oy + dy, 1, 1);
+      ctx.fillRect(dx, dy, 1, 1);
     };
 
     const rect = (dx, dy, w, h, color) => {
       ctx.fillStyle = color;
-      ctx.fillRect(ox + dx, oy + dy, w, h);
+      ctx.fillRect(dx, dy, w, h);
     };
 
     switch (foodId) {

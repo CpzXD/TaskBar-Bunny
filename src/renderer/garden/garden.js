@@ -1,10 +1,10 @@
 const { ItemSprites } = require('../sprites/itemSprites');
 const { soundEngine } = require('../engine/soundEngine');
-
 class CarrotGarden {
-  constructor(gardenData = {}, onHarvestCallback) {
+  constructor(gardenData = {}, onHarvestCallback, app = null) {
+    this.app = app;
     this.plots = gardenData.plots || [
-      { id: 1, planted: true, plantedAt: Date.now() - 30000, growDurationMs: 90000, ready: false }
+      { id: 1, planted: true, plantedAt: Date.now() - 30000, growDurationMs: 90000, ready: false, crop: 'carrot' }
     ];
     this.onHarvest = onHarvestCallback;
     this.x = gardenData.x || 360; // Screen X position
@@ -71,18 +71,36 @@ class CarrotGarden {
       plot.planted = false;
       plot.ready = false;
       soundEngine.playCoin();
-      // Auto re-plant after short delay in a new random spot on the taskbar!
+
+      const terrain = (this.app?.state?.settings?.activeTerrain) || 'grassy';
+      let foodType = plot.crop || 'carrot';
+      if (!foodType || (terrain === 'icy' && !['apple', 'clover'].includes(foodType))) {
+        foodType = Math.random() < 0.5 ? 'apple' : 'clover';
+      }
+
       setTimeout(() => {
         plot.planted = true;
         plot.plantedAt = Date.now();
         plot.ready = false;
+        const currentTerrain = (this.app?.state?.settings?.activeTerrain) || 'grassy';
+        if (currentTerrain === 'icy') {
+          plot.crop = Math.random() < 0.5 ? 'apple' : 'clover';
+        } else {
+          const roll = Math.random();
+          if (roll < 0.45) plot.crop = 'carrot';
+          else if (roll < 0.75) plot.crop = 'strawberry';
+          else plot.crop = 'lettuce';
+        }
         this.randomizePosition(this.lastCanvasWidth);
       }, 1500);
 
+      const count = 2 + Math.floor(Math.random() * 2);
       const reward = {
-        carrots: 2 + Math.floor(Math.random() * 2), // 2-3 carrots
-        coins: 15,
-        xp: 25
+        foodType: foodType,
+        carrots: foodType === 'carrot' ? count : 0,
+        count: count,
+        coins: 18,
+        xp: 28
       };
 
       if (this.onHarvest) {
@@ -110,9 +128,13 @@ class CarrotGarden {
     const stage = this.getPlotStage(plot);
     ItemSprites.drawGardenPlot(ctx, this.x, this.y, Math.max(0, stage), this.animationFrame);
 
-    // Harvest tooltip indicator if ready
+    // Harvest tooltip indicator and ready crop icon
     if (plot.ready) {
       ctx.save();
+      const currentCrop = plot.crop || 'carrot';
+      if (currentCrop !== 'carrot') {
+        ItemSprites.drawFood(ctx, currentCrop, this.x, this.y - 12, 18);
+      }
       ctx.font = 'bold 9px sans-serif';
       ctx.fillStyle = '#ffcc00';
       ctx.textAlign = 'center';

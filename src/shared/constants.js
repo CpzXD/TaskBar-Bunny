@@ -9,6 +9,7 @@ const FOODS = {
     id: 'carrot',
     name: 'Crunchy Carrot',
     hungerRestore: 35,
+    hungerBonus: 35,
     happinessBonus: 10,
     cost: 10,
     color: '#ff8822',
@@ -19,6 +20,7 @@ const FOODS = {
     id: 'lettuce',
     name: 'Crisp Lettuce',
     hungerRestore: 20,
+    hungerBonus: 20,
     happinessBonus: 5,
     cost: 5,
     color: '#76c442',
@@ -29,6 +31,7 @@ const FOODS = {
     id: 'apple',
     name: 'Sweet Apple Slice',
     hungerRestore: 40,
+    hungerBonus: 40,
     happinessBonus: 20,
     cost: 18,
     color: '#ee4444',
@@ -39,6 +42,7 @@ const FOODS = {
     id: 'clover',
     name: 'Lucky Four-Leaf Clover',
     hungerRestore: 15,
+    hungerBonus: 15,
     happinessBonus: 35,
     cost: 25,
     color: '#28bb67',
@@ -49,6 +53,7 @@ const FOODS = {
     id: 'strawberry',
     name: 'Ripe Strawberry',
     hungerRestore: 45,
+    hungerBonus: 45,
     happinessBonus: 30,
     cost: 30,
     color: '#ff3366',
@@ -127,16 +132,39 @@ const ACCESSORIES = {
 };
 
 const ACHIEVEMENTS = [
+  // Treat feeding tiers
   { id: 'first_carrot', name: 'First Crunch', description: 'Feed your bunny for the first time.', rewardCoins: 20, rewardXp: 30 },
   { id: 'fed_25', name: 'Carrot Connoisseur', description: 'Feed 25 treats to your bunny.', rewardCoins: 50, rewardXp: 60 },
   { id: 'fed_100', name: 'Feast Master', description: 'Feed 100 treats to your bunny.', rewardCoins: 150, rewardXp: 200 },
+  { id: 'fed_250', name: 'Banquet Host', description: 'Feed 250 treats to your bunny.', rewardCoins: 250, rewardXp: 300 },
+  { id: 'fed_500', name: 'The Bunny Gourmet', description: 'Feed 500 treats to your bunny.', rewardCoins: 400, rewardXp: 500 },
+  { id: 'fed_1000', name: 'Endless Harvest', description: 'Feed 1,000 treats to your bunny.', rewardCoins: 750, rewardXp: 1000 },
+  { id: 'fed_2500', name: 'Carrot Legend', description: 'Feed 2,500 treats to your bunny.', rewardCoins: 1500, rewardXp: 2000 },
+  { id: 'fed_5000', name: 'Infinite Feeder', description: 'Feed 5,000 treats to your bunny.', rewardCoins: 3000, rewardXp: 4000 },
+
+  // Petting affection tiers
   { id: 'pet_50', name: 'True Affection', description: 'Pet your bunny 50 times.', rewardCoins: 40, rewardXp: 50 },
   { id: 'pet_200', name: 'Fluffy Bestie', description: 'Pet your bunny 200 times.', rewardCoins: 100, rewardXp: 150 },
-  { id: 'first_harvest', name: 'Green Thumb', description: 'Harvest your first homegrown carrot.', rewardCoins: 30, rewardXp: 40 },
-  { id: 'fashion_pioneer', name: 'Fashion Pioneer', description: 'Equip any accessory in the Shop.', rewardCoins: 25, rewardXp: 35 },
-  { id: 'three_presets', name: 'Stylist Guru', description: 'Save all 3 outfit presets.', rewardCoins: 60, rewardXp: 75 },
+  { id: 'pet_500', name: 'Gentle Companion', description: 'Pet your bunny 500 times.', rewardCoins: 200, rewardXp: 250 },
+  { id: 'pet_1000', name: 'Soul Bond', description: 'Pet your bunny 1,000 times.', rewardCoins: 400, rewardXp: 500 },
+  { id: 'pet_2500', name: 'Endless Affection', description: 'Pet your bunny 2,500 times.', rewardCoins: 800, rewardXp: 1000 },
+  { id: 'pet_5000', name: 'Fluff Master', description: 'Pet your bunny 5,000 times.', rewardCoins: 1500, rewardXp: 2000 },
+  { id: 'pet_10000', name: 'Mythical Cuddler', description: 'Pet your bunny 10,000 times.', rewardCoins: 3000, rewardXp: 5000 },
+
+  // Level milestones
   { id: 'level_5', name: 'Growing Up', description: 'Reach Bunny Level 5.', rewardCoins: 80, rewardXp: 100, rewardItem: { category: 'den', id: 'festive', name: 'Festive Christmas Den 🎄' } },
-  { id: 'level_10', name: 'Legendary Bunny', description: 'Reach Bunny Level 10.', rewardCoins: 200, rewardXp: 300 }
+  { id: 'level_10', name: 'Legendary Bunny', description: 'Reach Bunny Level 10.', rewardCoins: 200, rewardXp: 300 },
+  { id: 'level_20', name: 'Grand Rabbit', description: 'Reach Bunny Level 20.', rewardCoins: 400, rewardXp: 600 },
+  { id: 'level_30', name: 'Elder Bunny', description: 'Reach Bunny Level 30.', rewardCoins: 600, rewardXp: 900 },
+  { id: 'level_50', name: 'Celestial Bunny', description: 'Reach Bunny Level 50.', rewardCoins: 1000, rewardXp: 1500 },
+  { id: 'level_100', name: 'Eternal Fluff Legend', description: 'Reach Bunny Level 100.', rewardCoins: 2500, rewardXp: 4000 },
+
+  // Styling & Garden
+  { id: 'first_harvest', name: 'Green Thumb', description: 'Harvest your first homegrown crop.', rewardCoins: 30, rewardXp: 40 },
+  { id: 'fashion_pioneer', name: 'Fashion Pioneer', description: 'Equip any accessory in the Shop.', rewardCoins: 35, rewardXp: 45 },
+  { id: 'three_presets', name: 'Stylist Guru', description: 'Save all 3 outfit presets in the Shop.', rewardCoins: 75, rewardXp: 90 },
+  { id: 'cosmetics_5', name: 'Trendsetter', description: 'Unlock 5 accessories in the Shop.', rewardCoins: 120, rewardXp: 150 },
+  { id: 'cosmetics_12', name: 'Wardrobe Royalty', description: 'Unlock 12 accessories in the Shop.', rewardCoins: 300, rewardXp: 400 }
 ];
 
 const DEFAULT_STATE = {
@@ -180,7 +208,8 @@ const DEFAULT_STATE = {
       'head:party_hat',
       'face:glasses',
       'neck:red_scarf'
-    ]
+    ],
+    unlockedTerrains: ['grassy']
   },
   garden: {
     plots: [
@@ -199,7 +228,8 @@ const DEFAULT_STATE = {
     menuPosition: null,
     startWithWindows: false,
     doNotDisturb: false,
-    denSkin: 'default'
+    denSkin: 'default',
+    activeTerrain: 'grassy'
   },
   achievements: {
     unlocked: []
@@ -211,6 +241,25 @@ const DEFAULT_STATE = {
   }
 };
 
+const TERRAINS = {
+  grassy: {
+    id: 'grassy',
+    name: 'Lush Meadow',
+    tier: 'common',
+    price: 0,
+    crops: ['carrot', 'strawberry', 'lettuce'],
+    description: 'Fresh green meadow with tiny daisies. Grows carrots, strawberries, and crisp cabbage!'
+  },
+  icy: {
+    id: 'icy',
+    name: 'Frosty Ice Rink',
+    tier: 'epic',
+    price: 500,
+    crops: ['apple', 'clover'],
+    description: 'Glistening frozen lake! Barnaby ice skates and glides, occasionally slipping over (30-40s). Collect sweet apples & clovers!'
+  }
+};
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     HUNGER_SPEED_FACTORS,
@@ -219,6 +268,7 @@ if (typeof module !== 'undefined' && module.exports) {
     EYE_COLORS,
     EAR_STYLES,
     ACCESSORIES,
+    TERRAINS,
     ACHIEVEMENTS,
     DEFAULT_STATE
   };

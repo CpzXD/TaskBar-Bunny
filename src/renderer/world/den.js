@@ -38,10 +38,9 @@ class BunnyDen {
   update(deltaTime) {
     this.y = this.app.groundY;
 
-    // Anchor next to setting/bag menu button
-    if (this.app.hud && this.app.hud.bagBtn) {
-      const bag = this.app.hud.bagBtn;
-      this.x = Math.round(bag.x + bag.width / 2 + 38);
+    // Independent cozy burrow position on taskbar (not stuck to carrot menu)
+    if (!this.x || this.x < 140) {
+      this.x = 240;
     }
 
     if (this.statsTimer > 0) {

@@ -151,6 +151,9 @@ function sanitizeState(incoming, current) {
     if (Array.isArray(inv.unlockedCosmetics)) {
       safe.inventory.unlockedCosmetics = inv.unlockedCosmetics.filter(c => typeof c === 'string' && c.length < 64);
     }
+    if (Array.isArray(inv.unlockedTerrains)) {
+      safe.inventory.unlockedTerrains = inv.unlockedTerrains.filter(t => ['grassy', 'icy'].includes(t));
+    }
   }
 
   if (incoming.garden && typeof incoming.garden === 'object' && !Array.isArray(incoming.garden)) {
@@ -175,6 +178,7 @@ function sanitizeState(incoming, current) {
     if (['taskbar', 'cozy', 'desk', 'full'].includes(s.roamingArea)) safe.settings.roamingArea = s.roamingArea;
     if (['taskbar', 'free'].includes(s.floorMode)) safe.settings.floorMode = s.floorMode;
     if (['default', 'festive'].includes(s.denSkin)) safe.settings.denSkin = s.denSkin;
+    if (['grassy', 'icy'].includes(s.activeTerrain)) safe.settings.activeTerrain = s.activeTerrain;
 
     if (s.menuPosition === null) {
       safe.settings.menuPosition = null;

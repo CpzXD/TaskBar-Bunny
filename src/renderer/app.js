@@ -8,6 +8,7 @@ const { ItemSprites } = require('./sprites/itemSprites');
 const { ACHIEVEMENTS, FOODS } = require('../shared/constants');
 const { BunnyDen } = require('./world/den');
 const { Butterfly } = require('./world/butterfly');
+const { WorldTerrain } = require('./world/terrain');
 
 class TaskbarBunnyApp {
   constructor() {
@@ -19,6 +20,7 @@ class TaskbarBunnyApp {
     this.hud = null;
     this.den = null;
     this.butterfly = null;
+    this.terrain = null;
     this.input = null;
     this.loop = null;
     this.lastUserInteractionTime = Date.now();
@@ -200,14 +202,19 @@ class TaskbarBunnyApp {
       }
     }
 
+    this.terrain = new WorldTerrain(this);
     this.garden = new CarrotGarden(this.state.garden, (reward) => {
-      this.inventory.foods.carrot = (this.inventory.foods.carrot || 0) + reward.carrots;
+      const foodId = reward.foodType || 'carrot';
+      const count = reward.count || reward.carrots || 1;
+      if (!this.inventory.foods) this.inventory.foods = {};
+      this.inventory.foods[foodId] = (this.inventory.foods[foodId] || 0) + count;
       this.inventory.coins = (this.inventory.coins || 0) + reward.coins;
       this.bunny.needs.addXp(reward.xp, (newLv) => this.onLevelUp(newLv));
-      this.hud.showNotification(`+${reward.carrots} Carrots harvested!`, `+${reward.coins} Coins`, 3500, '🥕');
+      const foodInfo = FOODS[foodId] || FOODS.carrot;
+      this.hud.showNotification(`+${count} ${foodInfo.name} harvested!`, `+${reward.coins} Coins`, 3500, foodInfo.icon || '🥕');
       this.checkAchievements();
       this.saveState();
-    });
+    }, this);
 
     this.hud = new HUD(this);
     this.den = new BunnyDen(this);
@@ -391,14 +398,50 @@ class TaskbarBunnyApp {
       }
     };
 
-    check('first_carrot', this.bunny.totalCarrotsFed >= 1);
-    check('fed_25', this.bunny.totalCarrotsFed >= 25);
-    check('fed_100', this.bunny.totalCarrotsFed >= 100);
-    check('pet_50', this.bunny.totalPetCount >= 50);
-    check('pet_200', this.bunny.totalPetCount >= 200);
+    const totalFed = this.bunnies.reduce((sum, b) => sum + (b.totalCarrotsFed || 0), 0);
+    const totalPet = this.bunnies.reduce((sum, b) => sum + (b.totalPetCount || 0), 0);
+    const maxLevel = Math.max(1, ...this.bunnies.map(b => b.needs?.level || 1));
+
+    // Feeding tiers
+    check('first_carrot', totalFed >= 1);
+    check('fed_25', totalFed >= 25);
+    check('fed_100', totalFed >= 100);
+    check('fed_250', totalFed >= 250);
+    check('fed_500', totalFed >= 500);
+    check('fed_1000', totalFed >= 1000);
+    check('fed_2500', totalFed >= 2500);
+    check('fed_5000', totalFed >= 5000);
+
+    // Petting affection tiers
+    check('pet_50', totalPet >= 50);
+    check('pet_200', totalPet >= 200);
+    check('pet_500', totalPet >= 500);
+    check('pet_1000', totalPet >= 1000);
+    check('pet_2500', totalPet >= 2500);
+    check('pet_5000', totalPet >= 5000);
+    check('pet_10000', totalPet >= 10000);
+
+    // Level milestones
+    check('level_5', maxLevel >= 5);
+    check('level_10', maxLevel >= 10);
+    check('level_20', maxLevel >= 20);
+    check('level_30', maxLevel >= 30);
+    check('level_50', maxLevel >= 50);
+    check('level_100', maxLevel >= 100);
+
+    // Garden & Styling
     check('first_harvest', this.state.garden?.plots?.some(p => p.ready || p.plantedAt));
-    check('level_5', this.bunny.needs.level >= 5);
-    check('level_10', this.bunny.needs.level >= 10);
+    const hasEquippedAccessory = this.bunnies.some(b => Object.values(b.equipped || {}).some(v => v && v !== 'none'));
+    check('fashion_pioneer', hasEquippedAccessory);
+
+    const savedPresetsCount = (this.state.bunny?.outfitPresets || []).filter(p =>
+      p.saved || Object.entries(p).some(([k, v]) => k !== 'name' && v && v !== 'none')
+    ).length;
+    check('three_presets', savedPresetsCount >= 3);
+
+    const cosmeticsCount = (this.inventory.unlockedCosmetics || []).length;
+    check('cosmetics_5', cosmeticsCount >= 5);
+    check('cosmetics_12', cosmeticsCount >= 12);
   }
 
   update(deltaTime) {
@@ -485,6 +528,10 @@ class TaskbarBunnyApp {
       }
     }
 
+    if (this.terrain) {
+      this.terrain.update(deltaTime);
+    }
+
     if (this.garden) {
       this.garden.update(deltaTime);
     }
@@ -549,6 +596,10 @@ class TaskbarBunnyApp {
 
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    if (this.terrain) {
+      this.terrain.draw(this.ctx, this.groundY, this.canvas.width);
+    }
 
     if (this.den) {
       this.den.draw(this.ctx);
@@ -646,6 +697,7 @@ class TaskbarBunnyApp {
 
     if (this.state.settings && this.bunnies) {
       for (const b of this.bunnies) {
+        b.settings = this.state.settings;
         b.scale = this.state.settings.bunnyScale || 2.5;
         b.width = b.baseSpriteSize * b.scale;
         b.height = b.baseSpriteSize * b.scale;
@@ -663,6 +715,7 @@ class TaskbarBunnyApp {
     if (this.hud) {
       this.hud.layout(this.canvas.height, this.taskbarOverlap);
     }
+    this.checkAchievements();
   }
 
   saveState() {

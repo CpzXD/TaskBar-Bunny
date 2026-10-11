@@ -1,4 +1,4 @@
-const { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS, FOODS } = require('../../shared/constants');
+const { ACCESSORIES, FUR_COLORS, EAR_STYLES, EYE_COLORS, ACHIEVEMENTS, FOODS, TERRAINS } = require('../../shared/constants');
 const { BunnySpriteGenerator } = require('../sprites/bunnySprites');
 const { AccessoryRenderer } = require('../sprites/accessories');
 const { soundEngine } = require('../engine/soundEngine');
@@ -204,6 +204,8 @@ class WardrobeController {
 
     if (this.activeTab === 'food') {
       this.renderFoodShop();
+    } else if (this.activeTab === 'terrain') {
+      this.renderTerrainShop();
     } else if (this.activeTab === 'den') {
       this.renderDenShop();
     } else if (this.activeTab === 'base') {
@@ -371,7 +373,7 @@ class WardrobeController {
           <canvas class="item-preview-canvas" width="64" height="64"></canvas>
         </div>
         <div class="food-bonuses">
-          <span>🥕 +${f.hungerBonus}% Hunger</span>
+          <span>🥕 +${f.hungerRestore || f.hungerBonus}% Hunger</span>
           <span>💖 +${f.happinessBonus}% Happy</span>
         </div>
         <div class="food-acquire" title="${f.acquire || f.description}">
@@ -398,6 +400,103 @@ class WardrobeController {
         soundEngine.playCoin();
         this.saveState();
         this.updateHeaderInfo();
+        this.renderTabContent();
+      });
+
+      this.tabContent.appendChild(card);
+    }
+  }
+
+  renderTerrainShop() {
+    const terrains = Object.values(TERRAINS || {});
+    const currentTerrain = this.state.settings?.activeTerrain || 'grassy';
+    const unlockedList = this.state.inventory?.unlockedTerrains || ['grassy'];
+
+    for (const t of terrains) {
+      const isEquipped = currentTerrain === t.id;
+      const isUnlocked = t.price === 0 || unlockedList.includes(t.id);
+      const canAfford = (this.state.inventory.coins || 0) >= t.price;
+
+      const card = document.createElement('div');
+      card.className = `food-card ${isEquipped ? 'equipped' : ''}`;
+
+      card.innerHTML = `
+        <div class="food-header">
+          <div class="food-title">${t.name}</div>
+          <span class="item-tier tier-${t.tier}">${t.tier}</span>
+        </div>
+        <div class="item-visual-wrap" style="height: 72px;">
+          <canvas class="item-preview-canvas" width="64" height="64"></canvas>
+        </div>
+        <div class="food-acquire" style="min-height: 44px; font-size: 11px;">
+          ${t.description}
+        </div>
+        <div style="font-size: 11px; margin: 2px 0; text-align: center; min-height: 16px;">
+          ${isUnlocked ? `<span style="color: #059669; font-weight: 600;">${isEquipped ? 'Active Terrain 🏞️' : 'Owned'}</span>` : ''}
+        </div>
+        <div>
+          ${
+            isEquipped
+              ? `<button class="item-btn btn-unequip" disabled style="opacity: 0.8; cursor: default;">Active</button>`
+              : (isUnlocked
+                  ? `<button class="item-btn btn-equip">Use Terrain</button>`
+                  : `<button class="item-btn btn-buy ${canAfford ? '' : 'insufficient-funds'}" ${canAfford ? '' : 'title="Not enough coins"'}>Buy <span class="coin-icon"></span> ${t.price}</button>`)
+          }
+        </div>
+      `;
+
+      const canvas = card.querySelector('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+
+      // Draw stylized pixel terrain visual
+      if (t.id === 'icy') {
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(4, 38, 56, 22);
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillRect(4, 34, 56, 5);
+        ctx.fillStyle = '#e0f2fe';
+        ctx.fillRect(8, 35, 16, 2);
+        ctx.fillRect(32, 35, 20, 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(16, 18, 4, 4);
+        ctx.fillRect(44, 14, 5, 5);
+        ctx.fillRect(28, 8, 3, 3);
+      } else {
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(4, 38, 56, 22);
+        ctx.fillStyle = '#16a34a';
+        ctx.fillRect(4, 34, 56, 5);
+        ctx.fillStyle = '#4ade80';
+        for (let gx = 8; gx < 56; gx += 10) {
+          ctx.fillRect(gx, 28, 3, 6);
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(22, 22, 6, 6);
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(24, 24, 2, 2);
+      }
+
+      const btn = card.querySelector('.item-btn');
+      btn.addEventListener('click', () => {
+        if (isEquipped) return;
+        if (isUnlocked) {
+          if (!this.state.settings) this.state.settings = {};
+          this.state.settings.activeTerrain = t.id;
+          soundEngine.playHop();
+        } else {
+          if (!canAfford) return;
+          this.state.inventory.coins -= t.price;
+          if (!this.state.inventory.unlockedTerrains) this.state.inventory.unlockedTerrains = ['grassy'];
+          if (!this.state.inventory.unlockedTerrains.includes(t.id)) {
+            this.state.inventory.unlockedTerrains.push(t.id);
+          }
+          if (!this.state.settings) this.state.settings = {};
+          this.state.settings.activeTerrain = t.id;
+          soundEngine.playCoin();
+          this.updateHeaderInfo();
+        }
+        this.saveState();
         this.renderTabContent();
       });
 
@@ -552,8 +651,21 @@ class WardrobeController {
           // Buy item
           if (!canAfford) return;
           this.state.inventory.coins -= item.price;
+          if (!this.state.inventory.unlockedCosmetics) this.state.inventory.unlockedCosmetics = [];
           this.state.inventory.unlockedCosmetics.push(`${category}:${item.id}`);
           currentBunny.equipped[category] = item.id;
+
+          // Buying clothes grants XP
+          const xpGain = Math.max(20, Math.round(item.price * 0.75));
+          currentBunny.xp = (currentBunny.xp || 0) + xpGain;
+          currentBunny.level = currentBunny.level || 1;
+          while (currentBunny.xp >= currentBunny.level * 100) {
+            currentBunny.xp -= currentBunny.level * 100;
+            currentBunny.level += 1;
+            this.state.inventory.coins = (this.state.inventory.coins || 0) + 50;
+            soundEngine.playLevelUp();
+          }
+
           soundEngine.playCoin();
           this.updateHeaderInfo();
         }
@@ -600,60 +712,52 @@ class WardrobeController {
   }
 
   getAchievementProgress(ach) {
-    const isUnlocked = Boolean(this.state.achievements?.unlocked?.includes(ach.id));
+    const isUnlocked = Boolean(this.state?.achievements?.unlocked?.includes(ach.id));
+    const bunny = this.state?.bunny || {};
+    const extra = this.state?.extraBunnies || [];
+    const allBunnies = [bunny, ...extra];
+    const totalFed = allBunnies.reduce((sum, b) => sum + (b.totalCarrotsFed || 0), 0);
+    const totalPet = allBunnies.reduce((sum, b) => sum + (b.totalPetCount || 0), 0);
+    const maxLevel = Math.max(1, ...allBunnies.map(b => b.level || 1));
+    const unlockedCosmeticsCount = (this.state?.inventory?.unlockedCosmetics || []).length;
+
     let current = 0;
     let max = 1;
 
-    switch (ach.id) {
-      case 'first_carrot':
-        max = 1;
-        current = Math.min(max, this.state.bunny.totalCarrotsFed || 0);
-        break;
-      case 'fed_25':
-        max = 25;
-        current = Math.min(max, this.state.bunny.totalCarrotsFed || 0);
-        break;
-      case 'fed_100':
-        max = 100;
-        current = Math.min(max, this.state.bunny.totalCarrotsFed || 0);
-        break;
-      case 'pet_50':
-        max = 50;
-        current = Math.min(max, this.state.bunny.totalPetCount || 0);
-        break;
-      case 'pet_200':
-        max = 200;
-        current = Math.min(max, this.state.bunny.totalPetCount || 0);
-        break;
-      case 'first_harvest':
-        max = 1;
-        current = isUnlocked ? 1 : 0;
-        break;
-      case 'fashion_pioneer':
-        max = 1;
-        const hasEquipped = Object.values(this.state.bunny.equipped || {}).some(v => v && v !== 'none');
-        current = isUnlocked || hasEquipped ? 1 : 0;
-        break;
-      case 'three_presets':
-        max = 3;
-        const savedCount = (this.state.bunny.outfitPresets || []).filter(p =>
-          Object.entries(p).some(([k, v]) => k !== 'name' && v !== 'none')
-        ).length;
-        current = isUnlocked ? 3 : Math.min(max, savedCount);
-        break;
-      case 'level_5':
-        max = 5;
-        current = Math.min(max, this.state.bunny.level || 1);
-        break;
-      case 'level_10':
-        max = 10;
-        current = Math.min(max, this.state.bunny.level || 1);
-        break;
-      default:
-        current = isUnlocked ? 1 : 0;
-        max = 1;
+    if (ach.id.startsWith('fed_')) {
+      max = parseInt(ach.id.replace('fed_', ''), 10) || 25;
+      current = Math.min(max, totalFed);
+    } else if (ach.id === 'first_carrot') {
+      max = 1;
+      current = Math.min(1, totalFed);
+    } else if (ach.id.startsWith('pet_')) {
+      max = parseInt(ach.id.replace('pet_', ''), 10) || 50;
+      current = Math.min(max, totalPet);
+    } else if (ach.id.startsWith('level_')) {
+      max = parseInt(ach.id.replace('level_', ''), 10) || 5;
+      current = Math.min(max, maxLevel);
+    } else if (ach.id.startsWith('cosmetics_')) {
+      max = parseInt(ach.id.replace('cosmetics_', ''), 10) || 5;
+      current = Math.min(max, unlockedCosmeticsCount);
+    } else if (ach.id === 'first_harvest') {
+      max = 1;
+      current = this.state?.garden?.plots?.some(p => p.ready || p.plantedAt) ? 1 : 0;
+    } else if (ach.id === 'fashion_pioneer') {
+      max = 1;
+      const hasEquipped = allBunnies.some(b => Object.values(b.equipped || {}).some(v => v && v !== 'none'));
+      current = hasEquipped ? 1 : 0;
+    } else if (ach.id === 'three_presets') {
+      max = 3;
+      const savedCount = (bunny.outfitPresets || []).filter(p =>
+        p.saved || Object.entries(p).some(([k, v]) => k !== 'name' && v && v !== 'none')
+      ).length;
+      current = Math.min(max, savedCount);
+    } else {
+      max = 1;
+      current = isUnlocked ? 1 : 0;
     }
 
+    if (isUnlocked) current = max;
     const pct = isUnlocked ? 100 : Math.min(100, Math.round((current / max) * 100));
     return { isUnlocked, current, max, pct };
   }
@@ -689,13 +793,15 @@ class WardrobeController {
       card.querySelector('.preset-desc').textContent = itemsDesc;
 
       card.querySelector('.btn-save-preset').addEventListener('click', () => {
+        if (!this.state.bunny.outfitPresets) this.state.bunny.outfitPresets = [];
         this.state.bunny.outfitPresets[idx] = {
           name: `Preset ${idx + 1}`,
           head: this.state.bunny.equipped.head,
           face: this.state.bunny.equipped.face,
           neck: this.state.bunny.equipped.neck,
           back: this.state.bunny.equipped.back,
-          held: this.state.bunny.equipped.held
+          held: this.state.bunny.equipped.held,
+          saved: true
         };
         soundEngine.playCoin();
         this.saveState();
