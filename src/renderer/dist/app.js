@@ -1523,7 +1523,8 @@
           this.baseSpriteSize = 32;
           this.width = this.baseSpriteSize * this.scale;
           this.height = this.baseSpriteSize * this.scale;
-          this.groundY = this.screenHeight - 12;
+          this.taskbarOverlap = 0;
+          this.groundY = this.screenHeight - this.taskbarOverlap - 12;
           this.x = Math.max(100, Math.min(screenWidth - 100, screenWidth / 2));
           this.y = this.groundY;
           this.vx = 0;
@@ -1541,10 +1542,11 @@
           this.totalPetCount = initialData.totalPetCount || 0;
           this.totalCarrotsFed = initialData.totalCarrotsFed || 0;
         }
-        resize(newWidth, newHeight) {
+        resize(newWidth, newHeight, taskbarOverlap = 0) {
           this.screenWidth = newWidth;
           this.screenHeight = newHeight;
-          this.groundY = this.screenHeight - 12;
+          this.taskbarOverlap = taskbarOverlap;
+          this.groundY = this.screenHeight - this.taskbarOverlap - 12;
           if (!this.isDragging && this.y >= this.groundY - 10) {
             this.y = this.groundY;
           }
@@ -1904,7 +1906,14 @@
             width: 44,
             height: 24
           };
+          this.drawerY = 78;
           this.foodKeys = ["carrot", "lettuce", "apple", "clover", "strawberry"];
+        }
+        // Anchor the bottom-left controls to the visible bottom edge (the top of the taskbar)
+        layout(canvasHeight, taskbarOverlap = 0) {
+          const bottom = canvasHeight - taskbarOverlap;
+          this.bagBtn.y = bottom - 26;
+          this.drawerY = bottom - 102;
         }
         toggleDrawer() {
           this.isDrawerOpen = !this.isDrawerOpen;
@@ -1935,7 +1944,7 @@
           if (!this.isDrawerOpen) return null;
           return {
             x: 16,
-            y: 78,
+            y: this.drawerY,
             width: 250,
             height: 68
           };
@@ -2205,7 +2214,7 @@
             if (dist > 8) {
               if (this.app.inventory.foods[this.pendingFoodSlot] > 0) {
                 this.app.inventory.foods[this.pendingFoodSlot]--;
-                const groundY = this.app.canvas.height - 12;
+                const groundY = this.app.groundY;
                 const newFood = {
                   id: this.pendingFoodSlot,
                   x: px,
@@ -2295,7 +2304,7 @@
               return;
             }
             food.vy = 1.2;
-            food.groundY = this.app.canvas.height - 12;
+            food.groundY = this.app.groundY;
             food.x = Math.max(90, Math.min(this.app.canvas.width - 40, food.x));
             food.isGrounded = false;
             soundEngine2.playHop();
@@ -2470,14 +2479,29 @@
       this.input = null;
       this.loop = null;
       this.worldFoods = [];
+      this.taskbarOverlap = 0;
       this.butterfly = null;
       this.randomEventTimer = 0;
       this.autoSaveTimer = 0;
       this.init();
     }
+    // Y coordinate of the floor: just above the taskbar, whatever its height
+    get groundY() {
+      return this.canvas.height - this.taskbarOverlap - 12;
+    }
     async init() {
       this.handleResize();
       window.addEventListener("resize", () => this.handleResize());
+      try {
+        const layout = await window.api.getLayout();
+        this.taskbarOverlap = layout && layout.taskbarOverlap || 0;
+      } catch (err) {
+        console.error("[Renderer] Could not read taskbar layout:", err);
+      }
+      window.api.onLayoutUpdate((layout) => {
+        this.taskbarOverlap = layout && layout.taskbarOverlap || 0;
+        this.applyLayout();
+      });
       const { state, offlineSummary } = await window.api.loadState();
       this.state = state;
       if (this.state.settings) {
@@ -2505,6 +2529,7 @@
       });
       this.hud = new HUD(this);
       this.input = new InputManager(this);
+      this.applyLayout();
       console.log("[Renderer] App initialized successfully. Canvas:", this.canvas.width, "x", this.canvas.height);
       if (offlineSummary) {
         this.handleOfflineSummary(offlineSummary);
@@ -2531,12 +2556,22 @@
     handleResize() {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
+      this.applyLayout();
+    }
+    // Re-anchor everything that stands on the floor or sits at the bottom of the screen
+    applyLayout() {
       if (this.bunny) {
-        this.bunny.resize(this.canvas.width, this.canvas.height);
+        this.bunny.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
       }
       if (this.garden) {
-        this.garden.y = this.canvas.height - 12;
+        this.garden.y = this.groundY;
         this.garden.x = Math.min(260, this.canvas.width - 100);
+      }
+      if (this.hud) {
+        this.hud.layout(this.canvas.height, this.taskbarOverlap);
+      }
+      for (const food of this.worldFoods) {
+        food.groundY = this.groundY;
       }
     }
     handleOfflineSummary(summary) {
@@ -2557,7 +2592,7 @@
         return;
       }
       this.inventory.foods[foodId]--;
-      const groundY = this.canvas.height - 12;
+      const groundY = this.groundY;
       const safeX = Math.max(90, Math.min(this.canvas.width - 35, x));
       this.worldFoods.push({
         id: foodId,
@@ -2669,7 +2704,7 @@
         if (roll < 0.4) {
           this.butterfly = {
             x: Math.random() < 0.5 ? 20 : this.canvas.width - 20,
-            y: this.canvas.height - 60 - Math.random() * 50,
+            y: this.groundY - 48 - Math.random() * 50,
             vx: Math.random() < 0.5 ? 1.2 : -1.2,
             vy: -0.4,
             life: 0,
