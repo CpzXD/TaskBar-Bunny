@@ -2097,15 +2097,21 @@
               }
               const btnY = db.y + Math.round(45 * s);
               const btnH = Math.round(22 * s);
-              const btn1W = Math.round(68 * s);
-              const btn2W = Math.round(68 * s);
+              const btn1W = Math.round(52 * s);
+              const btn2W = Math.round(52 * s);
+              const btn3W = Math.round(46 * s);
+              const gap = Math.round(4 * s);
               const wx = db.x + Math.round(8 * s);
               if (px >= wx && px <= wx + btn1W && py >= btnY && py <= btnY + btnH) {
                 return { type: "open-wardrobe" };
               }
-              const sx = wx + btn1W + Math.round(6 * s);
+              const sx = wx + btn1W + gap;
               if (px >= sx && px <= sx + btn2W && py >= btnY && py <= btnY + btnH) {
                 return { type: "open-settings" };
+              }
+              const qx = sx + btn2W + gap;
+              if (px >= qx && px <= qx + btn3W && py >= btnY && py <= btnY + btnH) {
+                return { type: "quit-app" };
               }
               return { type: "drawer-bg" };
             }
@@ -2183,10 +2189,13 @@
             }
             const btnY = db.y + Math.round(45 * s);
             const btnH = Math.round(22 * s);
-            const btn1W = Math.round(68 * s);
-            const btn2W = Math.round(68 * s);
+            const btn1W = Math.round(52 * s);
+            const btn2W = Math.round(52 * s);
+            const btn3W = Math.round(46 * s);
+            const gap = Math.round(4 * s);
             const wx = db.x + Math.round(8 * s);
-            const sx = wx + btn1W + Math.round(6 * s);
+            const sx = wx + btn1W + gap;
+            const qx = sx + btn2W + gap;
             ctx.fillStyle = "#fce7f3";
             ctx.strokeStyle = "#f472b6";
             ctx.lineWidth = 1;
@@ -2207,8 +2216,16 @@
             ctx.stroke();
             ctx.fillStyle = "#334155";
             ctx.fillText("\u2699\uFE0F Setup", sx + Math.round(btn2W / 2), btnY + Math.round(btnH / 2));
+            ctx.fillStyle = "#fee2e2";
+            ctx.strokeStyle = "#fca5a5";
+            ctx.beginPath();
+            ctx.roundRect(qx, btnY, btn3W, btnH, Math.round(4 * s));
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#b91c1c";
+            ctx.fillText("\u2715 Exit", qx + Math.round(btn3W / 2), btnY + Math.round(btnH / 2));
             const coinY = btnY + Math.round(btnH / 2);
-            const coinX = sx + btn2W + Math.round(14 * s);
+            const coinX = qx + btn3W + Math.round(12 * s);
             ctx.fillStyle = "#ffd700";
             ctx.beginPath();
             ctx.arc(coinX, coinY, Math.round(5 * s), 0, Math.PI * 2);
@@ -2599,6 +2616,10 @@
                 return;
               } else if (btn.type === "open-settings") {
                 if (window.api) window.api.openSettings();
+                return;
+              } else if (btn.type === "quit-app") {
+                if (this.app) this.app.saveState();
+                if (window.api) window.api.quitApp();
                 return;
               }
               return;

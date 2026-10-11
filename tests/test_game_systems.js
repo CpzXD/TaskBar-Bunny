@@ -152,4 +152,14 @@ test('Movable menu HUD positioning and drawer anchoring', () => {
   // Reset menu position
   hud.resetMenuPosition();
   assert.ok(hud.bagBtn.x < 100, 'Menu x should reset to bottom-left corner');
+
+  // Verify HUD quit button hit test
+  const testDb = hud.getDrawerBounds();
+  const testS = hud.scale;
+  const qx = testDb.x + Math.round(8 * testS) + Math.round(52 * testS) + Math.round(4 * testS) + Math.round(52 * testS) + Math.round(4 * testS);
+  const qy = testDb.y + Math.round(45 * testS);
+  const quitBtn = hud.getButtonAt(qx + 2, qy + 2);
+  assert.ok(quitBtn, 'Quit button should be found at calculated coordinates');
+  assert.strictEqual(quitBtn.type, 'quit-app', 'Button type should be quit-app');
 });
+

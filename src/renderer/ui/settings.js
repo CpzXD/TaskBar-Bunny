@@ -16,6 +16,7 @@ class SettingsController {
     this.muteCheck = document.getElementById('muteCheck');
     this.startWindowsCheck = document.getElementById('startWindowsCheck');
     this.dndCheck = document.getElementById('dndCheck');
+    this.quitAppBtn = document.getElementById('quitAppBtn');
     this.resetBtn = document.getElementById('resetBtn');
 
     this.state = null;
@@ -131,7 +132,17 @@ class SettingsController {
       this.saveState();
     });
 
-    // 9. Reset Save Data
+    // 9. Quit Game
+    if (this.quitAppBtn) {
+      this.quitAppBtn.addEventListener('click', () => {
+        this.saveState();
+        if (window.api && window.api.quitApp) {
+          window.api.quitApp();
+        }
+      });
+    }
+
+    // 10. Reset Save Data
     this.resetBtn.addEventListener('click', async () => {
       if (confirm('Are you sure you want to reset all progress, coins, and customizations? This cannot be undone.')) {
         await window.api.resetState();

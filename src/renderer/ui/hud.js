@@ -169,18 +169,25 @@ class HUD {
           }
         }
 
-        // Action icons (row 2: Wardrobe, Settings)
+        // Action icons (row 2: Wardrobe, Settings, Exit)
         const btnY = db.y + Math.round(45 * s);
         const btnH = Math.round(22 * s);
-        const btn1W = Math.round(68 * s);
-        const btn2W = Math.round(68 * s);
+        const btn1W = Math.round(52 * s);
+        const btn2W = Math.round(52 * s);
+        const btn3W = Math.round(46 * s);
+        const gap = Math.round(4 * s);
+
         const wx = db.x + Math.round(8 * s);
         if (px >= wx && px <= wx + btn1W && py >= btnY && py <= btnY + btnH) {
           return { type: 'open-wardrobe' };
         }
-        const sx = wx + btn1W + Math.round(6 * s);
+        const sx = wx + btn1W + gap;
         if (px >= sx && px <= sx + btn2W && py >= btnY && py <= btnY + btnH) {
           return { type: 'open-settings' };
+        }
+        const qx = sx + btn2W + gap;
+        if (px >= qx && px <= qx + btn3W && py >= btnY && py <= btnY + btnH) {
+          return { type: 'quit-app' };
         }
 
         return { type: 'drawer-bg' };
@@ -285,13 +292,16 @@ class HUD {
         ctx.fillText(`x${count}`, fx + Math.round(slotW / 2), startY + Math.round(29 * s));
       }
 
-      // Action buttons: Wardrobe & Settings
+      // Action buttons: Wardrobe, Settings & Exit
       const btnY = db.y + Math.round(45 * s);
       const btnH = Math.round(22 * s);
-      const btn1W = Math.round(68 * s);
-      const btn2W = Math.round(68 * s);
+      const btn1W = Math.round(52 * s);
+      const btn2W = Math.round(52 * s);
+      const btn3W = Math.round(46 * s);
+      const gap = Math.round(4 * s);
       const wx = db.x + Math.round(8 * s);
-      const sx = wx + btn1W + Math.round(6 * s);
+      const sx = wx + btn1W + gap;
+      const qx = sx + btn2W + gap;
 
       // Wardrobe Button
       ctx.fillStyle = '#fce7f3';
@@ -317,9 +327,19 @@ class HUD {
       ctx.fillStyle = '#334155';
       ctx.fillText('⚙️ Setup', sx + Math.round(btn2W / 2), btnY + Math.round(btnH / 2));
 
+      // Exit Button
+      ctx.fillStyle = '#fee2e2';
+      ctx.strokeStyle = '#fca5a5';
+      ctx.beginPath();
+      ctx.roundRect(qx, btnY, btn3W, btnH, Math.round(4 * s));
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillText('✕ Exit', qx + Math.round(btn3W / 2), btnY + Math.round(btnH / 2));
+
       // Coin counter badge
       const coinY = btnY + Math.round(btnH / 2);
-      const coinX = sx + btn2W + Math.round(14 * s);
+      const coinX = qx + btn3W + Math.round(12 * s);
       ctx.fillStyle = '#ffd700';
       ctx.beginPath();
       ctx.arc(coinX, coinY, Math.round(5 * s), 0, Math.PI * 2);

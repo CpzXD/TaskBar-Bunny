@@ -396,6 +396,10 @@ class InputManager {
         } else if (btn.type === 'open-settings') {
           if (window.api) window.api.openSettings();
           return;
+        } else if (btn.type === 'quit-app') {
+          if (this.app) this.app.saveState();
+          if (window.api) window.api.quitApp();
+          return;
         }
         return;
       }

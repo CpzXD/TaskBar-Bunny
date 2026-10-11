@@ -15,6 +15,7 @@
       this.muteCheck = document.getElementById("muteCheck");
       this.startWindowsCheck = document.getElementById("startWindowsCheck");
       this.dndCheck = document.getElementById("dndCheck");
+      this.quitAppBtn = document.getElementById("quitAppBtn");
       this.resetBtn = document.getElementById("resetBtn");
       this.state = null;
       this.init();
@@ -102,6 +103,14 @@
         this.state.settings.doNotDisturb = e.target.checked;
         this.saveState();
       });
+      if (this.quitAppBtn) {
+        this.quitAppBtn.addEventListener("click", () => {
+          this.saveState();
+          if (window.api && window.api.quitApp) {
+            window.api.quitApp();
+          }
+        });
+      }
       this.resetBtn.addEventListener("click", async () => {
         if (confirm("Are you sure you want to reset all progress, coins, and customizations? This cannot be undone.")) {
           await window.api.resetState();

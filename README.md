@@ -56,6 +56,8 @@ Barnaby hops, wanders, nibbles carrots, takes naps, and reacts to your interacti
   - System tray menu with quick Show/Hide, Wardrobe, Settings, and Feed Carrot shortcuts.
   - Toggle "Start with Windows" in settings.
   - "Do Not Disturb" mode to keep the bunny still and quiet.
+- **Convenient Exit & Closing Options**:
+  - Easily exit the game anytime without Task Manager: click **`✕ Exit`** in the floating food drawer, click **`Quit Game 🚪`** in Settings ⚙️, or right-click the system tray icon and select **Quit**.
 - **Expanded Roaming Area & Movable Menu**:
   - Full display transparent click-through overlay. Move the bunny around anywhere across your screen, and customize roaming height in Settings (Taskbar line, Cozy 220px, Lower Desk 450px, or Full Screen free roam).
   - Flexible floor mode: keep the bunny attached to the taskbar, or enable "Free Perch" to let the bunny live and walk at whatever height you place it!
