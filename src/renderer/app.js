@@ -24,6 +24,9 @@ class TaskbarBunnyApp {
     // Dropped food items in world
     this.worldFoods = [];
 
+    // Pixels at the bottom of the canvas hidden under the taskbar (set by the main process)
+    this.taskbarOverlap = 0;
+
     // Cute random events (butterfly, coin find, sneeze)
     this.butterfly = null; // { x, y, vx, vy, life }
     this.randomEventTimer = 0;
@@ -34,9 +37,26 @@ class TaskbarBunnyApp {
     this.init();
   }
 
+  // Y coordinate of the floor: just above the taskbar, whatever its height
+  get groundY() {
+    return this.canvas.height - this.taskbarOverlap - 12;
+  }
+
   async init() {
     this.handleResize();
     window.addEventListener('resize', () => this.handleResize());
+
+    // Ask the main process how much of the canvas the taskbar covers, and keep it updated
+    try {
+      const layout = await window.api.getLayout();
+      this.taskbarOverlap = (layout && layout.taskbarOverlap) || 0;
+    } catch (err) {
+      console.error('[Renderer] Could not read taskbar layout:', err);
+    }
+    window.api.onLayoutUpdate((layout) => {
+      this.taskbarOverlap = (layout && layout.taskbarOverlap) || 0;
+      this.applyLayout();
+    });
 
     // 1. Load initial game state via IPC
     const { state, offlineSummary } = await window.api.loadState();
@@ -73,6 +93,7 @@ class TaskbarBunnyApp {
 
     this.hud = new HUD(this);
     this.input = new InputManager(this);
+    this.applyLayout();
 
     console.log('[Renderer] App initialized successfully. Canvas:', this.canvas.width, 'x', this.canvas.height);
 
@@ -110,12 +131,24 @@ class TaskbarBunnyApp {
   handleResize() {
     this.canvas.width = window.innerWidth;
     this.canvas.height = window.innerHeight;
+    this.applyLayout();
+  }
+
+  // Re-anchor everything that stands on the floor or sits at the bottom of the screen
+  applyLayout() {
     if (this.bunny) {
-      this.bunny.resize(this.canvas.width, this.canvas.height);
+      this.bunny.resize(this.canvas.width, this.canvas.height, this.taskbarOverlap);
     }
     if (this.garden) {
-      this.garden.y = this.canvas.height - 12;
+      this.garden.y = this.groundY;
       this.garden.x = Math.min(260, this.canvas.width - 100);
+    }
+    if (this.hud) {
+      this.hud.layout(this.canvas.height, this.taskbarOverlap);
+    }
+    // Resting food follows the floor
+    for (const food of this.worldFoods) {
+      food.groundY = this.groundY;
     }
   }
 
@@ -139,7 +172,7 @@ class TaskbarBunnyApp {
     }
 
     this.inventory.foods[foodId]--;
-    const groundY = this.canvas.height - 12;
+    const groundY = this.groundY;
     // Always place dropped food safely clear of the bottom-left counter pill (min x: 90)
     const safeX = Math.max(90, Math.min(this.canvas.width - 35, x));
 
@@ -287,7 +320,7 @@ class TaskbarBunnyApp {
         // Spawn fluttering butterfly!
         this.butterfly = {
           x: Math.random() < 0.5 ? 20 : this.canvas.width - 20,
-          y: this.canvas.height - 60 - Math.random() * 50,
+          y: this.groundY - 48 - Math.random() * 50,
           vx: Math.random() < 0.5 ? 1.2 : -1.2,
           vy: -0.4,
           life: 0,
