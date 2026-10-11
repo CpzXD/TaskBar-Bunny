@@ -66,9 +66,9 @@ class WindowManager {
 
     return {
       x: workArea.x,
-      y: workArea.y + workArea.height - this.overlayHeight,
+      y: workArea.y,
       width: workArea.width,
-      height: this.overlayHeight
+      height: workArea.height
     };
   }
 

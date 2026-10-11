@@ -187,6 +187,9 @@ const DEFAULT_STATE = {
     volume: 0.6,
     isMuted: false,
     hungerSpeed: 'normal',
+    roamingArea: 'cozy',
+    floorMode: 'taskbar',
+    menuPosition: null,
     startWithWindows: false,
     doNotDisturb: false,
     hideWhenFullscreen: false

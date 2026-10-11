@@ -173,16 +173,19 @@ class TaskbarBunnyApp {
     }
 
     this.inventory.foods[foodId]--;
-    const groundY = this.groundY;
+    const groundY = this.bunny ? this.bunny.groundY : this.groundY;
     const db = this.hud ? this.hud.getDrawerBounds() : null;
-    const minX = (this.hud && this.hud.isDrawerOpen && db) ? (db.x + db.width + 30) : 100;
     let safeX = x;
-    if (safeX < minX) {
-      const maxX = Math.max(minX + 80, this.canvas.width - 50);
-      safeX = Math.floor(Math.random() * (maxX - minX)) + minX;
-    } else {
-      safeX = Math.min(this.canvas.width - 35, safeX);
+
+    // Ensure food does not drop behind drawer card
+    if (this.hud && this.hud.isDrawerOpen && db) {
+      if (safeX >= db.x - 20 && safeX <= db.x + db.width + 20) {
+        safeX = (db.x + db.width + 50 < this.canvas.width - 40)
+          ? db.x + db.width + 40 + Math.random() * 40
+          : db.x - 50 - Math.random() * 40;
+      }
     }
+    safeX = Math.max(40, Math.min(this.canvas.width - 40, safeX));
 
     this.worldFoods.push({
       id: foodId,
@@ -439,9 +442,18 @@ class TaskbarBunnyApp {
         this.bunny.width = this.bunny.baseSpriteSize * this.bunny.scale;
         this.bunny.height = this.bunny.baseSpriteSize * this.bunny.scale;
         this.bunny.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
+        this.bunny.roamingArea = this.state.settings.roamingArea || 'cozy';
+        this.bunny.floorMode = this.state.settings.floorMode || 'taskbar';
+        if (this.bunny.floorMode === 'taskbar') {
+          this.bunny.groundY = this.bunny.taskbarFloorY;
+          this.bunny.customGroundY = null;
+        }
         soundEngine.setVolume(this.state.settings.volume ?? 0.6);
         soundEngine.setMuted(Boolean(this.state.settings.isMuted));
       }
+    }
+    if (this.hud) {
+      this.hud.layout(this.canvas.height, this.taskbarOverlap);
     }
   }
 
@@ -459,6 +471,9 @@ class TaskbarBunnyApp {
     this.state.bunny.earStyle = this.bunny.appearance.earStyle;
     this.state.bunny.eyeColor = this.bunny.appearance.eyeColor;
     this.state.bunny.blush = this.bunny.appearance.blush;
+    this.state.bunny.customGroundY = (this.bunny.floorMode === 'free' && this.bunny.customGroundY)
+      ? Math.round(this.bunny.customGroundY)
+      : null;
 
     if (this.garden) {
       this.state.garden.plots = this.garden.plots;

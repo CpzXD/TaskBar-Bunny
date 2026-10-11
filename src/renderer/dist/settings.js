@@ -5,7 +5,10 @@
       this.closeBtn = document.getElementById("closeBtn");
       this.monitorSelect = document.getElementById("monitorSelect");
       this.scaleSelect = document.getElementById("scaleSelect");
+      this.roamingAreaSelect = document.getElementById("roamingAreaSelect");
+      this.floorModeSelect = document.getElementById("floorModeSelect");
       this.menuScaleSelect = document.getElementById("menuScaleSelect");
+      this.resetMenuBtn = document.getElementById("resetMenuBtn");
       this.hungerSpeedSelect = document.getElementById("hungerSpeedSelect");
       this.volumeSlider = document.getElementById("volumeSlider");
       this.volumeVal = document.getElementById("volumeVal");
@@ -43,11 +46,32 @@
         this.state.settings.bunnyScale = parseFloat(e.target.value);
         this.saveState();
       });
+      if (this.roamingAreaSelect) {
+        this.roamingAreaSelect.value = s.roamingArea || "cozy";
+        this.roamingAreaSelect.addEventListener("change", (e) => {
+          this.state.settings.roamingArea = e.target.value;
+          this.saveState();
+        });
+      }
+      if (this.floorModeSelect) {
+        this.floorModeSelect.value = s.floorMode || "taskbar";
+        this.floorModeSelect.addEventListener("change", (e) => {
+          this.state.settings.floorMode = e.target.value;
+          this.saveState();
+        });
+      }
       this.menuScaleSelect.value = (s.menuScale || 1).toString();
       this.menuScaleSelect.addEventListener("change", (e) => {
         this.state.settings.menuScale = parseFloat(e.target.value);
         this.saveState();
       });
+      if (this.resetMenuBtn) {
+        this.resetMenuBtn.addEventListener("click", () => {
+          this.state.settings.menuPosition = null;
+          this.saveState();
+          alert("Menu position reset to default corner!");
+        });
+      }
       this.hungerSpeedSelect.value = s.hungerSpeed || "normal";
       this.hungerSpeedSelect.addEventListener("change", (e) => {
         this.state.settings.hungerSpeed = e.target.value;

@@ -964,9 +964,10 @@
           if (this.currentState !== "eat" && this.currentState !== "dangling" && this.currentState !== "falling") {
             const nearestFood = this.bunny.findNearestFood();
             if (nearestFood) {
-              const dist = Math.abs(this.bunny.x - nearestFood.x);
-              if (dist > 12) {
+              const dist = Math.hypot(this.bunny.x - nearestFood.x, this.bunny.y - nearestFood.y);
+              if (dist > 14) {
                 this.bunny.targetX = nearestFood.x;
+                this.bunny.targetY = nearestFood.y;
                 this.bunny.direction = nearestFood.x > this.bunny.x ? 1 : -1;
                 if (this.currentState !== "walk") {
                   this.setState("walk", 8e3);
@@ -1004,6 +1005,9 @@
             const minX = margin;
             const maxX = Math.max(minX + 100, this.bunny.screenWidth - margin);
             this.bunny.targetX = minX + Math.random() * (maxX - minX);
+            const roamingH = this.bunny.getRoamingHeight ? this.bunny.getRoamingHeight() : 220;
+            const minY = Math.max(40, this.bunny.groundY - roamingH);
+            this.bunny.targetY = minY + Math.random() * (this.bunny.groundY - minY);
             this.bunny.direction = this.bunny.targetX > this.bunny.x ? 1 : -1;
             this.setState("walk");
           } else if (roll < 0.65) {
@@ -1209,6 +1213,9 @@
           volume: 0.6,
           isMuted: false,
           hungerSpeed: "normal",
+          roamingArea: "cozy",
+          floorMode: "taskbar",
+          menuPosition: null,
           startWithWindows: false,
           doNotDisturb: false,
           hideWhenFullscreen: false
@@ -1507,6 +1514,8 @@
           this.screenHeight = screenHeight;
           this.scale = settings.bunnyScale || 2.5;
           this.isDoNotDisturb = Boolean(settings.doNotDisturb);
+          this.roamingArea = settings.roamingArea || "cozy";
+          this.floorMode = settings.floorMode || "taskbar";
           this.appearance = {
             furColor: initialData.furColor || "white",
             earStyle: initialData.earStyle || "upright",
@@ -1525,12 +1534,15 @@
           this.width = this.baseSpriteSize * this.scale;
           this.height = this.baseSpriteSize * this.scale;
           this.taskbarOverlap = 0;
-          this.groundY = this.screenHeight - this.taskbarOverlap - 12;
+          this.taskbarFloorY = this.screenHeight - this.taskbarOverlap - 12;
+          this.customGroundY = initialData.customGroundY && this.floorMode === "free" ? initialData.customGroundY : null;
+          this.groundY = this.floorMode === "free" && this.customGroundY ? this.customGroundY : this.taskbarFloorY;
           this.x = Math.max(100, Math.min(screenWidth - 100, screenWidth / 2));
           this.y = this.groundY;
           this.vx = 0;
           this.vy = 0;
           this.targetX = this.x;
+          this.targetY = this.y;
           this.direction = 1;
           this.isDragging = false;
           this.dragOffsetX = 0;
@@ -1547,11 +1559,31 @@
           this.screenWidth = newWidth;
           this.screenHeight = newHeight;
           this.taskbarOverlap = taskbarOverlap;
-          this.groundY = this.screenHeight - this.taskbarOverlap - 12;
+          this.taskbarFloorY = this.screenHeight - this.taskbarOverlap - 12;
+          if (this.floorMode === "free" && this.customGroundY) {
+            this.groundY = Math.min(this.taskbarFloorY, Math.max(50, this.customGroundY));
+          } else {
+            this.groundY = this.taskbarFloorY;
+          }
           if (!this.isDragging && this.y >= this.groundY - 10) {
             this.y = this.groundY;
           }
           this.x = Math.max(40, Math.min(this.screenWidth - 40, this.x));
+        }
+        getRoamingHeight() {
+          const area = this.roamingArea || "cozy";
+          switch (area) {
+            case "taskbar":
+              return 40;
+            case "cozy":
+              return 220;
+            case "desk":
+              return 450;
+            case "full":
+              return Math.max(100, this.screenHeight - 100);
+            default:
+              return 220;
+          }
         }
         update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
           this.worldFoods = worldFoods;
@@ -1560,18 +1592,26 @@
           this.updateParticles(deltaTime);
         }
         updateWalk(deltaTime) {
-          const dist = this.targetX - this.x;
-          if (Math.abs(dist) < 4) {
+          const distX = this.targetX - this.x;
+          const distY = this.targetY - this.y;
+          const dist = Math.hypot(distX, distY);
+          if (dist < 4) {
             this.x = this.targetX;
+            this.y = this.targetY;
             this.stateMachine.setState("idle");
             return;
           }
           const isHungry = this.needs.isHungry();
           const speed = (isHungry ? 22 : 45) * (deltaTime / 1e3);
-          this.direction = dist > 0 ? 1 : -1;
-          this.x += Math.sign(dist) * Math.min(Math.abs(dist), speed);
+          if (Math.abs(distX) > 2) {
+            this.direction = distX > 0 ? 1 : -1;
+          }
+          this.x += distX / dist * Math.min(dist, speed);
+          this.y += distY / dist * Math.min(dist, speed);
           const halfW = this.width / 2;
           this.x = Math.max(halfW, Math.min(this.screenWidth - halfW, this.x));
+          const minY = Math.max(40, this.groundY - this.getRoamingHeight());
+          this.y = Math.max(minY, Math.min(this.groundY, this.y));
         }
         startHop() {
           this.vy = -3.8;
@@ -1644,7 +1684,7 @@
           let closest = null;
           let minDistance = Infinity;
           for (const food of this.worldFoods) {
-            const dist = Math.abs(this.x - food.x);
+            const dist = Math.hypot(this.x - food.x, this.y - food.y);
             if (dist < minDistance) {
               minDistance = dist;
               closest = food;
@@ -1665,12 +1705,25 @@
           this.y = mouseY + this.dragOffsetY;
           const halfW = this.width / 2;
           this.x = Math.max(halfW, Math.min(this.screenWidth - halfW, this.x));
-          this.y = Math.min(this.groundY, Math.max(30, this.y));
+          this.y = Math.min(this.taskbarFloorY, Math.max(35, this.y));
         }
         endDrag() {
           if (!this.isDragging) return;
           this.isDragging = false;
           this.vy = 0;
+          if (this.floorMode === "free") {
+            if (this.y >= this.taskbarFloorY - 60) {
+              this.groundY = this.taskbarFloorY;
+              this.customGroundY = null;
+            } else {
+              this.groundY = Math.max(50, Math.min(this.taskbarFloorY, this.y));
+              this.customGroundY = this.groundY;
+            }
+          } else {
+            this.groundY = this.taskbarFloorY;
+            this.customGroundY = null;
+          }
+          this.targetY = this.groundY;
           this.stateMachine.setState("falling");
         }
         pet(mouseX, mouseY) {
@@ -1925,23 +1978,56 @@
             width: 44,
             height: 24
           };
-          this.drawerY = 78;
+          this.customPos = null;
+          this.canvasWidth = typeof window !== "undefined" ? window.innerWidth : 1920;
+          this.canvasHeight = typeof window !== "undefined" ? window.innerHeight : 1080;
           this.foodKeys = ["carrot", "lettuce", "apple", "clover", "strawberry"];
         }
         get scale() {
           return this.app.state?.settings?.menuScale || 1;
         }
-        // Anchor the bottom-left controls to the visible bottom edge (the top of the taskbar)
+        // Position bag button and clamp within screen
         layout(canvasHeight, taskbarOverlap = 0) {
           this.canvasHeight = canvasHeight;
+          this.canvasWidth = this.app && this.app.canvas && this.app.canvas.width || (typeof window !== "undefined" ? window.innerWidth : 1920);
           this.taskbarOverlap = taskbarOverlap;
           const s = this.scale;
           const bottom = canvasHeight - taskbarOverlap;
-          this.bagBtn.width = Math.round(52 * s);
+          this.bagBtn.width = Math.round(54 * s);
           this.bagBtn.height = Math.round(28 * s);
-          this.bagBtn.x = Math.round(16 + this.bagBtn.width / 2);
-          this.bagBtn.y = bottom - Math.round(this.bagBtn.height / 2) - 8;
-          this.drawerY = bottom - Math.round(115 * s) - 8;
+          if (this.customPos && Number.isFinite(this.customPos.x) && Number.isFinite(this.customPos.y)) {
+            this.bagBtn.x = this.customPos.x;
+            this.bagBtn.y = this.customPos.y;
+          } else if (this.app.state?.settings?.menuPosition && Number.isFinite(this.app.state.settings.menuPosition.x)) {
+            this.bagBtn.x = this.app.state.settings.menuPosition.x;
+            this.bagBtn.y = this.app.state.settings.menuPosition.y;
+          } else {
+            this.bagBtn.x = Math.round(18 + this.bagBtn.width / 2);
+            this.bagBtn.y = bottom - Math.round(this.bagBtn.height / 2) - 8;
+          }
+          this.clampMenuPosition();
+        }
+        clampMenuPosition() {
+          const halfW = this.bagBtn.width / 2;
+          const halfH = this.bagBtn.height / 2;
+          const margin = 10;
+          const maxW = this.canvasWidth || (typeof window !== "undefined" ? window.innerWidth : 1920);
+          const maxH = (this.canvasHeight || (typeof window !== "undefined" ? window.innerHeight : 1080)) - this.taskbarOverlap;
+          this.bagBtn.x = Math.max(margin + halfW, Math.min(maxW - margin - halfW, this.bagBtn.x));
+          this.bagBtn.y = Math.max(margin + halfH, Math.min(maxH - margin - halfH, this.bagBtn.y));
+        }
+        setMenuPosition(x, y) {
+          this.bagBtn.x = x;
+          this.bagBtn.y = y;
+          this.clampMenuPosition();
+          this.customPos = { x: this.bagBtn.x, y: this.bagBtn.y };
+        }
+        resetMenuPosition() {
+          this.customPos = null;
+          if (this.app.state?.settings) {
+            this.app.state.settings.menuPosition = null;
+          }
+          this.layout(this.canvasHeight, this.taskbarOverlap);
         }
         toggleDrawer() {
           this.isDrawerOpen = !this.isDrawerOpen;
@@ -1971,11 +2057,24 @@
         getDrawerBounds() {
           if (!this.isDrawerOpen) return null;
           const s = this.scale;
+          const width = Math.round(270 * s);
+          const height = Math.round(76 * s);
+          const maxW = this.canvasWidth || (typeof window !== "undefined" ? window.innerWidth : 1920);
+          const maxH = (this.canvasHeight || (typeof window !== "undefined" ? window.innerHeight : 1080)) - this.taskbarOverlap;
+          let drawerY;
+          if (this.bagBtn.y - this.bagBtn.height / 2 - height - 8 >= 10) {
+            drawerY = this.bagBtn.y - this.bagBtn.height / 2 - height - Math.round(6 * s);
+          } else {
+            drawerY = this.bagBtn.y + this.bagBtn.height / 2 + Math.round(6 * s);
+          }
+          let drawerX = Math.round(this.bagBtn.x - width / 2);
+          drawerX = Math.max(10, Math.min(maxW - width - 10, drawerX));
+          drawerY = Math.max(10, Math.min(maxH - height - 10, drawerY));
           return {
-            x: 16,
-            y: this.drawerY,
-            width: Math.round(270 * s),
-            height: Math.round(76 * s)
+            x: drawerX,
+            y: drawerY,
+            width,
+            height
           };
         }
         getButtonAt(px, py) {
@@ -2031,12 +2130,20 @@
           ctx.roundRect(bx, by, this.bagBtn.width, this.bagBtn.height, Math.round(8 * s));
           ctx.fill();
           ctx.stroke();
-          ItemSprites2.drawFood(ctx, "carrot", bx + Math.round(14 * s), by + Math.round(14 * s), Math.round(16 * s));
+          ctx.fillStyle = "#f59e0b";
+          const gx = bx + Math.round(5 * s);
+          const gy = by + Math.round(this.bagBtn.height / 2);
+          ctx.beginPath();
+          ctx.arc(gx, gy - Math.round(4 * s), Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
+          ctx.arc(gx, gy, Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
+          ctx.arc(gx, gy + Math.round(4 * s), Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
+          ctx.fill();
+          ItemSprites2.drawFood(ctx, "carrot", bx + Math.round(16 * s), by + Math.round(14 * s), Math.round(16 * s));
           ctx.fillStyle = "#4a2810";
           ctx.font = `bold ${Math.max(10, Math.round(11 * s))}px sans-serif`;
           ctx.textAlign = "left";
           ctx.textBaseline = "middle";
-          ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(24 * s), by + Math.round(14 * s));
+          ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(27 * s), by + Math.round(14 * s));
           if (this.isDrawerOpen) {
             const db = this.getDrawerBounds();
             ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
@@ -2046,6 +2153,12 @@
             ctx.roundRect(db.x, db.y, db.width, db.height, Math.round(10 * s));
             ctx.fill();
             ctx.stroke();
+            ctx.fillStyle = "#cbd5e1";
+            const handleW = Math.round(28 * s);
+            const handleH = Math.max(2.5, Math.round(3 * s));
+            ctx.beginPath();
+            ctx.roundRect(db.x + Math.round((db.width - handleW) / 2), db.y + Math.round(2.5 * s), handleW, handleH, 2);
+            ctx.fill();
             const slotW = Math.round(38 * s);
             const slotH = Math.round(36 * s);
             const slotGap = Math.round(44 * s);
@@ -2183,6 +2296,10 @@
           this.dragFoodOffsetX = 0;
           this.dragFoodOffsetY = 0;
           this.pendingFoodSlot = null;
+          this.dragMenuOffsetX = 0;
+          this.dragMenuOffsetY = 0;
+          this.menuDragStartX = 0;
+          this.menuDragStartY = 0;
           this.bindEvents();
         }
         bindEvents() {
@@ -2190,6 +2307,12 @@
           window.addEventListener("mousedown", (e) => this.onMouseDown(e));
           window.addEventListener("mouseup", (e) => this.onMouseUp(e));
           window.addEventListener("mouseleave", () => this.onMouseLeave());
+          window.addEventListener("contextmenu", (e) => {
+            if (this.app.hud && this.app.hud.selectedFoodToDrop) {
+              e.preventDefault();
+              this.app.hud.selectedFoodToDrop = null;
+            }
+          });
         }
         findFoodAt(px, py) {
           if (!this.app.worldFoods) return null;
@@ -2209,7 +2332,7 @@
           if (this.app.hud && this.app.hud.isPointInside(px, py)) return true;
           if (this.app.garden && this.app.garden.isPointInside(px, py)) return true;
           if (this.app.hud && this.app.hud.selectedFoodToDrop) {
-            if (py >= 40) return true;
+            return true;
           }
           return false;
         }
@@ -2236,6 +2359,17 @@
             document.body.style.cursor = "grab";
           } else if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
             document.body.style.cursor = "pointer";
+          } else if (this.app.hud) {
+            const btn = this.app.hud.getButtonAt(px, py);
+            if (btn) {
+              if (btn.type === "bag" || btn.type === "drawer-bg") {
+                document.body.style.cursor = "grab";
+              } else {
+                document.body.style.cursor = "pointer";
+              }
+            } else {
+              document.body.style.cursor = "default";
+            }
           } else {
             document.body.style.cursor = "default";
           }
@@ -2259,7 +2393,7 @@
             if (dist > 8) {
               if (this.app.inventory.foods[this.pendingFoodSlot] > 0) {
                 this.app.inventory.foods[this.pendingFoodSlot]--;
-                const groundY = this.app.groundY;
+                const groundY = this.app.bunny ? this.app.bunny.groundY : this.app.groundY;
                 const newFood = {
                   id: this.pendingFoodSlot,
                   x: px,
@@ -2278,6 +2412,14 @@
                 soundEngine2.playHop();
                 this.app.saveState();
               }
+            }
+            return;
+          }
+          if (this.dragTarget === "menu" && this.app.hud) {
+            if (dist > 4) this.isDragging = true;
+            if (this.isDragging) {
+              document.body.style.cursor = "move";
+              this.app.hud.setMenuPosition(px + this.dragMenuOffsetX, py + this.dragMenuOffsetY);
             }
             return;
           }
@@ -2313,10 +2455,19 @@
           }
           if (this.app.hud) {
             const btn = this.app.hud.getButtonAt(px, py);
-            if (btn && btn.type === "food") {
-              this.dragTarget = "drawer-food";
-              this.pendingFoodSlot = btn.foodId;
-              return;
+            if (btn) {
+              if (btn.type === "food") {
+                this.dragTarget = "drawer-food";
+                this.pendingFoodSlot = btn.foodId;
+                return;
+              } else if (btn.type === "bag" || btn.type === "drawer-bg") {
+                this.dragTarget = "menu";
+                this.dragMenuOffsetX = this.app.hud.bagBtn.x - px;
+                this.dragMenuOffsetY = this.app.hud.bagBtn.y - py;
+                this.menuDragStartX = px;
+                this.menuDragStartY = py;
+                return;
+              }
             }
           }
           this.dragTarget = null;
@@ -2349,23 +2500,47 @@
               return;
             }
             food.vy = 1.2;
-            food.groundY = this.app.groundY;
+            food.groundY = this.app.bunny ? this.app.bunny.groundY : this.app.groundY;
             const db = this.app.hud ? this.app.hud.getDrawerBounds() : null;
-            const minX = this.app.hud && this.app.hud.isDrawerOpen && db ? db.x + db.width + 30 : 100;
-            if (food.x < minX) {
-              const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
-              food.x = Math.floor(Math.random() * (maxX - minX)) + minX;
-            } else {
-              food.x = Math.min(this.app.canvas.width - 40, food.x);
+            if (this.app.hud && this.app.hud.isDrawerOpen && db) {
+              if (food.x >= db.x - 20 && food.x <= db.x + db.width + 20) {
+                food.x = db.x + db.width + 50 < this.app.canvas.width - 40 ? db.x + db.width + 40 + Math.random() * 40 : db.x - 50 - Math.random() * 40;
+              }
             }
+            food.x = Math.max(40, Math.min(this.app.canvas.width - 40, food.x));
             food.isGrounded = false;
             soundEngine2.playHop();
             if (this.app.bunny && this.app.bunny.stateMachine.currentState !== "dangling") {
               this.app.bunny.targetX = food.x;
+              this.app.bunny.targetY = food.y;
               this.app.bunny.direction = food.x > this.app.bunny.x ? 1 : -1;
               this.app.bunny.stateMachine.setState("walk", 6e3);
             }
             return;
+          }
+          if (this.dragTarget === "menu") {
+            const wasDragging = this.isDragging;
+            this.dragTarget = null;
+            this.isDragging = false;
+            this.isMouseDown = false;
+            if (wasDragging) {
+              if (this.app.state && this.app.state.settings && this.app.hud) {
+                this.app.state.settings.menuPosition = {
+                  x: Math.round(this.app.hud.bagBtn.x),
+                  y: Math.round(this.app.hud.bagBtn.y)
+                };
+                this.app.saveState();
+              }
+              return;
+            } else {
+              if (clickDuration < 400 && this.app.hud) {
+                const btn = this.app.hud.getButtonAt(px, py);
+                if (btn && btn.type === "bag") {
+                  this.app.hud.toggleDrawer();
+                }
+              }
+              return;
+            }
           }
           if (this.dragTarget === "bunny" && this.app.bunny) {
             if (this.isDragging) {
@@ -2373,6 +2548,9 @@
               this.isDragging = false;
               this.isMouseDown = false;
               this.dragTarget = null;
+              if (this.app.bunny.floorMode === "free") {
+                this.app.saveState();
+              }
               return;
             }
           }
@@ -2387,14 +2565,7 @@
         handleClick(px, py, now) {
           if (this.app.hud && this.app.hud.selectedFoodToDrop) {
             const foodId = this.app.hud.selectedFoodToDrop;
-            const db = this.app.hud.getDrawerBounds();
-            const minX = this.app.hud.isDrawerOpen && db ? db.x + db.width + 30 : 100;
-            let targetX = px;
-            if (targetX < minX) {
-              const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
-              targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
-            }
-            this.app.dropFood(foodId, targetX, py);
+            this.app.dropFood(foodId, px, py);
             this.app.hud.selectedFoodToDrop = null;
             return;
           }
@@ -2402,6 +2573,7 @@
           if (food) {
             if (this.app.bunny) {
               this.app.bunny.targetX = food.x;
+              this.app.bunny.targetY = food.y;
               this.app.bunny.direction = food.x > this.app.bunny.x ? 1 : -1;
               this.app.bunny.stateMachine.setState("walk", 6e3);
               soundEngine2.playHop();
@@ -2416,11 +2588,10 @@
                 return;
               } else if (btn.type === "food") {
                 if (this.app.inventory.foods[btn.foodId] > 0) {
-                  const db = this.app.hud.getDrawerBounds();
-                  const minX = db ? db.x + db.width + 40 : 340;
-                  const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
-                  const dropX = Math.floor(Math.random() * (maxX - minX)) + minX;
-                  this.app.dropFood(btn.foodId, dropX, 30);
+                  const margin = 80;
+                  const dropX = Math.floor(Math.random() * (this.app.canvas.width - margin * 2)) + margin;
+                  const dropY = this.app.bunny ? this.app.bunny.y : 30;
+                  this.app.dropFood(btn.foodId, dropX, dropY);
                   this.app.hud.selectedFoodToDrop = null;
                 }
                 return;
@@ -2657,16 +2828,15 @@
         return;
       }
       this.inventory.foods[foodId]--;
-      const groundY = this.groundY;
+      const groundY = this.bunny ? this.bunny.groundY : this.groundY;
       const db = this.hud ? this.hud.getDrawerBounds() : null;
-      const minX = this.hud && this.hud.isDrawerOpen && db ? db.x + db.width + 30 : 100;
       let safeX = x;
-      if (safeX < minX) {
-        const maxX = Math.max(minX + 80, this.canvas.width - 50);
-        safeX = Math.floor(Math.random() * (maxX - minX)) + minX;
-      } else {
-        safeX = Math.min(this.canvas.width - 35, safeX);
+      if (this.hud && this.hud.isDrawerOpen && db) {
+        if (safeX >= db.x - 20 && safeX <= db.x + db.width + 20) {
+          safeX = db.x + db.width + 50 < this.canvas.width - 40 ? db.x + db.width + 40 + Math.random() * 40 : db.x - 50 - Math.random() * 40;
+        }
       }
+      safeX = Math.max(40, Math.min(this.canvas.width - 40, safeX));
       this.worldFoods.push({
         id: foodId,
         x: safeX,
@@ -2867,9 +3037,18 @@
           this.bunny.width = this.bunny.baseSpriteSize * this.bunny.scale;
           this.bunny.height = this.bunny.baseSpriteSize * this.bunny.scale;
           this.bunny.isDoNotDisturb = Boolean(this.state.settings.doNotDisturb);
+          this.bunny.roamingArea = this.state.settings.roamingArea || "cozy";
+          this.bunny.floorMode = this.state.settings.floorMode || "taskbar";
+          if (this.bunny.floorMode === "taskbar") {
+            this.bunny.groundY = this.bunny.taskbarFloorY;
+            this.bunny.customGroundY = null;
+          }
           soundEngine.setVolume(this.state.settings.volume ?? 0.6);
           soundEngine.setMuted(Boolean(this.state.settings.isMuted));
         }
+      }
+      if (this.hud) {
+        this.hud.layout(this.canvas.height, this.taskbarOverlap);
       }
     }
     saveState() {
@@ -2885,6 +3064,7 @@
       this.state.bunny.earStyle = this.bunny.appearance.earStyle;
       this.state.bunny.eyeColor = this.bunny.appearance.eyeColor;
       this.state.bunny.blush = this.bunny.appearance.blush;
+      this.state.bunny.customGroundY = this.bunny.floorMode === "free" && this.bunny.customGroundY ? Math.round(this.bunny.customGroundY) : null;
       if (this.garden) {
         this.state.garden.plots = this.garden.plots;
         this.state.garden.x = this.garden.x;

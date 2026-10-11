@@ -153,6 +153,32 @@
       </select>
     </div>
 
+    <!-- Bunny Roaming Area -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Bunny Roaming Area</div>
+        <div class="setting-desc">How high & wide the bunny wanders</div>
+      </div>
+      <select id="roamingAreaSelect">
+        <option value="taskbar">Taskbar Only (40px)</option>
+        <option value="cozy">Cozy Area (220px)</option>
+        <option value="desk">Lower Desk (450px)</option>
+        <option value="full">Full Screen (Free Roam)</option>
+      </select>
+    </div>
+
+    <!-- Floor / Drop Mode -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Drop & Floor Mode</div>
+        <div class="setting-desc">Where bunny lands when picked up</div>
+      </div>
+      <select id="floorModeSelect">
+        <option value="taskbar">Taskbar (Falls to taskbar)</option>
+        <option value="free">Free Perch (Stays where dropped!)</option>
+      </select>
+    </div>
+
     <!-- Menu / HUD Size -->
     <div class="setting-item">
       <div class="setting-label">
@@ -164,6 +190,15 @@
         <option value="1.25">Large (1.25x)</option>
         <option value="1.5">Extra Large (1.5x)</option>
       </select>
+    </div>
+
+    <!-- Movable Menu Position Reset -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <div class="setting-name">Menu Position</div>
+        <div class="setting-desc">Drag the bag or drawer anytime, or reset</div>
+      </div>
+      <button id="resetMenuBtn" style="padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 11px; font-weight: 600; cursor: pointer;">Reset to Corner</button>
     </div>
 
     <!-- Hunger Drain Speed -->

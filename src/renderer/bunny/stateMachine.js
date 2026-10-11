@@ -102,9 +102,10 @@ class BunnyStateMachine {
     if (this.currentState !== 'eat' && this.currentState !== 'dangling' && this.currentState !== 'falling') {
       const nearestFood = this.bunny.findNearestFood();
       if (nearestFood) {
-        const dist = Math.abs(this.bunny.x - nearestFood.x);
-        if (dist > 12) {
+        const dist = Math.hypot(this.bunny.x - nearestFood.x, this.bunny.y - nearestFood.y);
+        if (dist > 14) {
           this.bunny.targetX = nearestFood.x;
+          this.bunny.targetY = nearestFood.y;
           this.bunny.direction = (nearestFood.x > this.bunny.x) ? 1 : -1;
           if (this.currentState !== 'walk') {
             this.setState('walk', 8000);
@@ -147,11 +148,16 @@ class BunnyStateMachine {
     // Random roll for day time cozy activity
     const roll = Math.random();
     if (roll < 0.45) {
-      // Pick random destination across the taskbar
+      // Pick random destination across the roaming area
       const margin = 80;
       const minX = margin;
       const maxX = Math.max(minX + 100, this.bunny.screenWidth - margin);
       this.bunny.targetX = minX + Math.random() * (maxX - minX);
+
+      const roamingH = this.bunny.getRoamingHeight ? this.bunny.getRoamingHeight() : 220;
+      const minY = Math.max(40, this.bunny.groundY - roamingH);
+      this.bunny.targetY = minY + Math.random() * (this.bunny.groundY - minY);
+
       this.bunny.direction = (this.bunny.targetX > this.bunny.x) ? 1 : -1;
       this.setState('walk');
     } else if (roll < 0.65) {

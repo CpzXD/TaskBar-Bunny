@@ -15,11 +15,15 @@ class InputManager {
     this.lastClickTime = 0;
 
     // Drag target tracking
-    this.dragTarget = null; // 'food' | 'bunny' | 'drawer-food'
+    this.dragTarget = null; // 'food' | 'bunny' | 'drawer-food' | 'menu'
     this.draggedFood = null;
     this.dragFoodOffsetX = 0;
     this.dragFoodOffsetY = 0;
     this.pendingFoodSlot = null;
+    this.dragMenuOffsetX = 0;
+    this.dragMenuOffsetY = 0;
+    this.menuDragStartX = 0;
+    this.menuDragStartY = 0;
 
     this.bindEvents();
   }
@@ -29,6 +33,12 @@ class InputManager {
     window.addEventListener('mousedown', (e) => this.onMouseDown(e));
     window.addEventListener('mouseup', (e) => this.onMouseUp(e));
     window.addEventListener('mouseleave', () => this.onMouseLeave());
+    window.addEventListener('contextmenu', (e) => {
+      if (this.app.hud && this.app.hud.selectedFoodToDrop) {
+        e.preventDefault();
+        this.app.hud.selectedFoodToDrop = null;
+      }
+    });
   }
 
   findFoodAt(px, py) {
@@ -59,9 +69,9 @@ class InputManager {
     // 4. Garden hit test
     if (this.app.garden && this.app.garden.isPointInside(px, py)) return true;
 
-    // 5. If food is selected to drop, clicking anywhere on the ground is interactive
+    // 5. If food is selected to drop, clicking anywhere is interactive
     if (this.app.hud && this.app.hud.selectedFoodToDrop) {
-      if (py >= 40) return true;
+      return true;
     }
 
     return false;
@@ -94,6 +104,17 @@ class InputManager {
       document.body.style.cursor = 'grab';
     } else if (this.app.bunny && this.app.bunny.isPointInside(px, py)) {
       document.body.style.cursor = 'pointer';
+    } else if (this.app.hud) {
+      const btn = this.app.hud.getButtonAt(px, py);
+      if (btn) {
+        if (btn.type === 'bag' || btn.type === 'drawer-bg') {
+          document.body.style.cursor = 'grab';
+        } else {
+          document.body.style.cursor = 'pointer';
+        }
+      } else {
+        document.body.style.cursor = 'default';
+      }
     } else {
       document.body.style.cursor = 'default';
     }
@@ -125,7 +146,7 @@ class InputManager {
       if (dist > 8) {
         if (this.app.inventory.foods[this.pendingFoodSlot] > 0) {
           this.app.inventory.foods[this.pendingFoodSlot]--;
-          const groundY = this.app.groundY;
+          const groundY = this.app.bunny ? this.app.bunny.groundY : this.app.groundY;
           const newFood = {
             id: this.pendingFoodSlot,
             x: px,
@@ -148,7 +169,17 @@ class InputManager {
       return;
     }
 
-    // 3. Dragging bunny
+    // 3. Dragging menu
+    if (this.dragTarget === 'menu' && this.app.hud) {
+      if (dist > 4) this.isDragging = true;
+      if (this.isDragging) {
+        document.body.style.cursor = 'move';
+        this.app.hud.setMenuPosition(px + this.dragMenuOffsetX, py + this.dragMenuOffsetY);
+      }
+      return;
+    }
+
+    // 4. Dragging bunny
     if (this.dragTarget === 'bunny' && this.app.bunny) {
       if (dist > 5) {
         if (!this.isDragging) {
@@ -186,13 +217,22 @@ class InputManager {
       return;
     }
 
-    // 3. Check if clicking on drawer food slot
+    // 3. Check if clicking on drawer food slot or draggable menu
     if (this.app.hud) {
       const btn = this.app.hud.getButtonAt(px, py);
-      if (btn && btn.type === 'food') {
-        this.dragTarget = 'drawer-food';
-        this.pendingFoodSlot = btn.foodId;
-        return;
+      if (btn) {
+        if (btn.type === 'food') {
+          this.dragTarget = 'drawer-food';
+          this.pendingFoodSlot = btn.foodId;
+          return;
+        } else if (btn.type === 'bag' || btn.type === 'drawer-bg') {
+          this.dragTarget = 'menu';
+          this.dragMenuOffsetX = this.app.hud.bagBtn.x - px;
+          this.dragMenuOffsetY = this.app.hud.bagBtn.y - py;
+          this.menuDragStartX = px;
+          this.menuDragStartY = py;
+          return;
+        }
       }
     }
 
@@ -235,26 +275,56 @@ class InputManager {
 
       // Dropped onto ground/taskbar
       food.vy = 1.2;
-      food.groundY = this.app.groundY;
-      // Safety clamp: ensure food never falls behind the drawer or counter pill
+      food.groundY = this.app.bunny ? this.app.bunny.groundY : this.app.groundY;
+      // Safety clamp: ensure food never falls behind the drawer
       const db = this.app.hud ? this.app.hud.getDrawerBounds() : null;
-      const minX = (this.app.hud && this.app.hud.isDrawerOpen && db) ? (db.x + db.width + 30) : 100;
-      if (food.x < minX) {
-        const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
-        food.x = Math.floor(Math.random() * (maxX - minX)) + minX;
-      } else {
-        food.x = Math.min(this.app.canvas.width - 40, food.x);
+      if (this.app.hud && this.app.hud.isDrawerOpen && db) {
+        if (food.x >= db.x - 20 && food.x <= db.x + db.width + 20) {
+          food.x = (db.x + db.width + 50 < this.app.canvas.width - 40)
+            ? db.x + db.width + 40 + Math.random() * 40
+            : db.x - 50 - Math.random() * 40;
+        }
       }
+      food.x = Math.max(40, Math.min(this.app.canvas.width - 40, food.x));
       food.isGrounded = false;
       soundEngine.playHop();
 
       // Bunny walks over to eat the dropped/moved treat
       if (this.app.bunny && this.app.bunny.stateMachine.currentState !== 'dangling') {
         this.app.bunny.targetX = food.x;
+        this.app.bunny.targetY = food.y;
         this.app.bunny.direction = (food.x > this.app.bunny.x) ? 1 : -1;
         this.app.bunny.stateMachine.setState('walk', 6000);
       }
       return;
+    }
+
+    // Handle dragged menu
+    if (this.dragTarget === 'menu') {
+      const wasDragging = this.isDragging;
+      this.dragTarget = null;
+      this.isDragging = false;
+      this.isMouseDown = false;
+
+      if (wasDragging) {
+        if (this.app.state && this.app.state.settings && this.app.hud) {
+          this.app.state.settings.menuPosition = {
+            x: Math.round(this.app.hud.bagBtn.x),
+            y: Math.round(this.app.hud.bagBtn.y)
+          };
+          this.app.saveState();
+        }
+        return;
+      } else {
+        // Quick click on menu button
+        if (clickDuration < 400 && this.app.hud) {
+          const btn = this.app.hud.getButtonAt(px, py);
+          if (btn && btn.type === 'bag') {
+            this.app.hud.toggleDrawer();
+          }
+        }
+        return;
+      }
     }
 
     // Handle dragged bunny drop
@@ -264,6 +334,9 @@ class InputManager {
         this.isDragging = false;
         this.isMouseDown = false;
         this.dragTarget = null;
+        if (this.app.bunny.floorMode === 'free') {
+          this.app.saveState();
+        }
         return;
       }
     }
@@ -283,14 +356,7 @@ class InputManager {
     // 1. If dropping food selected from drawer
     if (this.app.hud && this.app.hud.selectedFoodToDrop) {
       const foodId = this.app.hud.selectedFoodToDrop;
-      const db = this.app.hud.getDrawerBounds();
-      const minX = (this.app.hud.isDrawerOpen && db) ? (db.x + db.width + 30) : 100;
-      let targetX = px;
-      if (targetX < minX) {
-        const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
-        targetX = Math.floor(Math.random() * (maxX - minX)) + minX;
-      }
-      this.app.dropFood(foodId, targetX, py);
+      this.app.dropFood(foodId, px, py);
       this.app.hud.selectedFoodToDrop = null;
       return;
     }
@@ -300,6 +366,7 @@ class InputManager {
     if (food) {
       if (this.app.bunny) {
         this.app.bunny.targetX = food.x;
+        this.app.bunny.targetY = food.y;
         this.app.bunny.direction = (food.x > this.app.bunny.x) ? 1 : -1;
         this.app.bunny.stateMachine.setState('walk', 6000);
         soundEngine.playHop();
@@ -316,11 +383,10 @@ class InputManager {
           return;
         } else if (btn.type === 'food') {
           if (this.app.inventory.foods[btn.foodId] > 0) {
-            const db = this.app.hud.getDrawerBounds();
-            const minX = db ? (db.x + db.width + 40) : 340;
-            const maxX = Math.max(minX + 80, this.app.canvas.width - 60);
-            const dropX = Math.floor(Math.random() * (maxX - minX)) + minX;
-            this.app.dropFood(btn.foodId, dropX, 30);
+            const margin = 80;
+            const dropX = Math.floor(Math.random() * (this.app.canvas.width - margin * 2)) + margin;
+            const dropY = this.app.bunny ? this.app.bunny.y : 30;
+            this.app.dropFood(btn.foodId, dropX, dropY);
             this.app.hud.selectedFoodToDrop = null;
           }
           return;

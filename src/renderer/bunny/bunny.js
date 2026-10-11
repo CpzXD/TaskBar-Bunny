@@ -16,6 +16,8 @@ class Bunny {
     // Settings
     this.scale = settings.bunnyScale || 2.5;
     this.isDoNotDisturb = Boolean(settings.doNotDisturb);
+    this.roamingArea = settings.roamingArea || 'cozy';
+    this.floorMode = settings.floorMode || 'taskbar';
 
     // Appearance
     this.appearance = {
@@ -42,13 +44,20 @@ class Bunny {
     this.width = this.baseSpriteSize * this.scale;
     this.height = this.baseSpriteSize * this.scale;
     this.taskbarOverlap = 0; // px of the canvas hidden under the taskbar
-    this.groundY = this.screenHeight - this.taskbarOverlap - 12; // sits just above the taskbar
+    this.taskbarFloorY = this.screenHeight - this.taskbarOverlap - 12;
+    this.customGroundY = (initialData.customGroundY && this.floorMode === 'free')
+      ? initialData.customGroundY
+      : null;
+    this.groundY = (this.floorMode === 'free' && this.customGroundY)
+      ? this.customGroundY
+      : this.taskbarFloorY;
 
     this.x = Math.max(100, Math.min(screenWidth - 100, screenWidth / 2));
     this.y = this.groundY;
     this.vx = 0;
     this.vy = 0;
     this.targetX = this.x;
+    this.targetY = this.y;
     this.direction = 1; // 1: right, -1: left
 
     // Dragging & Interaction
@@ -76,11 +85,27 @@ class Bunny {
     this.screenWidth = newWidth;
     this.screenHeight = newHeight;
     this.taskbarOverlap = taskbarOverlap;
-    this.groundY = this.screenHeight - this.taskbarOverlap - 12;
+    this.taskbarFloorY = this.screenHeight - this.taskbarOverlap - 12;
+    if (this.floorMode === 'free' && this.customGroundY) {
+      this.groundY = Math.min(this.taskbarFloorY, Math.max(50, this.customGroundY));
+    } else {
+      this.groundY = this.taskbarFloorY;
+    }
     if (!this.isDragging && this.y >= this.groundY - 10) {
       this.y = this.groundY;
     }
     this.x = Math.max(40, Math.min(this.screenWidth - 40, this.x));
+  }
+
+  getRoamingHeight() {
+    const area = this.roamingArea || 'cozy';
+    switch (area) {
+      case 'taskbar': return 40;
+      case 'cozy': return 220;
+      case 'desk': return 450;
+      case 'full': return Math.max(100, this.screenHeight - 100);
+      default: return 220;
+    }
   }
 
   update(deltaTime, worldFoods = [], onLevelUp, onPassiveCarrot) {
@@ -97,21 +122,29 @@ class Bunny {
   }
 
   updateWalk(deltaTime) {
-    const dist = this.targetX - this.x;
-    if (Math.abs(dist) < 4) {
+    const distX = this.targetX - this.x;
+    const distY = this.targetY - this.y;
+    const dist = Math.hypot(distX, distY);
+    if (dist < 4) {
       this.x = this.targetX;
+      this.y = this.targetY;
       this.stateMachine.setState('idle');
       return;
     }
 
     const isHungry = this.needs.isHungry();
     const speed = (isHungry ? 22 : 45) * (deltaTime / 1000);
-    this.direction = dist > 0 ? 1 : -1;
-    this.x += Math.sign(dist) * Math.min(Math.abs(dist), speed);
+    if (Math.abs(distX) > 2) {
+      this.direction = distX > 0 ? 1 : -1;
+    }
+    this.x += (distX / dist) * Math.min(dist, speed);
+    this.y += (distY / dist) * Math.min(dist, speed);
 
-    // Clamp within screen boundaries
+    // Clamp within screen boundaries and roaming area
     const halfW = this.width / 2;
     this.x = Math.max(halfW, Math.min(this.screenWidth - halfW, this.x));
+    const minY = Math.max(40, this.groundY - this.getRoamingHeight());
+    this.y = Math.max(minY, Math.min(this.groundY, this.y));
   }
 
   startHop() {
@@ -202,7 +235,7 @@ class Bunny {
     let closest = null;
     let minDistance = Infinity;
     for (const food of this.worldFoods) {
-      const dist = Math.abs(this.x - food.x);
+      const dist = Math.hypot(this.x - food.x, this.y - food.y);
       if (dist < minDistance) {
         minDistance = dist;
         closest = food;
@@ -224,16 +257,32 @@ class Bunny {
     if (!this.isDragging) return;
     this.x = mouseX + this.dragOffsetX;
     this.y = mouseY + this.dragOffsetY;
-    // Keep within window
+    // Keep within window (now full workArea height!)
     const halfW = this.width / 2;
     this.x = Math.max(halfW, Math.min(this.screenWidth - halfW, this.x));
-    this.y = Math.min(this.groundY, Math.max(30, this.y));
+    this.y = Math.min(this.taskbarFloorY, Math.max(35, this.y));
   }
 
   endDrag() {
     if (!this.isDragging) return;
     this.isDragging = false;
     this.vy = 0;
+
+    if (this.floorMode === 'free') {
+      // If dropped near the taskbar (within 60px), snap back to taskbar
+      if (this.y >= this.taskbarFloorY - 60) {
+        this.groundY = this.taskbarFloorY;
+        this.customGroundY = null;
+      } else {
+        this.groundY = Math.max(50, Math.min(this.taskbarFloorY, this.y));
+        this.customGroundY = this.groundY;
+      }
+    } else {
+      this.groundY = this.taskbarFloorY;
+      this.customGroundY = null;
+    }
+
+    this.targetY = this.groundY;
     this.stateMachine.setState('falling');
   }
 

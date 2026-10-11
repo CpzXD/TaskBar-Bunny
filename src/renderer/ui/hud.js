@@ -12,15 +12,16 @@ class HUD {
     this.selectedFoodToDrop = null;
     this.notifications = []; // { text, subtext, icon, timer, duration }
 
-    // Docked Bag Button bounds (bottom left, just above the taskbar)
+    // Docked Bag Button bounds (draggable pill button)
     this.bagBtn = {
       x: 36,
       y: 154,
       width: 44,
       height: 24
     };
-    // Top of the food drawer; both y values are recomputed in layout()
-    this.drawerY = 78;
+    this.customPos = null;
+    this.canvasWidth = (typeof window !== 'undefined') ? window.innerWidth : 1920;
+    this.canvasHeight = (typeof window !== 'undefined') ? window.innerHeight : 1080;
 
     // Food items for quick tray
     this.foodKeys = ['carrot', 'lettuce', 'apple', 'clover', 'strawberry'];
@@ -30,18 +31,55 @@ class HUD {
     return this.app.state?.settings?.menuScale || 1.0;
   }
 
-  // Anchor the bottom-left controls to the visible bottom edge (the top of the taskbar)
+  // Position bag button and clamp within screen
   layout(canvasHeight, taskbarOverlap = 0) {
     this.canvasHeight = canvasHeight;
+    this.canvasWidth = (this.app && this.app.canvas && this.app.canvas.width) || ((typeof window !== 'undefined') ? window.innerWidth : 1920);
     this.taskbarOverlap = taskbarOverlap;
     const s = this.scale;
     const bottom = canvasHeight - taskbarOverlap;
 
-    this.bagBtn.width = Math.round(52 * s);
+    this.bagBtn.width = Math.round(54 * s);
     this.bagBtn.height = Math.round(28 * s);
-    this.bagBtn.x = Math.round(16 + this.bagBtn.width / 2);
-    this.bagBtn.y = bottom - Math.round(this.bagBtn.height / 2) - 8;
-    this.drawerY = bottom - Math.round(115 * s) - 8;
+
+    if (this.customPos && Number.isFinite(this.customPos.x) && Number.isFinite(this.customPos.y)) {
+      this.bagBtn.x = this.customPos.x;
+      this.bagBtn.y = this.customPos.y;
+    } else if (this.app.state?.settings?.menuPosition && Number.isFinite(this.app.state.settings.menuPosition.x)) {
+      this.bagBtn.x = this.app.state.settings.menuPosition.x;
+      this.bagBtn.y = this.app.state.settings.menuPosition.y;
+    } else {
+      this.bagBtn.x = Math.round(18 + this.bagBtn.width / 2);
+      this.bagBtn.y = bottom - Math.round(this.bagBtn.height / 2) - 8;
+    }
+
+    this.clampMenuPosition();
+  }
+
+  clampMenuPosition() {
+    const halfW = this.bagBtn.width / 2;
+    const halfH = this.bagBtn.height / 2;
+    const margin = 10;
+    const maxW = this.canvasWidth || ((typeof window !== 'undefined') ? window.innerWidth : 1920);
+    const maxH = (this.canvasHeight || ((typeof window !== 'undefined') ? window.innerHeight : 1080)) - this.taskbarOverlap;
+
+    this.bagBtn.x = Math.max(margin + halfW, Math.min(maxW - margin - halfW, this.bagBtn.x));
+    this.bagBtn.y = Math.max(margin + halfH, Math.min(maxH - margin - halfH, this.bagBtn.y));
+  }
+
+  setMenuPosition(x, y) {
+    this.bagBtn.x = x;
+    this.bagBtn.y = y;
+    this.clampMenuPosition();
+    this.customPos = { x: this.bagBtn.x, y: this.bagBtn.y };
+  }
+
+  resetMenuPosition() {
+    this.customPos = null;
+    if (this.app.state?.settings) {
+      this.app.state.settings.menuPosition = null;
+    }
+    this.layout(this.canvasHeight, this.taskbarOverlap);
   }
 
   toggleDrawer() {
@@ -75,11 +113,29 @@ class HUD {
   getDrawerBounds() {
     if (!this.isDrawerOpen) return null;
     const s = this.scale;
+    const width = Math.round(270 * s);
+    const height = Math.round(76 * s);
+    const maxW = this.canvasWidth || ((typeof window !== 'undefined') ? window.innerWidth : 1920);
+    const maxH = (this.canvasHeight || ((typeof window !== 'undefined') ? window.innerHeight : 1080)) - this.taskbarOverlap;
+
+    let drawerY;
+    if (this.bagBtn.y - this.bagBtn.height / 2 - height - 8 >= 10) {
+      // Space above: open above bag button
+      drawerY = this.bagBtn.y - this.bagBtn.height / 2 - height - Math.round(6 * s);
+    } else {
+      // Near top of screen: open below bag button
+      drawerY = this.bagBtn.y + this.bagBtn.height / 2 + Math.round(6 * s);
+    }
+
+    let drawerX = Math.round(this.bagBtn.x - width / 2);
+    drawerX = Math.max(10, Math.min(maxW - width - 10, drawerX));
+    drawerY = Math.max(10, Math.min(maxH - height - 10, drawerY));
+
     return {
-      x: 16,
-      y: this.drawerY,
-      width: Math.round(270 * s),
-      height: Math.round(76 * s)
+      x: drawerX,
+      y: drawerY,
+      width,
+      height
     };
   }
 
@@ -158,13 +214,23 @@ class HUD {
     ctx.fill();
     ctx.stroke();
 
+    // Subtle drag grip dots on the left of bag button
+    ctx.fillStyle = '#f59e0b';
+    const gx = bx + Math.round(5 * s);
+    const gy = by + Math.round(this.bagBtn.height / 2);
+    ctx.beginPath();
+    ctx.arc(gx, gy - Math.round(4 * s), Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
+    ctx.arc(gx, gy, Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
+    ctx.arc(gx, gy + Math.round(4 * s), Math.max(1, Math.round(1.2 * s)), 0, Math.PI * 2);
+    ctx.fill();
+
     // Carrot icon & count
-    ItemSprites.drawFood(ctx, 'carrot', bx + Math.round(14 * s), by + Math.round(14 * s), Math.round(16 * s));
+    ItemSprites.drawFood(ctx, 'carrot', bx + Math.round(16 * s), by + Math.round(14 * s), Math.round(16 * s));
     ctx.fillStyle = '#4a2810';
     ctx.font = `bold ${Math.max(10, Math.round(11 * s))}px sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(24 * s), by + Math.round(14 * s));
+    ctx.fillText(`${inventory.foods.carrot || 0}`, bx + Math.round(27 * s), by + Math.round(14 * s));
 
     // 2. Drawer Panel
     if (this.isDrawerOpen) {
@@ -178,6 +244,14 @@ class HUD {
       ctx.roundRect(db.x, db.y, db.width, db.height, Math.round(10 * s));
       ctx.fill();
       ctx.stroke();
+
+      // Subtle drag handle indicator on top of drawer
+      ctx.fillStyle = '#cbd5e1';
+      const handleW = Math.round(28 * s);
+      const handleH = Math.max(2.5, Math.round(3 * s));
+      ctx.beginPath();
+      ctx.roundRect(db.x + Math.round((db.width - handleW) / 2), db.y + Math.round(2.5 * s), handleW, handleH, 2);
+      ctx.fill();
 
       // Draw foods row
       const slotW = Math.round(38 * s);

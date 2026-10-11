@@ -86,3 +86,70 @@ test('Prototype pollution protection in storage.deepMerge', () => {
   assert.strictEqual(Object.prototype.polluted, undefined, '__proto__ must not pollute Object.prototype');
   assert.strictEqual(target.polluted, undefined, 'polluted property must not exist on target');
 });
+
+test('Roaming area and floor mode configurations and sanitization', () => {
+  assert.ok(['taskbar', 'cozy', 'desk', 'full'].includes(DEFAULT_STATE.settings.roamingArea), 'roamingArea default is valid');
+  assert.ok(['taskbar', 'free'].includes(DEFAULT_STATE.settings.floorMode), 'floorMode default is valid');
+
+  const { sanitizeState } = require('../src/main/main');
+  const dirty = {
+    settings: {
+      roamingArea: 'desk',
+      floorMode: 'free',
+      menuPosition: { x: 450.7, y: 300.2 }
+    },
+    bunny: {
+      customGroundY: 480.9
+    }
+  };
+  const clean = sanitizeState(dirty, DEFAULT_STATE);
+  assert.strictEqual(clean.settings.roamingArea, 'desk');
+  assert.strictEqual(clean.settings.floorMode, 'free');
+  assert.deepStrictEqual(clean.settings.menuPosition, { x: 451, y: 300 });
+  assert.strictEqual(clean.bunny.customGroundY, 480);
+});
+
+test('Bunny roaming heights for bigger area movement', () => {
+  const { Bunny } = require('../src/renderer/bunny/bunny');
+  const b1 = new Bunny({}, { roamingArea: 'taskbar' }, 1920, 1080);
+  assert.strictEqual(b1.getRoamingHeight(), 40, 'taskbar mode should be 40px');
+
+  const b2 = new Bunny({}, { roamingArea: 'cozy' }, 1920, 1080);
+  assert.strictEqual(b2.getRoamingHeight(), 220, 'cozy mode should be 220px');
+
+  const b3 = new Bunny({}, { roamingArea: 'desk' }, 1920, 1080);
+  assert.strictEqual(b3.getRoamingHeight(), 450, 'desk mode should be 450px');
+
+  const b4 = new Bunny({}, { roamingArea: 'full' }, 1920, 1080);
+  assert.ok(b4.getRoamingHeight() >= 900, 'full screen mode should span screen height');
+});
+
+test('Movable menu HUD positioning and drawer anchoring', () => {
+  const { HUD } = require('../src/renderer/ui/hud');
+  const mockApp = {
+    canvas: { width: 1920, height: 1080 },
+    state: { settings: { menuScale: 1.0, menuPosition: null } }
+  };
+  const hud = new HUD(mockApp);
+  hud.layout(1080, 0);
+
+  // Default corner placement
+  assert.ok(hud.bagBtn.x < 100, 'Default menu x is in bottom-left corner');
+  assert.ok(hud.bagBtn.y > 1000, 'Default menu y is in bottom corner');
+
+  // Move menu to center of screen
+  hud.setMenuPosition(960, 540);
+  assert.strictEqual(hud.bagBtn.x, 960);
+  assert.strictEqual(hud.bagBtn.y, 540);
+
+  // Drawer bounds should open above button when in lower half
+  hud.isDrawerOpen = true;
+  const db = hud.getDrawerBounds();
+  assert.ok(db, 'Drawer bounds must exist when open');
+  assert.ok(db.y < hud.bagBtn.y, 'Drawer should open above bag button when space permits');
+  assert.ok(db.x >= 10 && db.x + db.width <= 1910, 'Drawer must stay safely within screen width');
+
+  // Reset menu position
+  hud.resetMenuPosition();
+  assert.ok(hud.bagBtn.x < 100, 'Menu x should reset to bottom-left corner');
+});

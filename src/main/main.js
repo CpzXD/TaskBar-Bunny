@@ -7,13 +7,15 @@ const storage = require('./storage');
 const windowManager = require('./windowManager');
 const trayManager = require('./trayManager');
 
-app.setName('Taskbar Bunny');
+if (app && typeof app.setName === 'function') {
+  app.setName('Taskbar Bunny');
+}
 
 // Single instance lock
-const gotLock = app.requestSingleInstanceLock();
+const gotLock = (app && typeof app.requestSingleInstanceLock === 'function') ? app.requestSingleInstanceLock() : true;
 if (!gotLock) {
-  app.quit();
-} else {
+  if (app && typeof app.quit === 'function') app.quit();
+} else if (app && typeof app.whenReady === 'function') {
   app.on('second-instance', () => {
     // Focus or show overlay if already running, keeping tray menu in sync
     trayManager.setBunnyVisibility(true);
@@ -83,6 +85,7 @@ function sanitizeState(incoming, current) {
     if (typeof incoming.bunny.earStyle === 'string') safe.bunny.earStyle = incoming.bunny.earStyle;
     if (typeof incoming.bunny.eyeColor === 'string') safe.bunny.eyeColor = incoming.bunny.eyeColor;
     if (typeof incoming.bunny.blush === 'boolean') safe.bunny.blush = incoming.bunny.blush;
+    if (Number.isFinite(incoming.bunny.customGroundY)) safe.bunny.customGroundY = Math.max(0, Math.floor(incoming.bunny.customGroundY));
 
     if (incoming.bunny.equipped && typeof incoming.bunny.equipped === 'object' && !Array.isArray(incoming.bunny.equipped)) {
       if (!safe.bunny.equipped) safe.bunny.equipped = {};
@@ -144,6 +147,17 @@ function sanitizeState(incoming, current) {
     if (Number.isFinite(incoming.settings.menuScale)) safe.settings.menuScale = Math.max(0.5, Math.min(3.0, incoming.settings.menuScale));
     if (Number.isFinite(incoming.settings.monitorIndex)) safe.settings.monitorIndex = Math.max(0, Math.floor(incoming.settings.monitorIndex));
     if (['relaxed', 'normal', 'fast'].includes(incoming.settings.hungerSpeed)) safe.settings.hungerSpeed = incoming.settings.hungerSpeed;
+    if (['taskbar', 'cozy', 'desk', 'full'].includes(incoming.settings.roamingArea)) safe.settings.roamingArea = incoming.settings.roamingArea;
+    if (['taskbar', 'free'].includes(incoming.settings.floorMode)) safe.settings.floorMode = incoming.settings.floorMode;
+    if (incoming.settings.menuPosition === null) {
+      safe.settings.menuPosition = null;
+    } else if (incoming.settings.menuPosition && typeof incoming.settings.menuPosition === 'object') {
+      const mx = incoming.settings.menuPosition.x;
+      const my = incoming.settings.menuPosition.y;
+      if (Number.isFinite(mx) && Number.isFinite(my)) {
+        safe.settings.menuPosition = { x: Math.round(mx), y: Math.round(my) };
+      }
+    }
     if (typeof incoming.settings.startWithWindows === 'boolean') safe.settings.startWithWindows = incoming.settings.startWithWindows;
     if (typeof incoming.settings.doNotDisturb === 'boolean') safe.settings.doNotDisturb = incoming.settings.doNotDisturb;
     if (typeof incoming.settings.hideWhenFullscreen === 'boolean') safe.settings.hideWhenFullscreen = incoming.settings.hideWhenFullscreen;
@@ -222,4 +236,8 @@ function setupIpcHandlers() {
   ipcMain.on('quit-app', () => {
     app.quit();
   });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { sanitizeState };
 }
