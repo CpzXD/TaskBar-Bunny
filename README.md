@@ -49,15 +49,15 @@ Barnaby (or your custom-named bunny) hops, wanders, nibbles carrots, takes naps,
 ## 🎮 How to Play / Download
 
 ### For Players (Download Executable)
-1. Go to the [Releases](https://github.com/CpzXD/taskbar-bunny/releases) page on GitHub.
-2. Download the latest standalone **`Taskbar.Bunny-Portable.exe`** or **`Taskbar.Bunny-Setup.exe`**.
+1. Go to the [Releases](https://github.com/CpzXD/TaskBar-Bunny/releases) page on GitHub.
+2. Download the standalone executable: **[Taskbar-Bunny-Portable.exe](https://github.com/CpzXD/TaskBar-Bunny/releases/download/1.0.0/Taskbar-Bunny-Portable.exe)** from the [1.0.0 Release](https://github.com/CpzXD/TaskBar-Bunny/releases/tag/1.0.0).
 3. Run it and Barnaby will immediately appear sitting on your taskbar!
 
 ### For Developers & Running from Source
 ```bash
 # Clone the repository
-git clone https://github.com/CpzXD/taskbar-bunny.git
-cd taskbar-bunny
+git clone https://github.com/CpzXD/TaskBar-Bunny.git
+cd TaskBar-Bunny
 
 # Install dependencies
 npm install
@@ -192,5 +192,11 @@ To reset your data at any time, open Settings and click **Reset All**, or delete
 
 ---
 
+## 👤 Author
+Created with ❤️ by **[CpzXD](https://github.com/CpzXD)**.
+
+---
+
 ## 📄 License
-MIT License. Crafted with ❤️ for cozy desktop companionship.
+MIT License. Crafted for cozy desktop companionship.
+
