@@ -1,12 +1,13 @@
 const { app, ipcMain, BrowserWindow } = require('electron');
 const path = require('path');
-const storage = require('./storage');
-const windowManager = require('./windowManager');
-const trayManager = require('./trayManager');
 
 if (app && typeof app.setName === 'function') {
   app.setName('Taskbar Bunny');
 }
+
+const storage = require('./storage');
+const windowManager = require('./windowManager');
+const trayManager = require('./trayManager');
 
 const gotLock = (app && typeof app.requestSingleInstanceLock === 'function') ? app.requestSingleInstanceLock() : true;
 if (!gotLock) {
@@ -149,10 +150,14 @@ function sanitizeState(incoming, current) {
       }
     }
     if (Array.isArray(inv.unlockedCosmetics)) {
-      safe.inventory.unlockedCosmetics = inv.unlockedCosmetics.filter(c => typeof c === 'string' && c.length < 64);
+      const incCosmetics = inv.unlockedCosmetics.filter(c => typeof c === 'string' && c.length < 64);
+      const curCosmetics = Array.isArray(current?.inventory?.unlockedCosmetics) ? current.inventory.unlockedCosmetics : [];
+      safe.inventory.unlockedCosmetics = Array.from(new Set([...curCosmetics, ...incCosmetics]));
     }
     if (Array.isArray(inv.unlockedTerrains)) {
-      safe.inventory.unlockedTerrains = inv.unlockedTerrains.filter(t => ['grassy', 'icy'].includes(t));
+      const incTerrains = inv.unlockedTerrains.filter(t => ['grassy', 'icy'].includes(t));
+      const curTerrains = Array.isArray(current?.inventory?.unlockedTerrains) ? current.inventory.unlockedTerrains : ['grassy'];
+      safe.inventory.unlockedTerrains = Array.from(new Set([...curTerrains, ...incTerrains]));
     }
   }
 
@@ -193,7 +198,9 @@ function sanitizeState(incoming, current) {
 
   if (incoming.achievements && Array.isArray(incoming.achievements.unlocked)) {
     safe.achievements = safe.achievements || { unlocked: [] };
-    safe.achievements.unlocked = incoming.achievements.unlocked.filter(id => typeof id === 'string' && id.length < 64);
+    const incAch = incoming.achievements.unlocked.filter(id => typeof id === 'string' && id.length < 64);
+    const curAch = Array.isArray(current?.achievements?.unlocked) ? current.achievements.unlocked : [];
+    safe.achievements.unlocked = Array.from(new Set([...curAch, ...incAch]));
   }
 
   return safe;
@@ -205,7 +212,7 @@ function setupIpcHandlers() {
   });
 
   ipcMain.handle('load-state', () => {
-    return storage.loadState();
+    return storage.loadState(false);
   });
 
   ipcMain.on('save-state', (event, newState) => {

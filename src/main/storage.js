@@ -5,29 +5,107 @@ const { DEFAULT_STATE, HUNGER_SPEED_FACTORS } = require('../shared/constants');
 
 class StorageManager {
   constructor() {
-    this.userDataPath = (app && typeof app.getPath === 'function')
-      ? app.getPath('userData')
-      : path.join(__dirname, '../../userData');
+    this.userDataPath = this.resolveUserDataPath();
     this.saveFilePath = path.join(this.userDataPath, 'taskbar-bunny-save.json');
+    this.backupFilePath = path.join(this.userDataPath, 'taskbar-bunny-save.json.bak');
     this.state = null;
     this.offlineSummary = null;
+    this.isInitialized = false;
   }
 
-  loadState() {
+  resolveUserDataPath() {
+    if (app && typeof app.getPath === 'function') {
+      try {
+        const primary = app.getPath('userData');
+        const primaryFile = path.join(primary, 'taskbar-bunny-save.json');
+        if (fs.existsSync(primaryFile)) {
+          return primary;
+        }
+
+        const appData = app.getPath('appData');
+        const alt1 = path.join(appData, 'taskbar-bunny');
+        const alt2 = path.join(appData, 'Taskbar Bunny');
+
+        if (fs.existsSync(path.join(alt1, 'taskbar-bunny-save.json'))) {
+          return alt1;
+        }
+        if (fs.existsSync(path.join(alt2, 'taskbar-bunny-save.json'))) {
+          return alt2;
+        }
+        return primary;
+      } catch (e) {
+        // Fallback to standard
+      }
+    }
+    return path.join(__dirname, '../../userData');
+  }
+
+  loadState(forceReload = false) {
+    // If state is already loaded in memory and no explicit reload is requested,
+    // return memory state directly to prevent concurrent read glitches and re-draining offline stats.
+    if (this.state && !forceReload) {
+      return { state: this.state, offlineSummary: this.offlineSummary };
+    }
+
+    let loaded = null;
+
+    // 1. Try reading the primary save file
     try {
       if (fs.existsSync(this.saveFilePath)) {
         const raw = fs.readFileSync(this.saveFilePath, 'utf8');
-        const parsed = JSON.parse(raw);
-        this.state = this.deepMerge(JSON.parse(JSON.stringify(DEFAULT_STATE)), parsed);
-        this.calculateOfflineProgress();
-      } else {
-        this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
-        this.saveState();
+        if (raw && raw.trim().length > 0) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            loaded = parsed;
+          }
+        }
       }
     } catch (err) {
-      console.error('[Storage] Error loading save data, falling back to default:', err);
-      this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+      console.warn('[Storage] Primary save file read/parse failed, checking backup:', err.message);
     }
+
+    // 2. If primary failed or was empty, try reading the backup (.bak) file
+    if (!loaded) {
+      try {
+        if (fs.existsSync(this.backupFilePath)) {
+          const rawBak = fs.readFileSync(this.backupFilePath, 'utf8');
+          if (rawBak && rawBak.trim().length > 0) {
+            const parsedBak = JSON.parse(rawBak);
+            if (parsedBak && typeof parsedBak === 'object' && !Array.isArray(parsedBak)) {
+              console.log('[Storage] Successfully recovered state from backup (.bak)!');
+              loaded = parsedBak;
+              try {
+                fs.writeFileSync(this.saveFilePath, JSON.stringify(loaded, null, 2), 'utf8');
+              } catch (e) {}
+            }
+          }
+        }
+      } catch (bakErr) {
+        console.error('[Storage] Backup file recovery failed:', bakErr.message);
+      }
+    }
+
+    // 3. If loaded successfully, merge with defaults
+    if (loaded) {
+      this.state = this.deepMerge(JSON.parse(JSON.stringify(DEFAULT_STATE)), loaded);
+      if (!this.isInitialized) {
+        this.calculateOfflineProgress();
+        this.isInitialized = true;
+      }
+      return { state: this.state, offlineSummary: this.offlineSummary };
+    }
+
+    // 4. If disk read failed completely, but we ALREADY have a valid state in memory:
+    // NEVER overwrite an active in-memory state with defaults!
+    if (this.state && typeof this.state === 'object') {
+      console.warn('[Storage] Preserving active in-memory state despite disk load failure');
+      return { state: this.state, offlineSummary: this.offlineSummary };
+    }
+
+    // 5. First launch fallback
+    this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    this.isInitialized = true;
+    this.saveState();
     return { state: this.state, offlineSummary: this.offlineSummary };
   }
 
@@ -111,13 +189,66 @@ class StorageManager {
     }
     if (!this.state) return;
 
+    if (!this.state.meta) {
+      this.state.meta = {};
+    }
     this.state.meta.lastSaved = Date.now();
 
     try {
-      const tempPath = this.saveFilePath + '.tmp';
+      if (!fs.existsSync(this.userDataPath)) {
+        fs.mkdirSync(this.userDataPath, { recursive: true });
+      }
+
       const content = JSON.stringify(this.state, null, 2);
+      if (!content || content.length < 20) {
+        console.error('[Storage] Refusing to save invalid/empty state string');
+        return;
+      }
+
+      // 1. Maintain backup of existing save file before replacing
+      if (fs.existsSync(this.saveFilePath)) {
+        try {
+          const stats = fs.statSync(this.saveFilePath);
+          if (stats.size > 50) {
+            fs.copyFileSync(this.saveFilePath, this.backupFilePath);
+          }
+        } catch (bakErr) {
+          // Non-fatal if backup copy fails
+        }
+      }
+
+      // 2. Write to temp file first
+      const tempPath = this.saveFilePath + '.tmp';
       fs.writeFileSync(tempPath, content, 'utf8');
-      fs.renameSync(tempPath, this.saveFilePath);
+
+      // 3. Atomic rename with Windows retry and copy fallback
+      let success = false;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          fs.renameSync(tempPath, this.saveFilePath);
+          success = true;
+          break;
+        } catch (renameErr) {
+          if (attempt === 2) {
+            try {
+              fs.copyFileSync(tempPath, this.saveFilePath);
+              try { fs.unlinkSync(tempPath); } catch (_) {}
+              success = true;
+            } catch (copyErr) {
+              console.error('[Storage] Error copying to save file:', copyErr);
+            }
+          }
+        }
+      }
+
+      if (!success) {
+        // Direct write fallback
+        try {
+          fs.writeFileSync(this.saveFilePath, content, 'utf8');
+        } catch (directErr) {
+          console.error('[Storage] Direct write fallback failed:', directErr);
+        }
+      }
     } catch (err) {
       console.error('[Storage] Error saving state:', err);
     }

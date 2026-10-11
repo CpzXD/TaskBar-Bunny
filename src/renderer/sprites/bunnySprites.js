@@ -10,14 +10,17 @@ class BunnySpriteGenerator {
    * @param {number} options.direction - 1 for right, -1 for left
    * @param {Object} options.appearance - { furColor, earStyle, eyeColor, blush }
    * @param {Object} options.equipped - { head, face, neck, back, held }
+   * @param {string} options.terrain - 'grassy', 'icy'
    * @returns {{ canvas: HTMLCanvasElement, anchors: Object }}
    */
-  static renderFrame({ state = 'idle', frameIndex = 0, direction = 1, appearance = {}, equipped = null }) {
-    const canvas = document.createElement('canvas');
+  static renderFrame({ state = 'idle', frameIndex = 0, direction = 1, appearance = {}, equipped = null, terrain = 'grassy' }) {
+    const canvas = (typeof document !== 'undefined')
+      ? document.createElement('canvas')
+      : { width: 32, height: 32, getContext: () => ({ fillRect: () => {}, drawImage: () => {}, translate: () => {}, scale: () => {} }) };
     canvas.width = 32;
     canvas.height = 32;
     const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
+    if (ctx) ctx.imageSmoothingEnabled = false;
 
     const fur = PALETTES.fur[appearance.furColor] || PALETTES.fur.white;
     const eyeColor = PALETTES.eyes[appearance.eyeColor] || PALETTES.eyes.ruby;
@@ -51,16 +54,34 @@ class BunnySpriteGenerator {
         break;
 
       case 'walk':
-        // 4 frame walk cycle
-        const wStep = frameIndex % 4;
-        if (wStep === 0) {
-          headOffsetY = 0; footOffsetL = -1; footOffsetR = 1; earAngle = 1;
-        } else if (wStep === 1) {
-          headOffsetY = 1; footOffsetL = 0; footOffsetR = 0; earAngle = 0;
-        } else if (wStep === 2) {
-          headOffsetY = 0; footOffsetL = 1; footOffsetR = -1; earAngle = -1;
+        if (terrain === 'icy') {
+          // 4-frame dynamic ice skating glide animation
+          const sStep = frameIndex % 4;
+          if (sStep === 0) {
+            // Push off back skate, glide forward on front skate with smooth forward lean
+            headOffsetY = 0; headOffsetX = 1; footOffsetL = -2; footOffsetR = 2; earAngle = 1;
+          } else if (sStep === 1) {
+            // Full extension gliding stroke
+            headOffsetY = 1; headOffsetX = 1; footOffsetL = -1; footOffsetR = 3; earAngle = 2;
+          } else if (sStep === 2) {
+            // Alternate skate: push off front skate, glide on back skate
+            headOffsetY = 0; headOffsetX = -1; footOffsetL = 2; footOffsetR = -2; earAngle = -1;
+          } else {
+            // Extended gliding stroke on alternate skate
+            headOffsetY = 1; headOffsetX = -1; footOffsetL = 3; footOffsetR = -1; earAngle = -2;
+          }
         } else {
-          headOffsetY = -1; footOffsetL = 0; footOffsetR = 0; earAngle = 0;
+          // 4 frame walk cycle
+          const wStep = frameIndex % 4;
+          if (wStep === 0) {
+            headOffsetY = 0; footOffsetL = -1; footOffsetR = 1; earAngle = 1;
+          } else if (wStep === 1) {
+            headOffsetY = 1; footOffsetL = 0; footOffsetR = 0; earAngle = 0;
+          } else if (wStep === 2) {
+            headOffsetY = 0; footOffsetL = 1; footOffsetR = -1; earAngle = -1;
+          } else {
+            headOffsetY = -1; footOffsetL = 0; footOffsetR = 0; earAngle = 0;
+          }
         }
         break;
 
@@ -136,7 +157,7 @@ class BunnySpriteGenerator {
     }
 
     // Anchors for accessories (relative to 32x32 origin)
-    const baseHeadX = 17;
+    const baseHeadX = 17 + headOffsetX;
     const baseHeadY = 16 + headOffsetY;
     const baseBodyX = 15;
     const baseBodyY = 22 + bodyOffsetY;
@@ -267,6 +288,31 @@ class BunnySpriteGenerator {
       rect(baseBodyX + 3 + footOffsetR, footY + 1, 4, 1, fur.shadow);
       rect(baseBodyX + 2 + footOffsetR, footY + 2, 5, 1, fur.outline);
       p(baseBodyX + 7 + footOffsetR, footY + 1, fur.outline);
+
+      if (terrain === 'icy') {
+        // Small Ice Skates on feet
+        const backFootX = baseBodyX - 6 + footOffsetL;
+        const frontFootX = baseBodyX + 2 + footOffsetR;
+
+        // Dark boot straps across paws
+        rect(backFootX + 1, footY, 2, 1, '#334155');
+        rect(frontFootX + 1, footY, 2, 1, '#334155');
+
+        // Blade stanchions (mounts connecting sole to blade)
+        p(backFootX + 1, footY + 2, '#64748b');
+        p(backFootX + 3, footY + 2, '#64748b');
+        p(frontFootX + 1, footY + 2, '#64748b');
+        p(frontFootX + 4, footY + 2, '#64748b');
+
+        // Shiny steel ice skate runner blades
+        rect(backFootX - 1, footY + 3, 6, 1, '#94a3b8');
+        p(backFootX + 1, footY + 3, '#ffffff'); // glint highlight
+        p(backFootX + 4, footY + 2, '#cbd5e1'); // curved toe pick
+
+        rect(frontFootX - 1, footY + 3, 7, 1, '#94a3b8');
+        p(frontFootX + 2, footY + 3, '#ffffff'); // glint highlight
+        p(frontFootX + 5, footY + 2, '#cbd5e1'); // curved toe pick
+      }
     }
 
     // 5. Draw Head
@@ -388,14 +434,18 @@ class BunnySpriteGenerator {
 
     // If facing left (-1), flip the entire composite canvas (bunny + clothes) horizontally
     if (direction === -1) {
-      const flippedCanvas = document.createElement('canvas');
+      const flippedCanvas = (typeof document !== 'undefined')
+        ? document.createElement('canvas')
+        : { width: 32, height: 32, getContext: () => ({ fillRect: () => {}, drawImage: () => {}, translate: () => {}, scale: () => {} }) };
       flippedCanvas.width = 32;
       flippedCanvas.height = 32;
       const fCtx = flippedCanvas.getContext('2d');
-      fCtx.imageSmoothingEnabled = false;
-      fCtx.translate(32, 0);
-      fCtx.scale(-1, 1);
-      fCtx.drawImage(canvas, 0, 0);
+      if (fCtx) {
+        fCtx.imageSmoothingEnabled = false;
+        if (typeof fCtx.translate === 'function') fCtx.translate(32, 0);
+        if (typeof fCtx.scale === 'function') fCtx.scale(-1, 1);
+        if (typeof fCtx.drawImage === 'function') fCtx.drawImage(canvas, 0, 0);
+      }
 
       // Adjust anchors for flipped orientation
       anchors.head.x = 32 - anchors.head.x;

@@ -148,8 +148,9 @@ class Bunny {
     // Ice terrain check: skating glints and random slip (every 30-40s)
     const activeTerrain = this.settings?.activeTerrain || 'grassy';
     if (activeTerrain === 'icy' && !this.isSleepingInDen && !this.isDragging) {
-      if (this.stateMachine.currentState === 'walk' && Math.random() < 0.15) {
-        this.addParticle(this.x, this.y, (Math.random() - 0.5) * 1.2, -0.3, 'star');
+      if (this.stateMachine.currentState === 'walk' && Math.random() < 0.25) {
+        const skateTrailX = this.x - (this.direction * 12);
+        this.addParticle(skateTrailX, this.y - 2, -(this.direction * (0.5 + Math.random() * 0.7)), -0.4, 'star');
       }
 
       this.iceSlipTimer += deltaTime;
@@ -476,12 +477,14 @@ class Bunny {
       ? 'sad'
       : this.stateMachine.currentState;
 
+    const activeTerrain = this.settings?.activeTerrain || 'grassy';
     const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
       state: stateName,
       frameIndex: this.stateMachine.frameIndex,
       direction: this.direction,
       appearance: this.appearance,
-      equipped: this.equipped
+      equipped: this.equipped,
+      terrain: activeTerrain
     });
 
     const drawX = Math.floor(this.x - this.width / 2);

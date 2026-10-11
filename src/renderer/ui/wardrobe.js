@@ -191,7 +191,8 @@ class WardrobeController {
       frameIndex: this.previewFrame,
       direction: 1,
       appearance,
-      equipped: currentBunny.equipped || {}
+      equipped: currentBunny.equipped || {},
+      terrain: this.state?.settings?.activeTerrain || 'grassy'
     });
 
     // Scale up 3x to 96x96

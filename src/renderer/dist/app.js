@@ -329,14 +329,19 @@
          * @param {number} options.direction - 1 for right, -1 for left
          * @param {Object} options.appearance - { furColor, earStyle, eyeColor, blush }
          * @param {Object} options.equipped - { head, face, neck, back, held }
+         * @param {string} options.terrain - 'grassy', 'icy'
          * @returns {{ canvas: HTMLCanvasElement, anchors: Object }}
          */
-        static renderFrame({ state = "idle", frameIndex = 0, direction = 1, appearance = {}, equipped = null }) {
-          const canvas = document.createElement("canvas");
+        static renderFrame({ state = "idle", frameIndex = 0, direction = 1, appearance = {}, equipped = null, terrain = "grassy" }) {
+          const canvas = typeof document !== "undefined" ? document.createElement("canvas") : { width: 32, height: 32, getContext: () => ({ fillRect: () => {
+          }, drawImage: () => {
+          }, translate: () => {
+          }, scale: () => {
+          } }) };
           canvas.width = 32;
           canvas.height = 32;
           const ctx = canvas.getContext("2d");
-          ctx.imageSmoothingEnabled = false;
+          if (ctx) ctx.imageSmoothingEnabled = false;
           const fur = PALETTES.fur[appearance.furColor] || PALETTES.fur.white;
           const eyeColor = PALETTES.eyes[appearance.eyeColor] || PALETTES.eyes.ruby;
           const earStyle = appearance.earStyle || "upright";
@@ -364,27 +369,56 @@
               eyeType = frameIndex % 8 === 7 ? "blink" : "normal";
               break;
             case "walk":
-              const wStep = frameIndex % 4;
-              if (wStep === 0) {
-                headOffsetY = 0;
-                footOffsetL = -1;
-                footOffsetR = 1;
-                earAngle = 1;
-              } else if (wStep === 1) {
-                headOffsetY = 1;
-                footOffsetL = 0;
-                footOffsetR = 0;
-                earAngle = 0;
-              } else if (wStep === 2) {
-                headOffsetY = 0;
-                footOffsetL = 1;
-                footOffsetR = -1;
-                earAngle = -1;
+              if (terrain === "icy") {
+                const sStep = frameIndex % 4;
+                if (sStep === 0) {
+                  headOffsetY = 0;
+                  headOffsetX = 1;
+                  footOffsetL = -2;
+                  footOffsetR = 2;
+                  earAngle = 1;
+                } else if (sStep === 1) {
+                  headOffsetY = 1;
+                  headOffsetX = 1;
+                  footOffsetL = -1;
+                  footOffsetR = 3;
+                  earAngle = 2;
+                } else if (sStep === 2) {
+                  headOffsetY = 0;
+                  headOffsetX = -1;
+                  footOffsetL = 2;
+                  footOffsetR = -2;
+                  earAngle = -1;
+                } else {
+                  headOffsetY = 1;
+                  headOffsetX = -1;
+                  footOffsetL = 3;
+                  footOffsetR = -1;
+                  earAngle = -2;
+                }
               } else {
-                headOffsetY = -1;
-                footOffsetL = 0;
-                footOffsetR = 0;
-                earAngle = 0;
+                const wStep = frameIndex % 4;
+                if (wStep === 0) {
+                  headOffsetY = 0;
+                  footOffsetL = -1;
+                  footOffsetR = 1;
+                  earAngle = 1;
+                } else if (wStep === 1) {
+                  headOffsetY = 1;
+                  footOffsetL = 0;
+                  footOffsetR = 0;
+                  earAngle = 0;
+                } else if (wStep === 2) {
+                  headOffsetY = 0;
+                  footOffsetL = 1;
+                  footOffsetR = -1;
+                  earAngle = -1;
+                } else {
+                  headOffsetY = -1;
+                  footOffsetL = 0;
+                  footOffsetR = 0;
+                  earAngle = 0;
+                }
               }
               break;
             case "sit":
@@ -449,7 +483,7 @@
             default:
               headOffsetY = 0;
           }
-          const baseHeadX = 17;
+          const baseHeadX = 17 + headOffsetX;
           const baseHeadY = 16 + headOffsetY;
           const baseBodyX = 15;
           const baseBodyY = 22 + bodyOffsetY;
@@ -552,6 +586,22 @@
             rect(baseBodyX + 3 + footOffsetR, footY + 1, 4, 1, fur.shadow);
             rect(baseBodyX + 2 + footOffsetR, footY + 2, 5, 1, fur.outline);
             p(baseBodyX + 7 + footOffsetR, footY + 1, fur.outline);
+            if (terrain === "icy") {
+              const backFootX = baseBodyX - 6 + footOffsetL;
+              const frontFootX = baseBodyX + 2 + footOffsetR;
+              rect(backFootX + 1, footY, 2, 1, "#334155");
+              rect(frontFootX + 1, footY, 2, 1, "#334155");
+              p(backFootX + 1, footY + 2, "#64748b");
+              p(backFootX + 3, footY + 2, "#64748b");
+              p(frontFootX + 1, footY + 2, "#64748b");
+              p(frontFootX + 4, footY + 2, "#64748b");
+              rect(backFootX - 1, footY + 3, 6, 1, "#94a3b8");
+              p(backFootX + 1, footY + 3, "#ffffff");
+              p(backFootX + 4, footY + 2, "#cbd5e1");
+              rect(frontFootX - 1, footY + 3, 7, 1, "#94a3b8");
+              p(frontFootX + 2, footY + 3, "#ffffff");
+              p(frontFootX + 5, footY + 2, "#cbd5e1");
+            }
           }
           const headW = 14;
           const headH = 11;
@@ -642,14 +692,20 @@
             AccessoryRenderer.renderAccessories(ctx, equipped, anchors, 1, frameIndex);
           }
           if (direction === -1) {
-            const flippedCanvas = document.createElement("canvas");
+            const flippedCanvas = typeof document !== "undefined" ? document.createElement("canvas") : { width: 32, height: 32, getContext: () => ({ fillRect: () => {
+            }, drawImage: () => {
+            }, translate: () => {
+            }, scale: () => {
+            } }) };
             flippedCanvas.width = 32;
             flippedCanvas.height = 32;
             const fCtx = flippedCanvas.getContext("2d");
-            fCtx.imageSmoothingEnabled = false;
-            fCtx.translate(32, 0);
-            fCtx.scale(-1, 1);
-            fCtx.drawImage(canvas, 0, 0);
+            if (fCtx) {
+              fCtx.imageSmoothingEnabled = false;
+              if (typeof fCtx.translate === "function") fCtx.translate(32, 0);
+              if (typeof fCtx.scale === "function") fCtx.scale(-1, 1);
+              if (typeof fCtx.drawImage === "function") fCtx.drawImage(canvas, 0, 0);
+            }
             anchors.head.x = 32 - anchors.head.x;
             anchors.face.x = 32 - anchors.face.x;
             anchors.neck.x = 32 - anchors.neck.x;
@@ -1690,8 +1746,9 @@
           this.needs.update(onLevelUp, onPassiveCarrot);
           const activeTerrain = this.settings?.activeTerrain || "grassy";
           if (activeTerrain === "icy" && !this.isSleepingInDen && !this.isDragging) {
-            if (this.stateMachine.currentState === "walk" && Math.random() < 0.15) {
-              this.addParticle(this.x, this.y, (Math.random() - 0.5) * 1.2, -0.3, "star");
+            if (this.stateMachine.currentState === "walk" && Math.random() < 0.25) {
+              const skateTrailX = this.x - this.direction * 12;
+              this.addParticle(skateTrailX, this.y - 2, -(this.direction * (0.5 + Math.random() * 0.7)), -0.4, "star");
             }
             this.iceSlipTimer += deltaTime;
             if (this.iceSlipTimer >= this.nextIceSlipInterval) {
@@ -1964,12 +2021,14 @@
           ctx.save();
           ctx.imageSmoothingEnabled = false;
           const stateName = this.needs.isHungry() && this.stateMachine.currentState === "idle" ? "sad" : this.stateMachine.currentState;
+          const activeTerrain = this.settings?.activeTerrain || "grassy";
           const { canvas: frameCanvas } = BunnySpriteGenerator.renderFrame({
             state: stateName,
             frameIndex: this.stateMachine.frameIndex,
             direction: this.direction,
             appearance: this.appearance,
-            equipped: this.equipped
+            equipped: this.equipped,
+            terrain: activeTerrain
           });
           const drawX = Math.floor(this.x - this.width / 2);
           const drawY = Math.floor(this.y - this.height);

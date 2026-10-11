@@ -423,5 +423,107 @@ test('progressive achievement tiers exist up to 10k petting and 5k feeding', () 
   assert.ok(ACHIEVEMENTS.some(a => a.id === 'three_presets'), 'three_presets achievement must exist');
 });
 
+test('sanitizeState protects unlocked achievements, cosmetics, and terrains from being wiped', () => {
+  const { sanitizeState } = require('../src/main/main');
+  const currentState = {
+    inventory: {
+      coins: 200,
+      unlockedCosmetics: ['head:party_hat', 'head:golden_crown'],
+      unlockedTerrains: ['grassy', 'icy']
+    },
+    achievements: {
+      unlocked: ['first_carrot', 'fed_25', 'level_5']
+    }
+  };
+
+  // An outdated snapshot missing achievements or cosmetics
+  const incomingOutdatedState = {
+    inventory: {
+      coins: 350,
+      unlockedCosmetics: ['head:party_hat', 'neck:bell_collar'],
+      unlockedTerrains: ['grassy']
+    },
+    achievements: {
+      unlocked: ['first_carrot', 'fed_100']
+    }
+  };
+
+  const safe = sanitizeState(incomingOutdatedState, currentState);
+
+  assert.strictEqual(safe.inventory.coins, 350);
+  assert.ok(safe.inventory.unlockedCosmetics.includes('head:golden_crown'), 'Existing cosmetics must never be lost');
+  assert.ok(safe.inventory.unlockedCosmetics.includes('neck:bell_collar'), 'New cosmetics must be added');
+  assert.ok(safe.inventory.unlockedTerrains.includes('icy'), 'Unlocked icy terrain must not be dropped');
+  assert.ok(safe.achievements.unlocked.includes('level_5'), 'Existing unlocked achievements must be preserved');
+  assert.ok(safe.achievements.unlocked.includes('fed_100'), 'Newly unlocked achievements must be added');
+});
+
+test('storage recovers from backup file when primary file is corrupt or empty', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const testDir = path.join(__dirname, '../userDataTest');
+  if (!fs.existsSync(testDir)) fs.mkdirSync(testDir, { recursive: true });
+
+  const primaryFile = path.join(testDir, 'taskbar-bunny-save.json');
+  const backupFile = path.join(testDir, 'taskbar-bunny-save.json.bak');
+
+  // Corrupt primary file
+  fs.writeFileSync(primaryFile, '{ corrupt json ...', 'utf8');
+  // Valid backup file with custom bunny name
+  const backupData = {
+    bunny: { name: 'Cpz', hunger: 90, happiness: 95, level: 12, xp: 50 },
+    inventory: { coins: 999, foods: { carrot: 10 }, unlockedCosmetics: ['head:golden_crown'] },
+    achievements: { unlocked: ['first_carrot', 'level_10'] },
+    settings: { activeTerrain: 'icy' }
+  };
+  fs.writeFileSync(backupFile, JSON.stringify(backupData, null, 2), 'utf8');
+
+  // Instantiate temporary StorageManager
+  const StorageManagerProto = Object.getPrototypeOf(storage);
+  const testStorage = new StorageManagerProto.constructor();
+  testStorage.userDataPath = testDir;
+  testStorage.saveFilePath = primaryFile;
+  testStorage.backupFilePath = backupFile;
+  testStorage.state = null;
+  testStorage.isInitialized = false;
+
+  const result = testStorage.loadState(true);
+  assert.ok(result.state, 'State should be recovered');
+  assert.strictEqual(result.state.bunny.name, 'Cpz', 'Bunny name should recover from backup');
+  assert.strictEqual(result.state.inventory.coins, 999, 'Coins should recover from backup');
+  assert.ok(result.state.inventory.unlockedCosmetics.includes('head:golden_crown'), 'Cosmetics preserved');
+
+  // Cleanup
+  try { fs.unlinkSync(primaryFile); } catch (e) {}
+  try { fs.unlinkSync(backupFile); } catch (e) {}
+  try { fs.rmdirSync(testDir); } catch (e) {}
+});
+
+test('BunnySpriteGenerator renders ice skates when activeTerrain is icy', () => {
+  const { BunnySpriteGenerator } = require('../src/renderer/sprites/bunnySprites');
+  
+  // Test walk cycle on icy terrain
+  const walkIcy = BunnySpriteGenerator.renderFrame({
+    state: 'walk',
+    frameIndex: 0,
+    direction: 1,
+    appearance: { furColor: 'white' },
+    terrain: 'icy'
+  });
+  assert.ok(walkIcy.canvas, 'Canvas must be returned for icy walk');
+  assert.strictEqual(walkIcy.canvas.width, 32);
+  assert.strictEqual(walkIcy.canvas.height, 32);
+
+  // Test idle on icy terrain has ice skates
+  const idleIcy = BunnySpriteGenerator.renderFrame({
+    state: 'idle',
+    frameIndex: 0,
+    direction: 1,
+    appearance: { furColor: 'white' },
+    terrain: 'icy'
+  });
+  assert.ok(idleIcy.canvas, 'Canvas must be returned for icy idle');
+});
+
 
 
