@@ -90,6 +90,10 @@ function setupIpcHandlers() {
     return windowManager.getDisplaysInfo();
   });
 
+  ipcMain.handle('get-layout', () => {
+    return windowManager.getLayout();
+  });
+
   ipcMain.on('set-monitor', (event, index) => {
     windowManager.setMonitor(index);
     if (storage.state && storage.state.settings) {

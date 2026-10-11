@@ -50,6 +50,9 @@ class WindowManager {
       this.overlayWindow.setIgnoreMouseEvents(true, { forward: true });
     });
 
+    // Tell the renderer where the taskbar is once it has loaded
+    this.overlayWindow.webContents.on('did-finish-load', () => this.sendLayout());
+
     // Listen for screen resolution/workArea changes
     screen.on('display-metrics-changed', () => {
       this.repositionOverlay();
@@ -83,6 +86,30 @@ class WindowManager {
     if (!this.overlayWindow || this.overlayWindow.isDestroyed()) return;
     const bounds = this.getOverlayBounds(this.currentMonitorIndex);
     this.overlayWindow.setBounds(bounds);
+    this.sendLayout();
+  }
+
+  // Pixels at the bottom of the overlay that sit underneath the taskbar.
+  // 0 when the overlay is entirely above it. Derived from the OS work area
+  // (the screen minus the taskbar), so it adapts to any taskbar height,
+  // DPI scale or monitor without hardcoding a pixel value.
+  getTaskbarOverlap() {
+    if (!this.overlayWindow || this.overlayWindow.isDestroyed()) return 0;
+    const win = this.overlayWindow.getBounds();
+    const { workArea } = screen.getDisplayMatching(win);
+    const overlap = (win.y + win.height) - (workArea.y + workArea.height);
+    // Clamp so a bad reading can never push the UI off the top of the canvas
+    // (real taskbars are well under 72 px tall)
+    return Math.max(0, Math.min(Math.round(overlap), 72));
+  }
+
+  getLayout() {
+    return { taskbarOverlap: this.getTaskbarOverlap() };
+  }
+
+  sendLayout() {
+    if (!this.overlayWindow || this.overlayWindow.isDestroyed()) return;
+    this.overlayWindow.webContents.send('layout-updated', this.getLayout());
   }
 
   setIgnoreMouseEvents(ignore, options) {

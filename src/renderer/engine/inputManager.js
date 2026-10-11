@@ -125,7 +125,7 @@ class InputManager {
       if (dist > 8) {
         if (this.app.inventory.foods[this.pendingFoodSlot] > 0) {
           this.app.inventory.foods[this.pendingFoodSlot]--;
-          const groundY = this.app.canvas.height - 12;
+          const groundY = this.app.groundY;
           const newFood = {
             id: this.pendingFoodSlot,
             x: px,
@@ -235,7 +235,7 @@ class InputManager {
 
       // Dropped onto ground/taskbar
       food.vy = 1.2;
-      food.groundY = this.app.canvas.height - 12;
+      food.groundY = this.app.groundY;
       // Safety clamp: keep at least 90px from left edge so it never hides behind the counter pill
       food.x = Math.max(90, Math.min(this.app.canvas.width - 40, food.x));
       food.isGrounded = false;
