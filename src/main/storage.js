@@ -262,16 +262,18 @@ class StorageManager {
 
   deepMerge(target, source) {
     if (!source || typeof source !== 'object') return target;
+    if (!target || typeof target !== 'object') return source;
     const forbidden = ['__proto__', 'constructor', 'prototype'];
 
     for (const key of Object.keys(source)) {
       if (forbidden.includes(key)) continue;
 
       if (
-        source[key] &&
+        source[key] !== null &&
         typeof source[key] === 'object' &&
         !Array.isArray(source[key]) &&
-        target &&
+        target[key] !== null &&
+        target[key] !== undefined &&
         typeof target[key] === 'object' &&
         !Array.isArray(target[key])
       ) {

@@ -535,3 +535,26 @@ test('TrayManager gracefully handles null tray without throwing Uncaught Excepti
     trayManager.updateToolTip('Test ToolTip');
   }, 'TrayManager methods must not throw when tray is uninitialized or null');
 });
+
+test('deepMerge correctly handles null target properties (e.g. menuPosition: null)', () => {
+  const target = {
+    settings: {
+      volume: 0.6,
+      menuPosition: null,
+      customGroundY: null
+    }
+  };
+  const source = {
+    settings: {
+      menuPosition: { x: 350, y: 720 },
+      customGroundY: 480
+    }
+  };
+
+  assert.doesNotThrow(() => {
+    storage.deepMerge(target, source);
+  }, 'deepMerge must not throw TypeError when target property is null');
+
+  assert.deepStrictEqual(target.settings.menuPosition, { x: 350, y: 720 });
+  assert.strictEqual(target.settings.customGroundY, 480);
+});

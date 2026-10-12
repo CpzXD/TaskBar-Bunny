@@ -1,6 +1,14 @@
 const { app, ipcMain, BrowserWindow } = require('electron');
 const path = require('path');
 
+process.on('uncaughtException', err => {
+  console.error('[Main] Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', err => {
+  console.error('[Main] Unhandled Rejection:', err);
+});
+
 if (app && typeof app.setName === 'function') {
   app.setName('Taskbar Bunny');
 }
@@ -31,9 +39,13 @@ if (!gotLock) {
     const { state, offlineSummary } = storage.loadState();
 
     if (state.settings && state.settings.startWithWindows !== undefined) {
-      app.setLoginItemSettings({
-        openAtLogin: Boolean(state.settings.startWithWindows)
-      });
+      try {
+        app.setLoginItemSettings({
+          openAtLogin: Boolean(state.settings.startWithWindows)
+        });
+      } catch (err) {
+        console.error('[Main] setLoginItemSettings error:', err);
+      }
     }
 
     const monitorIndex = state.settings ? state.settings.monitorIndex : 0;
@@ -47,6 +59,8 @@ if (!gotLock) {
 
     trayManager.init(storage);
     setupIpcHandlers();
+  }).catch(err => {
+    console.error('[Main] app.whenReady initialization error:', err);
   });
 
   app.on('window-all-closed', () => {
