@@ -14,8 +14,15 @@ if (!gotLock) {
   if (app && typeof app.quit === 'function') app.quit();
 } else if (app && typeof app.whenReady === 'function') {
   app.on('second-instance', () => {
-    trayManager.setBunnyVisibility(true);
+    try {
+      if (trayManager) {
+        trayManager.setBunnyVisibility(true);
+      }
+    } catch (err) {
+      console.error('[Main] Error handling second-instance visibility:', err);
+    }
     if (windowManager.overlayWindow && !windowManager.overlayWindow.isDestroyed()) {
+      windowManager.overlayWindow.show();
       windowManager.overlayWindow.focus();
     }
   });

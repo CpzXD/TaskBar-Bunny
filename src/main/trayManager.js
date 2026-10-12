@@ -6,25 +6,34 @@ class TrayManager {
   constructor() {
     this.tray = null;
     this.isBunnyVisible = true;
+    this.storage = null;
   }
 
   init(storage) {
     this.storage = storage;
-    const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
-    const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+    try {
+      const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
+      const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
 
-    this.tray = new Tray(trayIcon);
-    this.tray.setToolTip('Taskbar Bunny');
+      this.tray = new Tray(trayIcon);
+      this.tray.setToolTip('Taskbar Bunny');
 
-    this.buildContextMenu(this.storage);
+      this.buildContextMenu(this.storage);
 
-    this.tray.on('click', () => {
-      this.toggleBunnyVisibility();
-    });
+      this.tray.on('click', () => {
+        this.toggleBunnyVisibility();
+      });
+    } catch (err) {
+      console.error('[TrayManager] Failed to initialize system tray icon:', err);
+    }
   }
 
   buildContextMenu(storage) {
     if (storage) this.storage = storage;
+    if (!this.tray || (typeof this.tray.isDestroyed === 'function' && this.tray.isDestroyed())) {
+      return;
+    }
+
     const contextMenu = Menu.buildFromTemplate([
       {
         label: 'Taskbar Bunny',
@@ -59,7 +68,11 @@ class TrayManager {
       }
     ]);
 
-    this.tray.setContextMenu(contextMenu);
+    try {
+      this.tray.setContextMenu(contextMenu);
+    } catch (err) {
+      console.error('[TrayManager] Failed to set context menu:', err);
+    }
   }
 
   setBunnyVisibility(visible) {
@@ -79,8 +92,12 @@ class TrayManager {
   }
 
   updateToolTip(text) {
-    if (this.tray) {
-      this.tray.setToolTip(text);
+    if (this.tray && (typeof this.tray.isDestroyed !== 'function' || !this.tray.isDestroyed())) {
+      try {
+        this.tray.setToolTip(text);
+      } catch (err) {
+        console.error('[TrayManager] Failed to update tooltip:', err);
+      }
     }
   }
 }

@@ -525,5 +525,13 @@ test('BunnySpriteGenerator renders ice skates when activeTerrain is icy', () => 
   assert.ok(idleIcy.canvas, 'Canvas must be returned for icy idle');
 });
 
-
-
+test('TrayManager gracefully handles null tray without throwing Uncaught Exception', () => {
+  const trayManager = require('../src/main/trayManager');
+  assert.strictEqual(trayManager.tray, null, 'Tray should initially be null');
+  assert.doesNotThrow(() => {
+    trayManager.buildContextMenu();
+    trayManager.setBunnyVisibility(true);
+    trayManager.toggleBunnyVisibility();
+    trayManager.updateToolTip('Test ToolTip');
+  }, 'TrayManager methods must not throw when tray is uninitialized or null');
+});
